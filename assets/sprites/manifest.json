@@ -63,27 +63,27 @@
    186
   ],
   "steam_vents_y": [
-   14,
-   32,
-   50,
-   68,
-   86,
-   104,
-   122,
-   140,
-   158,
-   176,
-   194,
-   212,
-   230,
-   248,
-   266,
-   284,
-   302,
-   320,
-   338,
-   356
+   10,
+   28,
+   46,
+   64,
+   82,
+   100,
+   118,
+   136,
+   154,
+   172,
+   190,
+   208,
+   226,
+   244,
+   262,
+   280,
+   298,
+   316,
+   334
   ],
+  "pipe_x": 101,
   "gate_top": 160,
   "smoke_points": [
    [
@@ -225,6 +225,21 @@
     8
    ],
    "loop": true
+  },
+  "boss_fall": {
+   "file": "res://assets/sprites/enemies/boss_fall.png",
+   "frame_size": [
+    38,
+    36
+   ],
+   "frames": 3,
+   "fps": 8,
+   "anchor": [
+    19,
+    33
+   ],
+   "loop": false,
+   "note": "Вожак пустошей: falls into the moat; anchor = waterline under the feet; free after the last frame"
   },
   "boss_walk": {
    "file": "res://assets/sprites/enemies/boss_walk.png",
@@ -407,7 +422,23 @@
     5,
     5
    ],
-   "loop": true
+   "loop": true,
+   "note": "dropped coin, spins"
+  },
+  "gear_coin_fly": {
+   "file": "res://assets/sprites/pickups/gear_coin_fly.png",
+   "frame_size": [
+    8,
+    8
+   ],
+   "frames": 5,
+   "fps": 14,
+   "anchor": [
+    4,
+    4
+   ],
+   "loop": true,
+   "note": "5-frame small coin flying to the counter"
   },
   "ground_tiles": {
    "file": "res://assets/sprites/world/ground_tiles.png",
@@ -438,6 +469,21 @@
    ],
    "loop": false
   },
+  "hound_fall": {
+   "file": "res://assets/sprites/enemies/hound_fall.png",
+   "frame_size": [
+    26,
+    17
+   ],
+   "frames": 3,
+   "fps": 8,
+   "anchor": [
+    13,
+    14
+   ],
+   "loop": false,
+   "note": "Ржавый пёс: falls into the moat; anchor = waterline under the feet; free after the last frame"
+  },
   "hound_run": {
    "file": "res://assets/sprites/enemies/hound_run.png",
    "frame_size": [
@@ -452,6 +498,21 @@
    ],
    "loop": true,
    "note": "Ржавый пёс"
+  },
+  "junk_cart_fall": {
+   "file": "res://assets/sprites/enemies/junk_cart_fall.png",
+   "frame_size": [
+    36,
+    24
+   ],
+   "frames": 3,
+   "fps": 8,
+   "anchor": [
+    18,
+    21
+   ],
+   "loop": false,
+   "note": "Старьёвщик с тележкой: falls into the moat; anchor = waterline under the feet; free after the last frame"
   },
   "junk_cart_walk": {
    "file": "res://assets/sprites/enemies/junk_cart_walk.png",
@@ -471,30 +532,32 @@
   "king_idle": {
    "file": "res://assets/sprites/characters/king_idle.png",
    "frame_size": [
-    16,
-    18
+    20,
+    24
    ],
-   "frames": 2,
-   "fps": 1.5,
+   "frames": 4,
+   "fps": 2,
    "anchor": [
-    6,
-    17
+    8,
+    22
    ],
-   "loop": true
+   "loop": true,
+   "note": "breathing + nod loop"
   },
   "king_tea": {
    "file": "res://assets/sprites/characters/king_tea.png",
    "frame_size": [
-    16,
-    18
+    20,
+    24
    ],
-   "frames": 4,
-   "fps": 3,
+   "frames": 6,
+   "fps": 4,
    "anchor": [
-    6,
-    17
+    8,
+    22
    ],
-   "loop": false
+   "loop": false,
+   "note": "one sip, then back to idle"
   },
   "moat_water": {
    "file": "res://assets/sprites/world/moat_water.png",
@@ -873,6 +936,21 @@
    "loop": true,
    "note": "3 variants, ruts run horizontally"
   },
+  "scavenger_fall": {
+   "file": "res://assets/sprites/enemies/scavenger_fall.png",
+   "frame_size": [
+    22,
+    24
+   ],
+   "frames": 3,
+   "fps": 8,
+   "anchor": [
+    11,
+    21
+   ],
+   "loop": false,
+   "note": "Бродяга: falls into the moat; anchor = waterline under the feet; free after the last frame"
+  },
   "scavenger_walk": {
    "file": "res://assets/sprites/enemies/scavenger_walk.png",
    "frame_size": [
@@ -887,6 +965,21 @@
    ],
    "loop": true,
    "note": "Бродяга"
+  },
+  "scrap_burst": {
+   "file": "res://assets/sprites/fx/scrap_burst.png",
+   "frame_size": [
+    32,
+    32
+   ],
+   "frames": 6,
+   "fps": 14,
+   "anchor": [
+    16,
+    20
+   ],
+   "loop": false,
+   "note": "kill effect: debris flies out of the enemy; play at the enemy's feet, then free"
   },
   "shadow_l": {
    "file": "res://assets/sprites/fx/shadow_l.png",
@@ -961,21 +1054,6 @@
    ],
    "loop": false
   },
-  "steam_column": {
-   "file": "res://assets/sprites/world/steam_column.png",
-   "frame_size": [
-    36,
-    96
-   ],
-   "frames": 6,
-   "fps": 8,
-   "anchor": [
-    1,
-    92
-   ],
-   "loop": true,
-   "note": "anchor = wall nozzle: place at (moat_x0, vent y); offset the start frame per column"
-  },
   "steam_lens": {
    "file": "res://assets/sprites/cursor/steam_lens.png",
    "frame_size": [
@@ -990,6 +1068,36 @@
    ],
    "loop": true
   },
+  "steam_pipe": {
+   "file": "res://assets/sprites/world/steam_pipe.png",
+   "frame_size": [
+    14,
+    18
+   ],
+   "frames": 1,
+   "fps": 0,
+   "anchor": [
+    0,
+    10
+   ],
+   "loop": true,
+   "note": "brass steam main tile with one nozzle; place at (pipe_x, vent y) over the water; skip near the gate"
+  },
+  "steam_pipe_valve": {
+   "file": "res://assets/sprites/world/steam_pipe_valve.png",
+   "frame_size": [
+    14,
+    18
+   ],
+   "frames": 1,
+   "fps": 0,
+   "anchor": [
+    0,
+    10
+   ],
+   "loop": true,
+   "note": "same with a valve wheel"
+  },
   "steam_puff": {
    "file": "res://assets/sprites/fx/steam_puff.png",
    "frame_size": [
@@ -1003,6 +1111,21 @@
     12
    ],
    "loop": false
+  },
+  "steam_sheet": {
+   "file": "res://assets/sprites/world/steam_sheet.png",
+   "frame_size": [
+    24,
+    64
+   ],
+   "frames": 6,
+   "fps": 10,
+   "anchor": [
+    0,
+    63
+   ],
+   "loop": true,
+   "note": "steam curtain sheet; anchor = nozzle mouth: place at (pipe_x+13, vent y), above water and pipes; offset the start frame per sheet"
   },
   "valve_wheel": {
    "file": "res://assets/sprites/world/valve_wheel.png",

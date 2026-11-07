@@ -11,6 +11,7 @@ const MANIFEST_PATH := "res://assets/sprites/manifest.json"
 
 static var _manifest: Dictionary = {}
 static var _frames_cache: Dictionary = {}
+static var _tex_cache: Dictionary = {}
 
 
 static func manifest() -> Dictionary:
@@ -55,6 +56,16 @@ static func frame_size(sprite_name: String) -> Vector2i:
 
 ## Single frame as a texture (AtlasTexture region of the strip).
 static func texture(sprite_name: String, frame: int = 0) -> Texture2D:
+	var key := "%s:%d" % [sprite_name, frame]
+	if _tex_cache.has(key):
+		return _tex_cache[key]
+	var tex := _make_texture(sprite_name, frame)
+	if tex != null:
+		_tex_cache[key] = tex
+	return tex
+
+
+static func _make_texture(sprite_name: String, frame: int) -> Texture2D:
 	var i := info(sprite_name)
 	if i.is_empty():
 		return null

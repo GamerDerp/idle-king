@@ -5,6 +5,7 @@ extends Control
 
 const TEXT_PATH := "res://scenes/art_preview_text.json"
 const FONT_BOLD := preload("res://fonts/kotel_bold.fnt")
+const FONT_NUMBER := preload("res://fonts/kotel_number.fnt")
 const SCREEN_W := 1280
 const PANEL_W := 380
 const BAR_H := 40
@@ -109,12 +110,23 @@ func _build_world() -> void:
 	_king.position = _arr2("king_pos")
 	_world.add_child(_king)
 
-	# steam curtain above the moat
+	# steam main over the water, then the curtain of sheets above it
 	var vents: Array = _lay.get("steam_vents_y", [])
+	var pipe_x := float(_lay.get("pipe_x", 101))
+	var gate_y := float(_lay.get("gate_y", 196))
 	for i in range(vents.size()):
-		var st := SpriteLib.make("steam_column", i % 4)
-		st.position = Vector2(float(moat_x[0]), float(vents[i]))
-		st.speed_scale = 0.8 + 0.1 * float(i % 3)
+		var vy := float(vents[i])
+		if absf(vy - gate_y) < 30.0:
+			continue
+		var pipe := SpriteLib.make("steam_pipe_valve" if i % 4 == 1 else "steam_pipe")
+		pipe.position = Vector2(pipe_x, vy)
+		_world.add_child(pipe)
+	for i in range(vents.size()):
+		var vy := float(vents[i])
+		if absf(vy - gate_y) < 30.0:
+			continue
+		var st := SpriteLib.make("steam_sheet", (i * 7) % 6)
+		st.position = Vector2(pipe_x + 13.0, vy)
 		_world.add_child(st)
 
 	for p: Array in _lay.get("smoke_points", []):
@@ -174,12 +186,10 @@ func _fx_once(sprite_name: String, pos: Vector2) -> void:
 func _float_text(text: String, pos: Vector2, color_name: String) -> void:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_override("font", FONT_BOLD)
+	l.add_theme_font_override("font", FONT_NUMBER)
 	l.add_theme_font_size_override("font_size", 12)
 	l.add_theme_color_override("font_color", Config.color(color_name))
-	l.add_theme_color_override("font_shadow_color", Config.color("soot_0"))
-	l.add_theme_constant_override("shadow_offset_x", 1)
-	l.add_theme_constant_override("shadow_offset_y", 1)
+	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
 	l.position = pos.round()
 	_fx.add_child(l)
 	_floaters.append({"node": l, "age": 0.0, "y": pos.y})
@@ -201,7 +211,10 @@ func _step_enemies(delta: float) -> void:
 		e["x"] = float(e["x"]) - float(e["speed"]) * delta
 		if float(e["x"]) < bank + 3.0:
 			var n: AnimatedSprite2D = e["node"]
-			_fx_once("splash", Vector2(bank - 8.0, n.position.y))
+			var kind: String = e["kind"]
+			_fx_once(kind.get_slice("_", 0) + ("_cart" if kind.begins_with("junk") else "") + "_fall",
+				Vector2(bank - 10.0, n.position.y))
+			_fx_once("splash", Vector2(bank - 10.0, n.position.y))
 			e["x"] = 470.0
 		_place_enemy(e)
 
@@ -261,8 +274,9 @@ func _step_shots(delta: float) -> void:
 			var nums: Array = _txt.get("dmg_numbers", ["1"])
 			if str(s["kind"]) == "mortar":
 				_fx_once("explosion", to + Vector2(0, 6))
-				_float_text(str(nums[2]), to + Vector2(-4, -26), "brass_3")
-				var coin := SpriteLib.make("gear_coin")
+				_fx_once("scrap_burst", to + Vector2(0, 6))
+				_float_text(str(nums[2]), to + Vector2(-4, -26), "ember_2")
+				var coin := SpriteLib.make("gear_coin_fly")
 				coin.position = (to + Vector2(6, -10)).round()
 				_fx.add_child(coin)
 				_floaters.append({"node": coin, "age": 0.0, "y": coin.position.y, "coin": true})
@@ -446,6 +460,8 @@ func _card(c: Dictionary) -> Control:
 	pic.stretch_mode = TextureRect.STRETCH_SCALE
 	pic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	pic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if not bool(c.get("affordable", false)):
+		pic.modulate = Color(1, 1, 1, 0.45)   # dim on the dark slot: "not yet"
 	slot.add_child(pic)
 	h.add_child(slot)
 	var v := VBoxContainer.new()
@@ -632,9 +648,11 @@ func _build_kit() -> void:
 	var lens := SpriteLib.make("steam_lens")
 	lens.position = Vector2(150, y + 50) + Vector2(4, 4)
 	stage.add_child(lens)
-	for i: int in range(4):
-		var e := SpriteLib.make(["explosion", "splash", "steam_puff", "hit_spark"][i])
-		e.position = Vector2(120.0 + (i % 2) * 40.0, y + 100.0 + floorf(i / 2.0) * 36.0)
+	var fx_names: Array[String] = ["explosion", "scrap_burst", "splash", "steam_puff", "scavenger_fall",
+		"hound_fall", "junk_cart_fall", "boss_fall", "hit_spark", "gear_coin_fly"]
+	for i: int in range(fx_names.size()):
+		var e := SpriteLib.make(fx_names[i])
+		e.position = Vector2(14.0 + (i % 5) * 40.0, y + 150.0 + floorf(i / 5.0) * 44.0)
 		e.sprite_frames.set_animation_loop(&"default", true)
 		e.play(&"default")
 		stage.add_child(e)

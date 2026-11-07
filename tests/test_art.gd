@@ -27,6 +27,7 @@ func test_battlefield_layout() -> void:
 
 
 func test_sprite_frames_and_make() -> void:
+	assert_true(SpriteLib.texture("hound_run", 1) == SpriteLib.texture("hound_run", 1), "atlas cached")
 	var s := SpriteLib.make("scavenger_walk")
 	assert_eq(s.sprite_frames.get_frame_count(&"default"), 4)
 	assert_eq(s.offset, -SpriteLib.anchor("scavenger_walk"))
@@ -34,7 +35,7 @@ func test_sprite_frames_and_make() -> void:
 
 
 func test_fonts_and_theme_load() -> void:
-	for f: String in ["regular", "bold", "title"]:
+	for f: String in ["regular", "bold", "title", "number"]:
 		var font: FontFile = load("res://fonts/kotel_%s.fnt" % f)
 		assert_true(font != null, f)
 		if font != null:

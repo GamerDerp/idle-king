@@ -1,7 +1,7 @@
 """Effects, projectiles, pickups, icons and the Steam Lens reticle."""
 import math
 
-from pixel import Canvas, from_ascii
+from pixel import Canvas, cloud, from_ascii
 from sprites_world import puff
 
 
@@ -94,15 +94,15 @@ Q.......
 
 
 def explosion_frames() -> list:
-    """32x32 explosion, 6 frames: flash -> fireball -> smoke -> wisps."""
+    """32x32 explosion, 6 frames: flash -> fireball -> smoke with curls -> torn wisps."""
     frames = []
     specs = [
-        [(16, 17, 4, "fire_hot")],
-        [(16, 16, 8, "fire_hot"), (11, 19, 4, "fire"), (21, 19, 4, "fire")],
-        [(16, 14, 10, "fire"), (10, 19, 6, "fire"), (22, 19, 6, "fire"), (16, 11, 5, "fire_hot")],
-        [(16, 12, 10, "smoke_hot"), (9, 18, 6, "smoke"), (23, 18, 6, "smoke"), (16, 16, 4, "fire")],
-        [(16, 10, 10, "smoke"), (8, 17, 6, "smoke"), (24, 16, 6, "smoke")],
-        [(15, 8, 7, "smoke_thin"), (7, 14, 4, "smoke_thin"), (25, 13, 4, "smoke_thin")],
+        [(16, 17, 4, "fire_hot", 1)],
+        [(16, 16, 8, "fire_hot", 2), (11, 19, 4, "fire", 3), (21, 19, 4, "fire", 4)],
+        [(16, 14, 9, "fire", 5), (10, 19, 6, "fire", 6), (22, 19, 6, "fire", 7), (15, 11, 5, "fire_hot", 8)],
+        [(16, 12, 9, "smoke_hot", 9), (9, 18, 6, "smoke", 10), (23, 18, 6, "smoke", 11), (16, 16, 4, "fire", 12)],
+        [(16, 10, 9, "smoke", 13), (8, 16, 6, "smoke", 14), (24, 15, 5, "smoke", 15)],
+        [(15, 8, 6, "smoke_thin", 16), (7, 13, 4, "smoke_thin", 17), (25, 12, 3.5, "smoke_thin", 18)],
     ]
     tones = {
         "fire_hot": ("ember_2", "parchment_2", "steam_3", 255),
@@ -114,11 +114,11 @@ def explosion_frames() -> list:
     debris = [(4, 6), (27, 5), (2, 20), (29, 22), (10, 2), (22, 1)]
     for fi, spec in enumerate(specs):
         c = Canvas(32, 32)
-        for (x, y, r, tone) in spec:
+        for (x, y, r, tone, seed) in spec:
             d, m, l, a = tones[tone]
-            puff(c, x, y, r, a, d, m, l)
+            cloud(c, x, y, r, seed=seed, alpha=a, dark=d, mid=m, light=l, tail=fi >= 3)
         if fi in (1, 2):
-            c.disc(16, 18 - fi, 2.5 + fi, "steam_3")
+            c.disc(15.5, 17 - fi, 2 + fi, "steam_3")
         if fi >= 2:
             for k, (x, y) in enumerate(debris):
                 t = fi - 2
@@ -132,16 +132,48 @@ def explosion_frames() -> list:
 
 
 def steam_puff_frames() -> list:
-    """16x16 steam puff (scald / tower build), 4 frames."""
+    """16x16 steam puff (scald / tower build), 4 frames, irregular with a torn tail."""
     out = []
     for i in range(4):
         c = Canvas(16, 16)
-        r = 2.5 + i * 1.6
+        r = 2.5 + i * 1.5
         a = (255, 255, 200, 120)[i]
-        puff(c, 8, 9 - i * 0.7, r, a)
+        cloud(c, 8, 9 - i * 0.7, r, seed=31, alpha=a, tail=i >= 1)
         if i < 3:
-            puff(c, 4 + i * 0.3, 11 - i, r * 0.55, a)
-            puff(c, 12 - i * 0.3, 11 - i, r * 0.5, a)
+            cloud(c, 4 + i * 0.3, 11 - i, r * 0.5, seed=32, alpha=a, tail=False)
+        out.append(c)
+    return out
+
+
+def scrap_burst_frames() -> list:
+    """32x32 kill burst: gears, bolts and plate shards fly out and fall, with a dust puff. 6 frames."""
+    parts = [
+        (-7, -9, "gear"), (6, -10, "plate"), (-10, -4, "bolt"), (9, -5, "bolt"),
+        (-3, -12, "plate"), (3, -8, "gear_s"), (-6, -2, "bolt"), (7, -1, "plate"),
+    ]
+    out = []
+    for f in range(6):
+        c = Canvas(32, 32)
+        t = (f + 1) / 6.0
+        if f < 4:
+            cloud(c, 16, 22 - f, 3 + f * 1.3, seed=41, alpha=(230, 200, 150, 90)[f],
+                  dark="dust_2", mid="parchment_0", light="parchment_1", tail=False)
+        for k, (vx, vy, kind) in enumerate(parts):
+            x = 16 + vx * t * 1.4
+            y = 20 + vy * t * 1.6 + 14 * t * t
+            if y > 30:
+                continue
+            spin = (f + k) % 2
+            if kind == "gear":
+                c.ascii(int(x) - 2, int(y) - 2, ([".h.g.", "hhggf", ".gef.", "hggff", ".g.f."] if spin else
+                                                 ["h.g.g", ".hgg.", "gg.ff", ".gff.", "g.f.f"]))
+            elif kind == "gear_s":
+                c.ascii(int(x) - 1, int(y) - 1, [".h.", "hgf", ".f."] if spin else ["h.g", ".f.", "g.f"])
+            elif kind == "plate":
+                c.ascii(int(x) - 2, int(y) - 1, ["ppoo", "oonn"] if spin else ["po.", "on.", ".nm"])
+            else:
+                c.ascii(int(x), int(y), ["dc", "cb"] if spin else ["d.", "cb"])
+        c.outline("soot_0")
         out.append(c)
     return out
 
@@ -171,37 +203,39 @@ def splash_frames() -> list:
                 k = i + 1
                 c.set(12 + dx * k / 2, 22 + dy * k / 2 + k * k * 0.7, "teal_2" if dx < 0 else "steam_2")
         if i >= 2:
-            puff(c, 12, 18 - (i - 2) * 3, 3 + (i - 2) * 1.5, (255, 220, 150)[i - 2])
-            puff(c, 8, 20 - (i - 2) * 2, 2 + (i - 2), (255, 200, 130)[i - 2])
+            cloud(c, 12, 18 - (i - 2) * 3, 3 + (i - 2) * 1.5, seed=51, alpha=(255, 220, 150)[i - 2], tail=i > 2)
+            cloud(c, 8, 20 - (i - 2) * 2, 2 + (i - 2), seed=52, alpha=(255, 200, 130)[i - 2], tail=False)
         out.append(c)
     return out
 
 
 # ------------------------------------------------------------------ pickups
 
-def gear_coin_frames() -> list:
-    """10x10 spinning gear coin, 4 frames (front, 3/4, edge, 3/4)."""
+def gear_coin_frames(size: int = 10, widths=(1.0, 0.6, 0.2, 0.6)) -> list:
+    """Spinning gear coin (front, 3/4, edge, 3/4). 10x10 for drops, 8x8 x5 frames for the flying pickup."""
     out = []
-    for i, sx in enumerate((1.0, 0.6, 0.2, 0.6)):
-        c = Canvas(10, 10)
-        cx, cy = 4.5, 4.5
+    k = size / 10.0
+    for i, sx in enumerate(widths):
+        c = Canvas(size, size)
+        cx, cy = (size - 1) / 2, (size - 1) / 2
         for y in range(10):
             for x in range(10):
                 dx = (x - cx) / max(sx, 0.2)
                 dy = y - cy
                 r = math.hypot(dx, dy)
                 ang = math.atan2(dy, dx)
-                outer = 4.6 if math.cos(ang * 6) > 0.1 else 3.7
+                outer = (4.6 if math.cos(ang * 6) > 0.1 else 3.7) * k
                 if r <= outer:
                     lit = -(x - cx) * 0.6 - dy * 0.8
                     name = "brass_3" if lit > 1.5 else "brass_2" if lit > -1.0 else "brass_1"
-                    if r < 1.4 and sx > 0.5:
+                    if r < 1.4 * k and sx > 0.5:
                         name = "brass_0"
                     c.set(x, y, name)
-        if i == 2:
-            c.vline(4, 0, 9, "brass_2")
-            c.vline(5, 0, 9, "brass_1")
-            c.set(4, 1, "brass_3")
+        if sx < 0.3:
+            m = size // 2 - 1
+            c.vline(m, 0, size - 1, "brass_2")
+            c.vline(m + 1, 0, size - 1, "brass_1")
+            c.set(m, 1, "brass_3")
         c.outline("soot_0")
         out.append(c)
     return out

@@ -79,6 +79,28 @@ def pennant(c: Canvas, x: int, y: int, wave: int) -> None:
     c.ascii(x + 1, y, [r.replace("R", "R").replace("Q", "Q") for r in rows])
 
 
+def stack(c: Canvas, tier: int, x: int, smoke: bool = False) -> None:
+    """Exhaust stack behind the gun: none at tier 0, short at tier 1, tall with a brass crown at tier 2."""
+    if tier == 0:
+        return
+    top = 11 if tier == 1 else 1
+    for y in range(top, 22):
+        c.set(x, y, "copper_3")
+        c.set(x + 1, y, "copper_2")
+        c.set(x + 2, y, "copper_1")
+    for y in range(top + 4, 22, 5):
+        c.hline(x, x + 2, y, "copper_0")
+    c.hline(x - 1, x + 3, top, "brass_3" if tier == 2 else "copper_3")
+    c.hline(x - 1, x + 3, top + 1, "brass_1" if tier == 2 else "copper_1")
+    c.hline(x, x + 2, top - 1, "soot_0")
+    if tier == 2:
+        c.set(x - 1, top - 1, "brass_2")
+        c.set(x + 3, top - 1, "brass_2")
+    if smoke:
+        c.set(x + 1, top - 2, "steam_1")
+        c.set(x + 2, top - 3, "steam_2")
+
+
 def side_pipes(c: Canvas, tier: int) -> None:
     """Extra copper pipes on the gilded tier (from the base into the gun body)."""
     if tier < 2:
@@ -98,36 +120,40 @@ def rifle(tier: int, fire: bool) -> Canvas:
     side_pipes(c, tier)
     m, tr = t["metal"], t["trim"]
     rec = -1 if fire else 0
+    stack(c, tier, 5, fire)
     # steam tank behind (left), round, with a gauge
-    c.shaded_disc(10.5, 19.5, 5.2, list(tr), outline=None)
+    c.shaded_disc(10.5, 19.5, 5.2 + (1 if tier == 2 else 0), list(tr), outline=None)
     c.hline(6, 15, 19, tr[0])
     gauge(c, 8, 15)
-    # turret head
-    c.rect(12, 17, 21, 25, m[1])
-    c.hline(12, 21, 17, m[3])
-    c.vline(12, 17, 25, m[2])
+    # turret head (bigger at tier 2)
+    hy0 = 17 if tier < 2 else 14
+    c.rect(12, hy0, 21, 25, m[1])
+    c.hline(12, 21, hy0, m[3])
+    c.vline(12, hy0, 25, m[2])
     c.hline(12, 21, 25, m[0])
-    c.vline(21, 18, 25, m[0])
-    c.set(14, 20, t["rivet"])
-    c.set(19, 20, t["rivet"])
-    # long barrel to the right
+    c.vline(21, hy0 + 1, 25, m[0])
+    c.set(14, hy0 + 3, t["rivet"])
+    c.set(19, hy0 + 3, t["rivet"])
+    # long barrel(s) to the right: one, or two stacked at tier 2
     bx0 = 21 + rec
-    c.hline(bx0, 30 + rec, 19, m[3])
-    c.hline(bx0, 30 + rec, 20, m[2])
-    c.hline(bx0, 30 + rec, 21, m[0])
-    c.rect(bx0 + 1, 18, bx0 + 2, 22, tr[2])   # barrel band
-    c.set(bx0 + 1, 18, tr[3])
-    c.vline(30 + rec, 18, 22, tr[1])          # muzzle
-    c.set(30 + rec, 18, tr[3])
-    if tier >= 1:
+    for by in ((19,) if tier < 2 else (16, 21)):
+        c.hline(bx0, 30 + rec, by, m[3])
+        c.hline(bx0, 30 + rec, by + 1, m[2])
+        c.hline(bx0, 30 + rec, by + 2, m[0])
+        c.rect(bx0 + 1, by - 1, bx0 + 2, by + 3, tr[2])   # barrel band
+        c.set(bx0 + 1, by - 1, tr[3])
+        c.vline(30 + rec, by - 1, by + 3, tr[1])          # muzzle
+        c.set(30 + rec, by - 1, tr[3])
+    if tier == 1:
         c.hline(bx0 + 4, bx0 + 7, 18, tr[1])   # sight rail
         c.set(bx0 + 4, 17, tr[3])
     if tier == 2:
         pennant(c, 13, 6, 1 if fire else 0)
     if fire:
-        c.set(31, 19, "ember_2")
-        c.set(31, 20, "steam_3")
-        c.set(31, 21, "ember_2")
+        for by in ((19,) if tier < 2 else (16, 21)):
+            c.set(31, by, "ember_2")
+            c.set(31, by + 1, "steam_3")
+            c.set(31, by + 2, "ember_2")
     c.outline("soot_0")
     return c
 
@@ -139,21 +165,25 @@ def riveter(tier: int, fire: bool) -> Canvas:
     side_pipes(c, tier)
     m, tr = t["metal"], t["trim"]
     rec = -1 if fire else 0
-    # boxy body
-    c.rect(8 + rec, 15, 22 + rec, 25, m[1])
-    c.hline(8 + rec, 22 + rec, 15, m[3])
-    c.vline(8 + rec, 15, 25, m[2])
+    stack(c, tier, 4, fire)
+    by0 = 15 if tier < 2 else 13
+    # boxy body (taller at tier 2)
+    c.rect(8 + rec, by0, 22 + rec, 25, m[1])
+    c.hline(8 + rec, 22 + rec, by0, m[3])
+    c.vline(8 + rec, by0, 25, m[2])
     c.hline(8 + rec, 22 + rec, 25, m[0])
     c.vline(22 + rec, 16, 25, m[0])
     for (x, y) in [(10, 17), (20, 17), (10, 23), (20, 23), (15, 23)]:
         c.set(x + rec, y, t["rivet"])
-    # drum magazine on top (seen from the side: a short cylinder)
-    c.rect(10 + rec, 9, 18 + rec, 15, tr[1])
-    c.hline(10 + rec, 18 + rec, 9, tr[3])
-    c.vline(10 + rec, 9, 15, tr[2])
-    c.vline(18 + rec, 10, 15, tr[0])
-    for x in (12, 14, 16):
-        c.vline(x + rec, 10, 14, tr[0])
+    # drum magazine(s) on top (seen from the side: short cylinders); two at tier 2
+    for dx, dy in ((0, 0),) if tier < 2 else ((-2, -2), (5, 0)):
+        x0, y0 = 10 + rec + dx, 9 + dy - (2 if tier == 2 else 0)
+        c.rect(x0, y0, x0 + 8, y0 + 6, tr[1])
+        c.hline(x0, x0 + 8, y0, tr[3])
+        c.vline(x0, y0, y0 + 6, tr[2])
+        c.vline(x0 + 8, y0 + 1, y0 + 6, tr[0])
+        for x in (2, 4, 6):
+            c.vline(x0 + x, y0 + 1, y0 + 5, tr[0])
     # twin short barrels
     for y in (18, 22):
         c.hline(22 + rec, 28 + rec, y, m[3])
@@ -184,6 +214,8 @@ def mortar(tier: int, fire: bool) -> Canvas:
     side_pipes(c, tier)
     m, tr = t["metal"], t["trim"]
     rec = 1 if fire else 0
+    stack(c, tier, 4, fire)
+    fat = 4 if tier == 2 else 3
     # heavy cradle
     c.rect(8, 19, 22, 25, m[1])
     c.hline(8, 22, 19, m[3])
@@ -194,14 +226,14 @@ def mortar(tier: int, fire: bool) -> Canvas:
     cx, cy = 15 - rec, 19 + rec
     for k in range(0, 10):
         x0, y0 = cx + k, cy - k
-        for j in range(-3, 4):
+        for j in range(-fat, fat + 1):
             px, py = x0 + j, y0 + j
-            shade = m[3] if j <= -2 else m[2] if j <= 0 else m[1] if j <= 2 else m[0]
+            shade = m[3] if j <= -fat + 1 else m[2] if j <= 0 else m[1] if j <= fat - 1 else m[0]
             c.set(px, py, shade)
             c.set(px + 1, py, shade)
     # muzzle ring
     mx, my = cx + 10, cy - 10
-    for j in range(-4, 5):
+    for j in range(-fat - 1, fat + 2):
         c.set(mx + j, my + j, tr[2] if j < 0 else tr[1])
         c.set(mx + j + 1, my + j, tr[3] if j < 0 else tr[2])
     c.set(mx - 1, my - 2, "soot_0")

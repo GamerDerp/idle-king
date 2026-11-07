@@ -2,26 +2,26 @@
 
 All walkers face LEFT (toward the fortress). Anchor = bottom-centre of the feet.
 """
-from pixel import Canvas, from_ascii
+from pixel import Canvas, from_ascii, rim_light
 
 # ------------------------------------------------------------------ Бродяга (scavenger), 16x20
 
 SCAV_BODY = """
 ................
 .....0000.......
-....0FFFE0..00..
-...0FFEEEE00hg0.
-..0dhhgEEEE0hf0.
-..0vxygEEE0bcf0.
-..0hygg0EE0cbe0.
-...0ppo0ED0cba0.
-...0opQQQ0Ebba0.
-...0QQQQRQEEb0..
-..0FEEQQEEDE0...
-..0FEEEEEDDE0...
-.0pFEEEDEEDD0...
-.0o0FEEDEEDE0...
-..0.0EDDEDD0....
+....0XXXW0..00..
+...0XXXXWW00hg0.
+..0hhgXXXW0dhf0.
+..0vyhgXXW0dcf0.
+..0hgg0XW0dcce0.
+...0ppo0W0dcbb0.
+..0TTRRRR0Wcbb0.
+..0RTTRRRTRWcb0.
+..0XXRRXXRRTR0..
+..0XXXXXXWWRT0..
+.0pXXXXWXXWW0R..
+.0o0XXXWXXWW00..
+..0.0XWWXWW0....
 """
 SCAV_LEGS = [
     """
@@ -60,9 +60,11 @@ def scavenger_frames() -> list:
     for i, legs in enumerate(SCAV_LEGS):
         c = Canvas(16, 20)
         bob = 0 if i % 2 == 0 else -1
-        c.ascii(0, 15, [r.ljust(16, ".") for r in legs.strip("\n").split("\n")])
+        c.ascii(0, 15, [r.ljust(16, ".").replace("3", "b") for r in legs.strip("\n").split("\n")])
         body = from_ascii(SCAV_BODY)
         c.paste_over(body, 0, bob)
+        c.outline("soot_0")
+        rim_light(c)
         frames.append(c)
     return frames
 
@@ -72,13 +74,13 @@ def scavenger_frames() -> list:
 HOUND_BODY = """
 ....................
 ..000...............
-.0po00..............
-0oTo0b0.......0.....
-0nooob00000000c0....
-.0nnobcccbbbcbc0....
-..00onooooonnnb0....
-....0noooonnnmb0....
-....0nnnnnmmmm0.....
+.0ph00..............
+0pTp0c0.......0.....
+0oppoc00000000d0....
+.0oopcddddcccdc0....
+..00poppppppooc0....
+....0opppppooon0....
+....0ooooonnnn0.....
 .....000000000......
 """
 HOUND_LEGS = [
@@ -109,13 +111,14 @@ def hound_frames() -> list:
     frames = []
     for i, legs in enumerate(HOUND_LEGS):
         c = Canvas(20, 13)
-        c.ascii(0, 10, [r.ljust(20, ".") for r in legs.strip("\n").split("\n")])
+        c.ascii(0, 10, [r.ljust(20, ".").replace("b", "c") for r in legs.strip("\n").split("\n")])
         body = from_ascii(HOUND_BODY)
         c.paste_over(body, 0, 1 if i in (1, 3) else 0)
         # exhaust puff from the tail pipe on alternate frames
         if i % 2 == 0:
-            c.set(16, 2, "iron_2")
-            c.set(17, 1, "iron_1")
+            c.set(16, 2, "steam_1")
+            c.set(17, 1, "steam_2")
+        rim_light(c)
         frames.append(c)
     return frames
 
@@ -175,15 +178,16 @@ def junk_cart_frames() -> list:
     frames = []
     for i in range(4):
         c = Canvas(30, 20)
-        cart = from_ascii(CART)
+        cart = from_ascii(CART.translate(str.maketrans("nomefgh", "ghfmnop")))
         c.paste_over(cart, 0, 4)
         wheel(c, 6, 15, i)
         wheel(c, 17, 15, i + 1)
-        man = from_ascii(JUNK_MAN)
+        man = from_ascii(JUNK_MAN.translate(str.maketrans("nomQ", "ppoR")))
         bob = -1 if i % 2 else 0
         c.paste_over(man, 16, 1 + bob)
         for k, row in enumerate(legs[i]):
-            c.ascii(22, 15 + k, row)
+            c.ascii(22, 15 + k, row.replace("3", "b"))
+        rim_light(c)
         frames.append(c)
     return frames
 
@@ -230,7 +234,7 @@ def boss_frames() -> list:
     frames = []
     for i in range(4):
         c = Canvas(32, 32)
-        body = from_ascii(BOSS)
+        body = from_ascii(BOSS.translate(str.maketrans("nomabc", "opnbcd")))
         legs = Canvas(32, 4)
         for k, row in enumerate(BOSS_LEGS[i]):
             legs.ascii(0, k, row.replace("O", "0"))
@@ -254,59 +258,111 @@ def boss_frames() -> list:
             "..0cb0..",
             "..0cb0..",
         ])
+        rim_light(c)
         frames.append(c)
     return frames
 
 
-# ------------------------------------------------------------------ the King, 14x18
+# ------------------------------------------------------------------ falling into the moat
+
+def fall_frames(walk0: Canvas) -> list:
+    """3 frames of sinking into the boiling moat. Anchor = (w//2+3, h+1): the waterline under the feet."""
+    w, h = walk0.w + 6, walk0.h + 4
+    out = []
+    for i, depth in enumerate((3, walk0.h * 45 // 100, walk0.h * 80 // 100)):
+        c = Canvas(w, h)
+        water = h - 3                       # waterline row
+        src = walk0.img
+        for y in range(walk0.h):
+            ty = 4 + y + depth - 2
+            if ty >= water:
+                continue
+            for x in range(walk0.w):
+                p = src.getpixel((x, y))
+                if p[3]:
+                    c.px[3 + x, ty] = p
+        cx = w / 2
+        rx = 3 + i * 2 + walk0.w * 0.25
+        for x in range(w):
+            dx = (x - cx) / rx
+            if abs(dx) <= 1.0:
+                c.set(x, water, "steam_3" if abs(dx) > 0.55 else "teal_2")
+                if abs(dx) > 0.75:
+                    c.set(x, water - 1, "steam_2")
+        for k, (dx, dy) in enumerate([(-4, -3), (5, -4), (-6, -6), (6, -7)]):
+            if k <= i + 1:
+                c.set(cx + dx * (1 + i * 0.4), water + dy - i, "steam_3" if k % 2 else "teal_2")
+        if i == 2:
+            for (bx, by) in [(cx - 3, water - 2), (cx + 2, water - 3), (cx, water - 5)]:
+                c.set(bx, by, "steam_2")
+        out.append(c)
+    return out
+
+
+# ------------------------------------------------------------------ the King, 18x22 (faces right, toward the field)
 
 KING = """
-...h.h.h......
-...hghghg.....
-...ffffff.....
-..0vvvvvv0....
-..0vpppov0....
-..0p0pp0o0....
-..0ppppoo0....
-..0vvvvvv0....
-.0RvvvvvvR0...
-0RRvvvvvvRR0..
-0RRRvvvvRRQ0..
-0RRRRggRRRQ0..
-0RQRRhgRRQQ0..
-0RRRRRRRRQQ0..
-.0RRRRRRRQ0...
-.0RRQRRRQQ0...
-.00110011000..
-..00000000....
+.h..h.h.h.........
+hgh.hgThg.........
+.g..hhhhhh........
+.g..fgfgfgf.......
+.g...tpppp........
+.g...tpp0pp.......
+.g...tppppopp.....
+.g...ttuuuup......
+.g....tuuvt.......
+.gvvv0vvvv0vv.....
+vvgv0vvvvv0vv0v...
+RRgTRRRhRRRRRRR...
+RRgTRRRhgRRRRRRR..
+RRgTRRRhgRRRRRRR..
+RRgRRRRhgRRRRRRR..
+.RgRRRRhgRRRRRQ...
+.RgRRRRhgRRRRQQ...
+.QgRRRRhgRRRRQQ...
+.QgQRRRhgRRRQQQ...
+.v0vv0vv0vv0vv....
+..00.......00.....
+..11.......11.....
 """
-CUP_LOW = ["vvv", "uvu", ".u."]
+CUP = ["vvvu", "uvu.", ".u.."]
+
+
+def _king_canvas(head_dy: int = 0, body_dy: int = 0, cup=(13, 13), sip: bool = False, steam: int = -1) -> Canvas:
+    base = from_ascii(KING)
+    c = Canvas(20, 24)
+    rows = base.img
+    for y in range(base.h):
+        dy = 1 + (head_dy if y <= 8 else body_dy if y <= 18 else 0)
+        for x in range(base.w):
+            p = rows.getpixel((x, y))
+            if p[3]:
+                c.px[x + 1, y + dy] = p
+    if sip:  # eyes closed while sipping
+        c.set(9, 6 + head_dy, "copper_2")
+    cx, cy = cup
+    c.ascii(cx, cy, CUP)
+    if steam >= 0:
+        c.set(cx + 1 + steam % 2, cy - 2, "steam_2")
+        c.set(cx + 2 - steam % 2, cy - 3, "steam_3")
+    c.outline("soot_0")
+    rim_light(c)
+    return c
 
 
 def king_frames() -> dict:
-    base = from_ascii(KING)
-    idle = []
-    for i in range(2):
-        c = Canvas(16, 18)
-        c.paste_over(base, 0, 0)
-        if i == 1:  # breathing: shoulders up, crown glint
-            c.set(4, 0, "steam_3")
-        # cup held at the chest
-        c.ascii(10, 10, ["vvv0", "uvuv", ".u.."])
-        idle.append(c)
-    tea = []
-    for i, (cx, cy) in enumerate([(10, 10), (9, 7), (7, 5), (9, 7)]):
-        c = Canvas(16, 18)
-        c.paste_over(base, 0, 0)
-        c.ascii(cx, cy, ["vvv0", "uvuv", ".u.."])
-        if i == 2:  # sipping: eyes closed
-            c.set(4, 5, "copper_2")
-            c.set(7, 5, "copper_2")
-            c.set(12, 3, "steam_2")
-            c.set(13, 2, "steam_3")
-        frames_steam = (i in (0, 3))
-        if frames_steam:
-            c.set(cx + 1, cy - 1, "steam_2")
-            c.set(cx + 2, cy - 2, "steam_3")
-        tea.append(c)
+    idle = [
+        _king_canvas(steam=0),
+        _king_canvas(head_dy=-1, body_dy=-1, steam=1),          # breathe in: shoulders and crown rise
+        _king_canvas(steam=0),
+        _king_canvas(head_dy=1, steam=1),                       # small nod
+    ]
+    tea = [
+        _king_canvas(cup=(13, 13), steam=0),
+        _king_canvas(cup=(13, 10), steam=1),
+        _king_canvas(cup=(12, 7), sip=True),
+        _king_canvas(cup=(12, 7), sip=True, head_dy=-1),
+        _king_canvas(cup=(13, 10), steam=0),
+        _king_canvas(cup=(13, 13), steam=1),
+    ]
     return {"idle": idle, "tea": tea}

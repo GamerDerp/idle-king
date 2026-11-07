@@ -49,20 +49,34 @@ def panel(fill: str = "soot_2", trim=("brass_3", "brass_2", "brass_0"), rivets: 
 
 
 def card(affordable: bool = False) -> Canvas:
-    """Shop card: dark plate, thin trim; affordable = warm brass double edge with corner glints."""
-    c = Canvas(16, 16, "soot_2")
-    c.frame(0, 0, 15, 15, "soot_0")
+    """Shop card, 18x18 (1 px clear margin so corner sparks can poke out). 9-slice margin 5.
+
+    Normal: cool dark plate, thin iron edge. Affordable: warm brass-brown plate, double brass edge,
+    4-point sparks on the corners — clearly different at a glance, still pixel-crisp (no glow).
+    """
+    c = Canvas(18, 18)
+    o0, o1 = 1, 16
+    c.rect(o0, o0, o1, o1, "brass_0" if affordable else "soot_1")
+    c.frame(o0, o0, o1, o1, "soot_0")
     if affordable:
-        bevel_box(c, 1, 1, 14, 14, "brass_3", "brass_2", "parchment_2")
-        bevel_box(c, 2, 2, 13, 13, "brass_2", "brass_1")
-        c.frame(3, 3, 12, 12, "soot_0")
-        for (x, y) in [(1, 1), (14, 1), (1, 14), (14, 14)]:
-            c.set(x, y, "ember_2")
+        bevel_box(c, o0 + 1, o0 + 1, o1 - 1, o1 - 1, "brass_3", "brass_2", "parchment_2")
+        bevel_box(c, o0 + 2, o0 + 2, o1 - 2, o1 - 2, "brass_2", "brass_1")
+        c.frame(o0 + 3, o0 + 3, o1 - 3, o1 - 3, "soot_0")
+        c.hline(o0 + 4, o1 - 4, o0 + 4, "brass_1")   # warm inner top light
+        for (x, y) in [(o0 + 1, o0 + 1), (o1 - 1, o0 + 1), (o0 + 1, o1 - 1), (o1 - 1, o1 - 1)]:
+            c.set(x, y, "parchment_2")
+            for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                c.set(x + dx, y + dy, "brass_3")
+            for dx, dy in ((-2, 0), (2, 0), (0, -2), (0, 2)):
+                if not (o0 + 2 < x + dx < o1 - 2 and o0 + 2 < y + dy < o1 - 2):
+                    c.set(x + dx, y + dy, "ember_2")
     else:
-        bevel_box(c, 1, 1, 14, 14, "iron_1", "soot_1", "iron_2")
-        c.frame(2, 2, 13, 13, "soot_0")
-        bevel_box(c, 3, 3, 12, 12, "soot_3", "soot_1")
-    _corners_cut(c)
+        bevel_box(c, o0 + 1, o0 + 1, o1 - 1, o1 - 1, "iron_0", "soot_1", "iron_1")
+        c.frame(o0 + 2, o0 + 2, o1 - 2, o1 - 2, "soot_0")
+        bevel_box(c, o0 + 3, o0 + 3, o1 - 3, o1 - 3, "soot_2", "soot_0")
+    for (x, y) in [(o0, o0), (o1, o0), (o0, o1), (o1, o1)]:
+        if not affordable:
+            c.set(x, y, None)
     return c
 
 
@@ -256,8 +270,8 @@ TEXTURES = {
     # name: (fn, margins l t r b in ART px, axis stretch h/v: 0 stretch 1 tile 2 tile_fit)
     "panel": (panel, (7, 7, 7, 7), 0),
     "panel_plain": (lambda: panel(rivets=False), (7, 7, 7, 7), 0),
-    "card": (card, (4, 4, 4, 4), 0),
-    "card_affordable": (lambda: card(True), (4, 4, 4, 4), 0),
+    "card": (card, (5, 5, 5, 5), 0),
+    "card_affordable": (lambda: card(True), (5, 5, 5, 5), 0),
     "button_normal": (lambda: button("normal"), (5, 4, 5, 5), 0),
     "button_hover": (lambda: button("hover"), (5, 4, 5, 5), 0),
     "button_pressed": (lambda: button("pressed"), (5, 4, 5, 5), 0),

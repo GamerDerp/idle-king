@@ -67,9 +67,34 @@ def stretch_rows(bm: list) -> list:
     return out
 
 
+def outlined(bm: list) -> list:
+    """Pads by 1 px and marks a 1-px outline ring with 2 (ink stays 1)."""
+    h, w = len(bm), len(bm[0])
+    out = [[0] * (w + 2) for _ in range(h + 2)]
+    for y in range(h):
+        for x in range(w):
+            if bm[y][x]:
+                out[y + 1][x + 1] = 1
+    for y in range(h + 2):
+        for x in range(w + 2):
+            if out[y][x] == 0:
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1)):
+                    yy, xx = y + dy, x + dx
+                    if 0 <= yy < h + 2 and 0 <= xx < w + 2 and out[yy][xx] == 1:
+                        out[y][x] = 2
+                        break
+    return out
+
+
 def variant(name: str) -> dict:
     """Returns {'glyphs': {ch: bitmap}, 'base': int, 'line': int, 'size': int, 'spacing': int}."""
     glyphs = {}
+    if name == "number":
+        # bold with a baked 1-px black outline: white ink is tinted by font_color, black stays black
+        for ch in G:
+            glyphs[ch] = outlined(embolden(glyph_bitmap(ch)))
+        return {"glyphs": glyphs, "base": BASE, "line": LINE, "size": LINE, "spacing": -1,
+                "space": 3, "offset": -1}
     for ch in G:
         bm = glyph_bitmap(ch)
         if name in ("bold", "title"):
@@ -118,8 +143,10 @@ def build_font(name: str, out_dir: str) -> dict:
         bm = v["glyphs"][ch]
         for yy in range(h):
             for xx in range(w):
-                if bm[y0 + yy][xx]:
+                if bm[y0 + yy][xx] == 1:
                     px[ax + xx, ay + yy] = (255, 255, 255, 255)
+                elif bm[y0 + yy][xx] == 2:
+                    px[ax + xx, ay + yy] = (0, 0, 0, 255)
     base_name = f"kotel_{name}"
     png = os.path.join(out_dir, base_name + ".png")
     img.save(png)
@@ -127,13 +154,15 @@ def build_font(name: str, out_dir: str) -> dict:
         f'info face="Kotel {name.title()}" size={v["size"]} bold={1 if name != "regular" else 0} italic=0 '
         f'charset="" unicode=1 stretchH=100 smooth=0 aa=1 padding=0,0,0,0 spacing=1,1 outline=0',
         f'common lineHeight={v["line"]} base={v["base"]} scaleW={atlas_w} scaleH={atlas_h} pages=1 packed=0 '
-        f'alphaChnl=0 redChnl=4 greenChnl=4 blueChnl=4',
+        f'alphaChnl=0 redChnl={0 if name == "number" else 4} greenChnl={0 if name == "number" else 4} '
+        f'blueChnl={0 if name == "number" else 4}',
         f'page id=0 file="{base_name}.png"',
     ]
     char_lines = []
     for ch in chars:
         ax, ay, w, h, y0 = placements[ch]
-        char_lines.append(f"char id={ord(ch)} x={ax} y={ay} width={w} height={h} xoffset=0 yoffset={y0} "
+        off = v.get("offset", 0)
+        char_lines.append(f"char id={ord(ch)} x={ax} y={ay} width={w} height={h} xoffset={off} yoffset={y0 + off} "
                           f"xadvance={w + v['spacing']} page=0 chnl=15")
     for sp, adv in SPACES.items():
         adv = v["space"] if sp in (" ", " ") else adv

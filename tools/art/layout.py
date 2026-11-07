@@ -23,7 +23,8 @@ TOWER_SLOTS = [(72, 78), (72, 117), (72, 156), (72, 266), (72, 306)]
 KING_POS = (66, 186)           # the King stands on the gatehouse roof (feet)
 GATE_TOP = GATE_Y - 36         # gatehouse sprite top (its drawbridge centre is at GATE_Y)
 SMOKE_POINTS = []              # chimney mouths, filled by gen_art (courtyard_props)
-STEAM_VENTS_Y = list(range(14, 360, 18))   # steam curtain column positions along the moat
+STEAM_VENTS_Y = list(range(10, 352, 18))   # steam nozzle (mouth) y positions along the moat
+PIPE_X = 101                   # x of the steam main tile (14 px wide; nozzle mouth at PIPE_X+13)
 
 
 def road_center(x: float) -> float:
@@ -40,7 +41,7 @@ def as_dict() -> dict:
         "face_x": [FACE_X0, FACE_X1], "moat_x": [MOAT_X0, MOAT_X1], "bank_x": [BANK_X0, BANK_X1],
         "field_x0": FIELD_X0, "road_y": ROAD_Y, "road_half": ROAD_HALF, "gate_y": GATE_Y,
         "tower_slots": [list(p) for p in TOWER_SLOTS], "king_pos": list(KING_POS),
-        "steam_vents_y": STEAM_VENTS_Y, "gate_top": GATE_TOP,
+        "steam_vents_y": STEAM_VENTS_Y, "pipe_x": PIPE_X, "gate_top": GATE_TOP,
         "smoke_points": [list(p) for p in SMOKE_POINTS],
         "road_samples": [[x, round(road_center(x), 1)] for x in range(FIELD_X0, W + 1, 16)],
     }

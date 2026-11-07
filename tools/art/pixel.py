@@ -207,3 +207,92 @@ def upscale(img: Image.Image, k: int) -> Image.Image:
 
 def rng(seed: int) -> random.Random:
     return random.Random(seed)
+
+
+# ------------------------------------------------------------------ colour utilities
+
+_RGB2NAME = {pal.rgb(n): n for n in pal.names()}
+
+
+def name_at(c: Canvas, x: int, y: int):
+    p = c.get(x, y)
+    return _RGB2NAME.get(p[:3]) if p[3] else None
+
+
+def step(name: str, k: int) -> str:
+    """Move k steps along the colour's ramp (clamped)."""
+    ramp, idx = name.rsplit("_", 1)
+    n = len(pal.RAMPS[ramp])
+    return f"{ramp}_{max(0, min(n - 1, int(idx) + k))}"
+
+
+def rim_light(c: Canvas, outline: str = "soot_0") -> None:
+    """1-px light rim: pixels whose top or left neighbour is outline/empty go one ramp step lighter."""
+    src = c.copy()
+    for y in range(c.h):
+        for x in range(c.w):
+            n = name_at(src, x, y)
+            if n is None or n == outline or n.startswith("soot") or src.get(x, y)[3] < 255:
+                continue
+            up, left = name_at(src, x, y - 1), name_at(src, x - 1, y)
+            if up in (None, outline) or left in (None, outline):
+                c.set(x, y, step(n, 1))
+
+
+def luminance(name: str) -> float:
+    def f(v):
+        v /= 255
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = pal.rgb(name)
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
+
+
+def contrast(a: str, b: str) -> float:
+    la, lb = luminance(a), luminance(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
+def main_color(c: Canvas, ignore=("soot_0",)) -> str:
+    """Most frequent opaque palette colour (ignoring the outline)."""
+    counts = {}
+    for y in range(c.h):
+        for x in range(c.w):
+            n = name_at(c, x, y)
+            if n and n not in ignore and c.get(x, y)[3] == 255:
+                counts[n] = counts.get(n, 0) + 1
+    return max(counts, key=counts.get)
+
+
+def cloud(c: Canvas, cx: float, cy: float, r: float, seed: int, alpha: int = 255,
+          dark: str = "steam_1", mid: str = "steam_2", light: str = "steam_3", tail: bool = True) -> None:
+    """Irregular cloud: a body plus 3-5 lobes (curls show at lobe borders) and a torn trailing tail.
+
+    Every lobe is shaded on its own (highlight cap top-left, crescent shadow bottom-right), lobes higher
+    on the screen are drawn last, so their lower rims read as curls over the body.
+    """
+    rr = random.Random(seed)
+    lobes = [(cx, cy, r)]
+    for i in range(rr.randint(3, 5)):
+        a = math.pi * (1.0 + rr.uniform(-0.15, 1.15))      # mostly the upper half
+        d = r * rr.uniform(0.45, 0.75)
+        lobes.append((cx + math.cos(a) * d, cy + math.sin(a) * d * 0.8, r * rr.uniform(0.42, 0.66)))
+    if tail and r > 2.5:
+        tx, ty = cx + r * 0.5, cy + r * 0.7
+        for k in range(rr.randint(2, 3)):
+            lobes.append((tx + k * r * 0.35 + rr.uniform(-0.6, 0.6), ty + k * r * 0.25, r * (0.32 - k * 0.08)))
+    lobes.sort(key=lambda l: -l[1])  # lower lobes first, upper lobes over them
+    for (lx, ly, lr) in lobes:
+        if lr < 0.6:
+            continue
+        hx, hy, hr = lx - lr * 0.3, ly - lr * 0.35, lr * 0.6
+        sx, sy, sr = lx - lr * 0.2, ly - lr * 0.22, lr * 0.9
+        for y in range(int(ly - lr) - 1, int(ly + lr) + 2):
+            for x in range(int(lx - lr) - 1, int(lx + lr) + 2):
+                if (x + 0.5 - lx) ** 2 + (y + 0.5 - ly) ** 2 <= lr * lr:
+                    if (x + 0.5 - hx) ** 2 + (y + 0.5 - hy) ** 2 <= hr * hr:
+                        name = light
+                    elif (x + 0.5 - sx) ** 2 + (y + 0.5 - sy) ** 2 <= sr * sr:
+                        name = mid
+                    else:
+                        name = dark
+                    c.set(x, y, name, alpha)
