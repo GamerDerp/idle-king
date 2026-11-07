@@ -1,0 +1,17 @@
+{
+  "_comment": "Battlefield geometry (logical units = screen px at 1280x720) and pack spawning.",
+  "field": {
+    "moat_x": 290,
+    "spawn_x": 900,
+    "spawn_jitter_x": 45,
+    "end_x": 980,
+    "y_min": 130,
+    "y_max": 610
+  },
+  "pack_interval": 3.0,
+  "first_pack_at": 0.3,
+  "max_enemies": 300,
+  "boss_pauses_packs": true,
+  "curtain_width": 50,
+  "lane_drift": 6.0
+}

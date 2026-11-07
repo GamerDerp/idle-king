@@ -6,3 +6,125 @@ TIME_DH,%dд %02dч,%dd %02dh
 TIME_HM,%dч %02dм,%dh %02dm
 TIME_MS,%dм %02dс,%dm %02ds
 TIME_S,%dс,%ds
+RES_GEARS,Шестерни,Gears
+RES_BLUEPRINTS,Чертежи,Blueprints
+RES_COAL,Уголь,Coal
+RES_COPPER,Медь,Copper
+RES_SPRINGS,Пружины,Springs
+RES_ETHER,Эфир,Ether
+RES_SEALS,Королевские печати,Royal seals
+RES_GEARS_SHORT,шест.,gears
+RES_BLUEPRINTS_SHORT,черт.,bp
+RES_COAL_SHORT,уголь,coal
+RES_COPPER_SHORT,медь,copper
+RES_SPRINGS_SHORT,пруж.,springs
+RES_ETHER_SHORT,эфир,ether
+RES_SEALS_SHORT,печ.,seals
+DMG_IMPACT,Удар,Impact
+DMG_STEAM,Пар,Steam
+DMG_SPARK,Искра,Spark
+DMG_BLAST,Взрыв,Blast
+ENEMY_TRAMP,Бродяга,Tramp
+ENEMY_RUST_DOG,Ржавый пёс,Rust hound
+ENEMY_JUNKER,Старьёвщик с тележкой,Junk peddler
+ENEMY_TIN_KNIGHT,Жестяной латник,Tin knight
+ENEMY_SCAV_GUARD,Подручный вожака,Chief's henchman
+ENEMY_WASTELAND_CHIEF,Вожак пустошей,Wasteland Chief
+BOSS_WASTELAND_CHIEF,Вожак пустошей,Wasteland Chief
+TOWER_SHOOTER,Паровой стрелок,Steam rifleman
+TOWER_SHOOTER_DESC,Быстрые одиночные пули. Урон: удар.,Fast single bullets. Impact damage.
+TOWER_RIVETER,Клепальщик,Riveter
+TOWER_RIVETER_DESC,Заклёпки пробивают врагов насквозь. Урон: удар.,Rivets pierce through enemies. Impact damage.
+TOWER_MORTAR,Мортира,Mortar
+TOWER_MORTAR_DESC,"Навесной снаряд, взрыв по площади. Не бьёт вплотную к стене.","Lobbed shell, area blast. Cannot hit close to the wall."
+UPG_SHOOTER_DMG,Калибр стрелков,Rifle calibre
+UPG_SHOOTER_DMG_DESC,Больше урона паровых стрелков.,More steam rifleman damage.
+UPG_SHOOTER_RATE,Смазка затворов,Oiled breeches
+UPG_SHOOTER_RATE_DESC,Стрелки перезаряжаются быстрее.,Riflemen reload faster.
+UPG_RIVETER_DMG,Тяжёлые заклёпки,Heavy rivets
+UPG_RIVETER_DMG_DESC,Больше урона клепальщиков.,More riveter damage.
+UPG_RIVETER_RATE,Паровой молот,Steam hammer
+UPG_RIVETER_RATE_DESC,Клепальщики стреляют чаще.,Riveters fire more often.
+UPG_MORTAR_DMG,Начинка бомб,Shell filling
+UPG_MORTAR_DMG_DESC,Больше урона мортир.,More mortar damage.
+UPG_MORTAR_RATE,Заряжающий механизм,Loading gear
+UPG_MORTAR_RATE_DESC,Мортиры стреляют чаще.,Mortars fire more often.
+REGION_0,Предместья,Outskirts
+REGION_1,Ржавые пустоши,Rust Wastes
+REGION_2,Угольные копи,Coal Pits
+NODE_R0_HORN,Гудок: бродяги,Horn: tramps
+NODE_R0_HORN_DESC,Больше бродяг в каждой пачке.,More tramps in every pack.
+NODE_R0_LENS_FOCUS,Фокус линзы,Lens focus
+NODE_R0_LENS_FOCUS_DESC,Паровая линза жжёт сильнее.,The steam lens burns harder.
+NODE_R0_RUMORS,Слухи о кладе: бродяги,Treasure rumours: tramps
+NODE_R0_RUMORS_DESC,"Бродяги несут больше шестерён, но живучее.",Tramps carry more gears but are tougher.
+NODE_R0_LOOPHOLES,Бойницы,Loopholes
+NODE_R0_LOOPHOLES_DESC,Больше мест для паровых стрелков на стене.,More wall slots for steam riflemen.
+NODE_R0_BOUNTY,Награда за голову: бродяги,Bounty: tramps
+NODE_R0_BOUNTY_DESC,"Бродяги приносят больше чертежей, но живучее.",Tramps drop more blueprints but are tougher.
+NODE_R0_LENS_GRIND,Шлифовка линзы,Lens grinding
+NODE_R0_LENS_GRIND_DESC,Шире круг паровой линзы.,Wider steam lens circle.
+NODE_R0_SIGHTS,Латунные прицелы,Brass sights
+NODE_R0_SIGHTS_DESC,Стрелки чаще бьют критом.,Riflemen crit more often.
+NODE_R0_ROAD,Застава на тракте,Highway outpost
+NODE_R0_ROAD_DESC,Открывает дорогу в Ржавые пустоши. Больше добычи.,Opens the road to the Rust Wastes. More loot.
+NODE_R1_DOGS,Открыть дорогу: ржавые псы,Open road: rust hounds
+NODE_R1_DOGS_DESC,Новый враг: быстрые ржавые псы.,New enemy: fast rust hounds.
+NODE_R1_DOG_HORN,Гудок: псы,Horn: hounds
+NODE_R1_DOG_HORN_DESC,Больше псов в каждой пачке.,More hounds in every pack.
+NODE_R1_DOG_RUMORS,Слухи о кладе: псы,Treasure rumours: hounds
+NODE_R1_DOG_RUMORS_DESC,"Псы несут больше шестерён, но живучее.",Hounds carry more gears but are tougher.
+NODE_R1_DOG_BOUNTY,Награда за голову: псы,Bounty: hounds
+NODE_R1_DOG_BOUNTY_DESC,"Псы приносят больше чертежей, но живучее.",Hounds drop more blueprints but are tougher.
+NODE_R1_RIVETER,Клепальная мастерская,Rivet workshop
+NODE_R1_RIVETER_DESC,Новая башня: Клепальщик. Заклёпки пробивают врагов насквозь.,New tower: Riveter. Rivets pierce through enemies.
+NODE_R1_RIVETER_LIMIT,Второй ярус стены,Second wall tier
+NODE_R1_RIVETER_LIMIT_DESC,Больше мест для клепальщиков.,More slots for riveters.
+NODE_R1_RIVETER_PIERCE,Калёные заклёпки,Tempered rivets
+NODE_R1_RIVETER_PIERCE_DESC,Заклёпка пробивает ещё одного врага.,Each rivet pierces one more enemy.
+NODE_R1_JUNKERS,Открыть дорогу: старьёвщики,Open road: junk peddlers
+NODE_R1_JUNKERS_DESC,Новый враг: медленные старьёвщики с тележками. Много здоровья и добычи.,New enemy: slow junk peddlers with carts. Lots of health and loot.
+NODE_R1_JUNK_HORN,Гудок: старьёвщики,Horn: peddlers
+NODE_R1_JUNK_HORN_DESC,Старьёвщики приходят чаще.,Peddlers come more often.
+NODE_R1_JUNK_RUMORS,Слухи о кладе: старьёвщики,Treasure rumours: peddlers
+NODE_R1_JUNK_RUMORS_DESC,"Старьёвщики несут больше шестерён, но живучее.",Peddlers carry more gears but are tougher.
+NODE_R1_JUNK_BOUNTY,Награда за голову: старьёвщики,Bounty: peddlers
+NODE_R1_JUNK_BOUNTY_DESC,"Старьёвщики приносят больше чертежей, но живучее.",Peddlers drop more blueprints but are tougher.
+NODE_R1_CURTAIN,Паровая завеса,Steam curtain
+NODE_R1_CURTAIN_DESC,"Пар над рвом обжигает всех, кто подошёл к краю.",Steam over the moat scalds everyone at the edge.
+NODE_R1_LENS_RATE,Быстрый затвор,Quick shutter
+NODE_R1_LENS_RATE_DESC,Линза жжёт чаще.,The lens burns more often.
+NODE_R1_SEEK,Наводчик,Spotter
+NODE_R1_SEEK_DESC,В авторежиме линза сама плывёт к самой плотной группе врагов.,In auto mode the lens glides to the densest group of enemies.
+NODE_R1_AUTO,Отладка привода,Drive tuning
+NODE_R1_AUTO_DESC,Линза в авторежиме жжёт сильнее.,The lens burns harder in auto mode.
+NODE_R1_KNIGHTS,Открыть дорогу: жестяные латники,Open road: tin knights
+NODE_R1_KNIGHTS_DESC,"Новый враг: латники. Броня держит удар, но пар жжёт их сильнее.","New enemy: tin knights. Armour resists impact, steam hurts them more."
+NODE_R1_MORTAR,Мортирная батарея,Mortar battery
+NODE_R1_MORTAR_DESC,"Новая башня: Мортира. Навесной снаряд, взрыв по площади.","New tower: Mortar. Lobbed shell, area blast."
+NODE_R1_HOT_RIVETS,Раскалённые заклёпки,Red-hot rivets
+NODE_R1_HOT_RIVETS_DESC,Заклёпки ошпаривают врагов: после попадания жжёт пар.,Rivets scald enemies: steam keeps burning after a hit.
+NODE_R1_MORTAR_SPLASH,Тяжёлые бомбы,Heavy bombs
+NODE_R1_MORTAR_SPLASH_DESC,Шире взрыв мортир.,Wider mortar blasts.
+NODE_R1_MORTAR_LIMIT,Мортирный бастион,Mortar bastion
+NODE_R1_MORTAR_LIMIT_DESC,Больше мест для мортир.,More slots for mortars.
+NODE_R1_KNIGHT_HORN,Гудок: латники,Horn: knights
+NODE_R1_KNIGHT_HORN_DESC,Больше латников в каждой пачке.,More knights in every pack.
+NODE_R1_KNIGHT_BOUNTY,Награда за голову: латники,Bounty: knights
+NODE_R1_KNIGHT_BOUNTY_DESC,"Латники приносят больше чертежей, но живучее.",Knights drop more blueprints but are tougher.
+NODE_R1_DECREE,Королевский указ «Сталь»,Royal decree: Steel
+NODE_R1_DECREE_DESC,Всё оружие крепости бьёт сильнее.,All fortress weapons hit harder.
+NODE_R1_BOSS,Вызвать Вожака пустошей,Summon the Wasteland Chief
+NODE_R1_BOSS_DESC,Хозяин пустошей идёт со свитой. Победа откроет Угольные копи.,The master of the wastes comes with his gang. Victory opens the Coal Pits.
+NODE_R2_ROAD,Дорога в Угольные копи,Road to the Coal Pits
+NODE_R2_ROAD_DESC,"Скоро: уголь, шахтёры и котельные башни. Больше добычи.","Coming soon: coal, miners and boiler towers. More loot."
+UI_SEC,с,s
+UI_KILLS,Убито,Killed
+UI_FALLS,В рву,In the moat
+UI_LENS,Линза,Lens
+UI_LENS_MANUAL,ручная,manual
+UI_LENS_AUTO,авто,auto
+UI_LENS_SEEK,наводчик,spotter
+UI_BOSS_CALL_AGAIN,Вызвать снова,Call again
+UI_BOSS_RETREATED,"Отступил! Вернётся, когда будешь готов",Retreated! He'll be back when you're ready
+UI_BOSS_DEFEATED,Вожак повержен!,The Chief is defeated!

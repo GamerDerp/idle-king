@@ -1,0 +1,158 @@
+{
+  "_comment": "Enemy types. pack = spawn count per pack (fractions accumulate). resist: damage type -> fraction blocked (negative = weakness). loot per kill before multipliers.",
+  "damage_types": {
+    "impact": {
+      "name": "DMG_IMPACT",
+      "color": "iron_3"
+    },
+    "steam": {
+      "name": "DMG_STEAM",
+      "color": "steam_2"
+    },
+    "spark": {
+      "name": "DMG_SPARK",
+      "color": "teal_2"
+    },
+    "blast": {
+      "name": "DMG_BLAST",
+      "color": "ember_2"
+    }
+  },
+  "enemies": {
+    "tramp": {
+      "name": "ENEMY_TRAMP",
+      "region": 0,
+      "role": "normal",
+      "start": true,
+      "hp": 14,
+      "speed": 30,
+      "radius": 9,
+      "pack": 3,
+      "loot": {
+        "gears": 1,
+        "blueprints": 0.4
+      },
+      "resist": {},
+      "color": "parchment_1"
+    },
+    "rust_dog": {
+      "name": "ENEMY_RUST_DOG",
+      "region": 1,
+      "role": "normal",
+      "hp": 32,
+      "speed": 56,
+      "radius": 8,
+      "pack": 2,
+      "loot": {
+        "gears": 3,
+        "blueprints": 1.5
+      },
+      "resist": {},
+      "color": "copper_2"
+    },
+    "junker": {
+      "name": "ENEMY_JUNKER",
+      "region": 1,
+      "role": "normal",
+      "hp": 280,
+      "speed": 16,
+      "radius": 14,
+      "pack": 0.5,
+      "loot": {
+        "gears": 25,
+        "blueprints": 16
+      },
+      "resist": {
+        "blast": 0.2
+      },
+      "color": "brass_1"
+    },
+    "tin_knight": {
+      "name": "ENEMY_TIN_KNIGHT",
+      "region": 1,
+      "role": "normal",
+      "hp": 420,
+      "speed": 24,
+      "radius": 11,
+      "pack": 1,
+      "loot": {
+        "gears": 50,
+        "blueprints": 35
+      },
+      "resist": {
+        "impact": 0.6,
+        "steam": -0.5
+      },
+      "color": "iron_3"
+    },
+    "scav_guard": {
+      "name": "ENEMY_SCAV_GUARD",
+      "region": 1,
+      "role": "escort",
+      "hp": 500,
+      "speed": 22,
+      "radius": 11,
+      "loot": {
+        "gears": 20,
+        "blueprints": 8
+      },
+      "resist": {
+        "impact": 0.3
+      },
+      "color": "copper_1"
+    },
+    "wasteland_chief": {
+      "name": "ENEMY_WASTELAND_CHIEF",
+      "region": 1,
+      "role": "boss",
+      "hp": 9500,
+      "speed": 11,
+      "radius": 22,
+      "loot": {
+        "gears": 500
+      },
+      "resist": {
+        "impact": 0.3
+      },
+      "color": "ember_1"
+    }
+  },
+  "bosses": {
+    "wasteland_chief": {
+      "name": "BOSS_WASTELAND_CHIEF",
+      "enemy": "wasteland_chief",
+      "escorts": [
+        {
+          "type": "scav_guard",
+          "count": 4,
+          "at": 0.0
+        },
+        {
+          "type": "rust_dog",
+          "count": 6,
+          "at": 6.0
+        },
+        {
+          "type": "scav_guard",
+          "count": 4,
+          "at": 14.0
+        },
+        {
+          "type": "rust_dog",
+          "count": 6,
+          "at": 22.0
+        }
+      ],
+      "reward": {
+        "blueprints": 3000,
+        "gears": 5000
+      },
+      "on_defeat": [
+        {
+          "type": "unlock_region",
+          "value": 2
+        }
+      ]
+    }
+  }
+}

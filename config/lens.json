@@ -1,0 +1,20 @@
+{
+  "_comment": "Steam lens (cursor weapon). Manual: follows cursor. Auto (no cursor or cursor still > idle_to_auto s): sweeps an oval path at auto_mult damage; with lens_seek glides to the densest group.",
+  "radius": 45,
+  "dmg": 0.8,
+  "tick": 0.25,
+  "dmg_type": "steam",
+  "idle_to_auto": 2.0,
+  "auto_mult": 0.5,
+  "auto_path": {
+    "cx": 600,
+    "cy": 370,
+    "rx": 230,
+    "ry": 170,
+    "period": 14.0
+  },
+  "auto_speed": 170,
+  "seek_speed": 150,
+  "seek_retarget": 0.5,
+  "hit_radius_factor": 0.5
+}
