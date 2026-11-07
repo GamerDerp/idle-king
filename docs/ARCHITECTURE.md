@@ -8,9 +8,9 @@
 - Тесты: `tools/run_tests.sh` → `godot --headless --path . -s res://tests/run_tests.gd`. Код возврата 0 = всё зелёное.
 - Скриншоты: `tools/screenshot.sh <секунд> <out.png> [аргументы игры]` — запуск под xvfb, игра сама сохраняет кадр через N секунд игрового времени (аргумент `--shot=<path> --shot-time=<sec>`), можно ускорять время `--timescale=<k>`.
 - Аргументы игры после `--` (автолоад `DevTools`): `--shot=<path>`, `--shot-time=<сек игрового времени>`, `--timescale=<k>`, `--quit-after=<сек реального времени>`, `--lang=ru|en`; прочие `--key=value` читаются через `DevTools.get_arg()`.
-- Симуляция баланса: `tools/simulate.sh [минут=20] [--idle|--active] [--seed=N]` → headless-бот (`SimBot`) играет по ядру логики, пишет `sim_out/report.md` (проверки темпа) и `sim_out/timeline*.csv`.
+- Симуляция баланса: `tools/simulate.sh [минут=20] [--active|--real|--idle] [--seed=N]` → headless-бот (`SimBot`, три режима игрока) играет по ядру логики, пишет `sim_out/report.md` (проверки темпа) и `sim_out/timeline*.csv`.
 - API ядра (состояние, события, покупки, курсор-линза, конфиги эффектов): `docs/CORE.md`.
-- Отладочные аргументы игры: `--bot[=idle]` (играет бот), `--ff=<сек>` (промотать на старте), `--seed=<n>`.
+- Отладочные аргументы игры: `--bot[=real|idle]` (играет бот), `--ff=<сек>` (промотать на старте), `--seed=<n>`.
 - Web-сборка: `tools/export_web.sh` → `build/web/`. Запуск: `python3 -m http.server -d build/web 8000`. Проверка: `tools/check_web.sh` (экспорт + headless Chrome, скриншот `shots/web.png`, код 0 = игра загрузилась).
 - Windows-сборка: `tools/export_windows.sh` → `build/windows/IdleKing.exe` (pck встроен).
 - Арт: `python3 tools/art/gen_art.py` → `assets/sprites/*.png` и `config/palette.json`; затем `--import`.
