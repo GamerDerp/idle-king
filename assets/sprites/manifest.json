@@ -241,7 +241,7 @@
    "frames": 4,
    "fps": 7,
    "anchor": [
-    8,
+    10,
     23
    ],
    "loop": true,
@@ -1173,6 +1173,21 @@
    "loop": true,
    "note": "Подручный вожака"
   },
+  "heal_plus": {
+   "file": "res://assets/sprites/fx/heal_plus.png",
+   "frame_size": [
+    9,
+    14
+   ],
+   "frames": 5,
+   "fps": 10,
+   "anchor": [
+    4,
+    13
+   ],
+   "loop": false,
+   "note": "over EACH healed neighbour's head at the same moment as heal_pulse"
+  },
   "heal_pulse": {
    "file": "res://assets/sprites/fx/heal_pulse.png",
    "frame_size": [
@@ -1321,6 +1336,246 @@
    ],
    "loop": true,
    "note": "Жестяной латник"
+  },
+  "map_bg": {
+   "file": "res://assets/sprites/map/map_bg.png",
+   "frame_size": [
+    2400,
+    1700
+   ],
+   "frames": 1,
+   "fps": 0,
+   "anchor": [
+    0,
+    0
+   ],
+   "loop": true,
+   "note": "conquest map 2400x1700: art = origin + node pos * scale (config/map_layout.json); regions, fog placement, label spots and the title box are in map_layout.json"
+  },
+  "map_fog_burn": {
+   "file": "res://assets/sprites/map/map_fog_burn.png",
+   "frame_size": [
+    64,
+    48
+   ],
+   "frames": 7,
+   "fps": 10,
+   "anchor": [
+    32,
+    30
+   ],
+   "loop": false,
+   "note": "region opens: scatter many over the fog, hide the region fog at frame 3"
+  },
+  "map_fog_r1": {
+   "file": "res://assets/sprites/map/map_fog_r1.png",
+   "frame_size": [
+    1107,
+    694
+   ],
+   "frames": 1,
+   "fps": 0,
+   "anchor": [
+    0,
+    0
+   ],
+   "loop": true,
+   "note": "fog over region 1 until it opens: place at map_layout regions[1].fog_pos"
+  },
+  "map_fog_r2": {
+   "file": "res://assets/sprites/map/map_fog_r2.png",
+   "frame_size": [
+    966,
+    824
+   ],
+   "frames": 1,
+   "fps": 0,
+   "anchor": [
+    0,
+    0
+   ],
+   "loop": true,
+   "note": "fog over region 2 until it opens: place at map_layout regions[2].fog_pos"
+  },
+  "map_fog_r3": {
+   "file": "res://assets/sprites/map/map_fog_r3.png",
+   "frame_size": [
+    840,
+    614
+   ],
+   "frames": 1,
+   "fps": 0,
+   "anchor": [
+    0,
+    0
+   ],
+   "loop": true,
+   "note": "fog over region 3 until it opens: place at map_layout regions[3].fog_pos"
+  },
+  "map_fog_r4": {
+   "file": "res://assets/sprites/map/map_fog_r4.png",
+   "frame_size": [
+    959,
+    1021
+   ],
+   "frames": 1,
+   "fps": 0,
+   "anchor": [
+    0,
+    0
+   ],
+   "loop": true,
+   "note": "fog over region 4 until it opens: place at map_layout regions[4].fog_pos"
+  },
+  "map_fog_r5": {
+   "file": "res://assets/sprites/map/map_fog_r5.png",
+   "frame_size": [
+    983,
+    966
+   ],
+   "frames": 1,
+   "fps": 0,
+   "anchor": [
+    0,
+    0
+   ],
+   "loop": true,
+   "note": "fog over region 5 until it opens: place at map_layout regions[5].fog_pos"
+  },
+  "map_fog_r6": {
+   "file": "res://assets/sprites/map/map_fog_r6.png",
+   "frame_size": [
+    756,
+    696
+   ],
+   "frames": 1,
+   "fps": 0,
+   "anchor": [
+    0,
+    0
+   ],
+   "loop": true,
+   "note": "fog over region 6 until it opens: place at map_layout regions[6].fog_pos"
+  },
+  "map_fog_r7": {
+   "file": "res://assets/sprites/map/map_fog_r7.png",
+   "frame_size": [
+    972,
+    544
+   ],
+   "frames": 1,
+   "fps": 0,
+   "anchor": [
+    0,
+    0
+   ],
+   "loop": true,
+   "note": "fog over region 7 until it opens: place at map_layout regions[7].fog_pos"
+  },
+  "map_fog_wisp": {
+   "file": "res://assets/sprites/map/map_fog_wisp.png",
+   "frame_size": [
+    48,
+    28
+   ],
+   "frames": 4,
+   "fps": 4,
+   "anchor": [
+    24,
+    20
+   ],
+   "loop": true,
+   "note": "drifting puff to scatter over fogged regions (move slowly, random start frame)"
+  },
+  "map_ink_splat": {
+   "file": "res://assets/sprites/map/map_ink_splat.png",
+   "frame_size": [
+    40,
+    40
+   ],
+   "frames": 6,
+   "fps": 14,
+   "anchor": [
+    20,
+    20
+   ],
+   "loop": false,
+   "note": "purchase: ink splat on the node, then map_stamp"
+  },
+  "map_progress_fill": {
+   "file": "res://assets/sprites/map/map_progress_fill.png",
+   "frame_size": [
+    4,
+    8
+   ],
+   "frames": 1,
+   "fps": 0,
+   "anchor": [
+    0,
+    0
+   ],
+   "loop": true,
+   "note": "bar fill tile 4x8"
+  },
+  "map_progress_frame": {
+   "file": "res://assets/sprites/map/map_progress_frame.png",
+   "frame_size": [
+    260,
+    52
+   ],
+   "frames": 1,
+   "fps": 0,
+   "anchor": [
+    0,
+    0
+   ],
+   "loop": true,
+   "note": "«Долина покорена на N%»: text line x 34..225, y 12..26; bar slot x 36..223, y 31..38"
+  },
+  "map_road_dot": {
+   "file": "res://assets/sprites/map/map_road_dot.png",
+   "frame_size": [
+    4,
+    4
+   ],
+   "frames": 3,
+   "fps": 0,
+   "anchor": [
+    1,
+    1
+   ],
+   "loop": false,
+   "note": "road dot every 7 art px along a link (10 px clear at each node); frame 0 locked, 1 open, 2 conquered"
+  },
+  "map_spark": {
+   "file": "res://assets/sprites/map/map_spark.png",
+   "frame_size": [
+    9,
+    9
+   ],
+   "frames": 4,
+   "fps": 12,
+   "anchor": [
+    4,
+    4
+   ],
+   "loop": true,
+   "note": "spark travelling along roads from a bought node to the newly opened ones"
+  },
+  "map_stamp": {
+   "file": "res://assets/sprites/map/map_stamp.png",
+   "frame_size": [
+    28,
+    28
+   ],
+   "frames": 5,
+   "fps": 12,
+   "anchor": [
+    14,
+    14
+   ],
+   "loop": false,
+   "note": "purchase: wax seal pressed onto the node (after the splat)"
   },
   "moat_furnace_hot": {
    "file": "res://assets/sprites/world/moat_furnace_hot.png",
@@ -1528,6 +1783,344 @@
    ],
    "loop": false,
    "note": "shot smoke: spawn at tower position - tower anchor + manifest 'muzzle' when a tower fires"
+  },
+  "node_bait": {
+   "file": "res://assets/sprites/map/node_bait.png",
+   "frame_size": [
+    16,
+    16
+   ],
+   "frames": 7,
+   "fps": 6,
+   "anchor": [
+    8,
+    8
+   ],
+   "loop": false,
+   "note": "node marker; frames: 0 locked, 1-3 available (pulse loop), 4 purchased, 5 maxed, 6 excluded",
+   "states": {
+    "locked": 0,
+    "available": [
+     1,
+     2,
+     3
+    ],
+    "purchased": 4,
+    "maxed": 5,
+    "excluded": 6
+   }
+  },
+  "node_boss": {
+   "file": "res://assets/sprites/map/node_boss.png",
+   "frame_size": [
+    24,
+    24
+   ],
+   "frames": 7,
+   "fps": 6,
+   "anchor": [
+    12,
+    12
+   ],
+   "loop": false,
+   "note": "node marker; frames: 0 locked, 1-3 available (pulse loop), 4 purchased, 5 maxed, 6 excluded",
+   "states": {
+    "locked": 0,
+    "available": [
+     1,
+     2,
+     3
+    ],
+    "purchased": 4,
+    "maxed": 5,
+    "excluded": 6
+   }
+  },
+  "node_choice": {
+   "file": "res://assets/sprites/map/node_choice.png",
+   "frame_size": [
+    24,
+    24
+   ],
+   "frames": 7,
+   "fps": 6,
+   "anchor": [
+    12,
+    12
+   ],
+   "loop": false,
+   "note": "node marker; frames: 0 locked, 1-3 available (pulse loop), 4 purchased, 5 maxed, 6 excluded",
+   "states": {
+    "locked": 0,
+    "available": [
+     1,
+     2,
+     3
+    ],
+    "purchased": 4,
+    "maxed": 5,
+    "excluded": 6
+   }
+  },
+  "node_global": {
+   "file": "res://assets/sprites/map/node_global.png",
+   "frame_size": [
+    24,
+    24
+   ],
+   "frames": 7,
+   "fps": 6,
+   "anchor": [
+    12,
+    12
+   ],
+   "loop": false,
+   "note": "node marker; frames: 0 locked, 1-3 available (pulse loop), 4 purchased, 5 maxed, 6 excluded",
+   "states": {
+    "locked": 0,
+    "available": [
+     1,
+     2,
+     3
+    ],
+    "purchased": 4,
+    "maxed": 5,
+    "excluded": 6
+   }
+  },
+  "node_lens": {
+   "file": "res://assets/sprites/map/node_lens.png",
+   "frame_size": [
+    16,
+    16
+   ],
+   "frames": 7,
+   "fps": 6,
+   "anchor": [
+    8,
+    8
+   ],
+   "loop": false,
+   "note": "node marker; frames: 0 locked, 1-3 available (pulse loop), 4 purchased, 5 maxed, 6 excluded",
+   "states": {
+    "locked": 0,
+    "available": [
+     1,
+     2,
+     3
+    ],
+    "purchased": 4,
+    "maxed": 5,
+    "excluded": 6
+   }
+  },
+  "node_mechanism": {
+   "file": "res://assets/sprites/map/node_mechanism.png",
+   "frame_size": [
+    16,
+    16
+   ],
+   "frames": 7,
+   "fps": 6,
+   "anchor": [
+    8,
+    8
+   ],
+   "loop": false,
+   "note": "node marker; frames: 0 locked, 1-3 available (pulse loop), 4 purchased, 5 maxed, 6 excluded",
+   "states": {
+    "locked": 0,
+    "available": [
+     1,
+     2,
+     3
+    ],
+    "purchased": 4,
+    "maxed": 5,
+    "excluded": 6
+   }
+  },
+  "node_moat": {
+   "file": "res://assets/sprites/map/node_moat.png",
+   "frame_size": [
+    16,
+    16
+   ],
+   "frames": 7,
+   "fps": 6,
+   "anchor": [
+    8,
+    8
+   ],
+   "loop": false,
+   "note": "node marker; frames: 0 locked, 1-3 available (pulse loop), 4 purchased, 5 maxed, 6 excluded",
+   "states": {
+    "locked": 0,
+    "available": [
+     1,
+     2,
+     3
+    ],
+    "purchased": 4,
+    "maxed": 5,
+    "excluded": 6
+   }
+  },
+  "node_producer": {
+   "file": "res://assets/sprites/map/node_producer.png",
+   "frame_size": [
+    16,
+    16
+   ],
+   "frames": 7,
+   "fps": 6,
+   "anchor": [
+    8,
+    8
+   ],
+   "loop": false,
+   "note": "node marker; frames: 0 locked, 1-3 available (pulse loop), 4 purchased, 5 maxed, 6 excluded",
+   "states": {
+    "locked": 0,
+    "available": [
+     1,
+     2,
+     3
+    ],
+    "purchased": 4,
+    "maxed": 5,
+    "excluded": 6
+   }
+  },
+  "node_region": {
+   "file": "res://assets/sprites/map/node_region.png",
+   "frame_size": [
+    24,
+    24
+   ],
+   "frames": 7,
+   "fps": 6,
+   "anchor": [
+    12,
+    12
+   ],
+   "loop": false,
+   "note": "node marker; frames: 0 locked, 1-3 available (pulse loop), 4 purchased, 5 maxed, 6 excluded",
+   "states": {
+    "locked": 0,
+    "available": [
+     1,
+     2,
+     3
+    ],
+    "purchased": 4,
+    "maxed": 5,
+    "excluded": 6
+   }
+  },
+  "node_reward": {
+   "file": "res://assets/sprites/map/node_reward.png",
+   "frame_size": [
+    16,
+    16
+   ],
+   "frames": 7,
+   "fps": 6,
+   "anchor": [
+    8,
+    8
+   ],
+   "loop": false,
+   "note": "node marker; frames: 0 locked, 1-3 available (pulse loop), 4 purchased, 5 maxed, 6 excluded",
+   "states": {
+    "locked": 0,
+    "available": [
+     1,
+     2,
+     3
+    ],
+    "purchased": 4,
+    "maxed": 5,
+    "excluded": 6
+   }
+  },
+  "node_spine": {
+   "file": "res://assets/sprites/map/node_spine.png",
+   "frame_size": [
+    24,
+    24
+   ],
+   "frames": 7,
+   "fps": 6,
+   "anchor": [
+    12,
+    12
+   ],
+   "loop": false,
+   "note": "node marker; frames: 0 locked, 1-3 available (pulse loop), 4 purchased, 5 maxed, 6 excluded",
+   "states": {
+    "locked": 0,
+    "available": [
+     1,
+     2,
+     3
+    ],
+    "purchased": 4,
+    "maxed": 5,
+    "excluded": 6
+   }
+  },
+  "node_synergy": {
+   "file": "res://assets/sprites/map/node_synergy.png",
+   "frame_size": [
+    16,
+    16
+   ],
+   "frames": 7,
+   "fps": 6,
+   "anchor": [
+    8,
+    8
+   ],
+   "loop": false,
+   "note": "node marker; frames: 0 locked, 1-3 available (pulse loop), 4 purchased, 5 maxed, 6 excluded",
+   "states": {
+    "locked": 0,
+    "available": [
+     1,
+     2,
+     3
+    ],
+    "purchased": 4,
+    "maxed": 5,
+    "excluded": 6
+   }
+  },
+  "node_tower": {
+   "file": "res://assets/sprites/map/node_tower.png",
+   "frame_size": [
+    16,
+    16
+   ],
+   "frames": 7,
+   "fps": 6,
+   "anchor": [
+    8,
+    8
+   ],
+   "loop": false,
+   "note": "node marker; frames: 0 locked, 1-3 available (pulse loop), 4 purchased, 5 maxed, 6 excluded",
+   "states": {
+    "locked": 0,
+    "available": [
+     1,
+     2,
+     3
+    ],
+    "purchased": 4,
+    "maxed": 5,
+    "excluded": 6
+   }
   },
   "octopus_fall": {
    "file": "res://assets/sprites/enemies/octopus_fall.png",
@@ -2282,13 +2875,13 @@
    "file": "res://assets/sprites/fx/shield_dome.png",
    "frame_size": [
     64,
-    40
+    44
    ],
    "frames": 4,
    "fps": 8,
    "anchor": [
     32,
-    36
+    40
    ],
    "loop": true,
    "note": "Часовщик's shield while any pylon stands: centre on the boss feet, above the boss"

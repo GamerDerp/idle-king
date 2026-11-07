@@ -709,8 +709,19 @@ def field_r3(c: Canvas) -> None:
                                         (290, 66, 26, 8), (250, 250, 18, 6)]):
         px = blob_patch(c, x, y, rx, ry, 760 + i, "soot_3", only=G, rough=0.4, satellites=3)   # dark mud flats
         edge_shade(c, px, "soot_2", "dust_0")
+        # an inner, wetter core (darker) with its own soft edge, and ripple arcs on it
+        inner = fill_shape(c, organic(x + rx * 0.08, y + ry * 0.1, rx * 0.55, ry * 0.5, 790 + i, 0.3),
+                           (x - rx, y - ry, x + rx, y + ry), "soot_2", only=rgbset("soot_3"))
+        edge_shade(c, inner, "soot_1", "soot_3")
         rr_ = rng(770 + i)
-        for _ in range(len(px) // 40):          # wet glints in the mud
+        for k in range(max(1, len(inner) // 90)):
+            gx, gy = rr_.choice(inner) if inner else (x, y)
+            w = rr_.randint(2, 4)
+            for dx in range(-w, w + 1):                 # a flat ripple arc: lit top, dark under
+                yy = gy - (1 if abs(dx) < w - 1 else 0)
+                if c.get(gx + dx, yy)[:3] in rgbset("soot_2", "soot_1"):
+                    c.set(gx + dx, yy, "teal_0")
+        for _ in range(len(px) // 60):          # wet glints in the mud
             gx, gy = rr_.choice(px)
             if c.get(gx, gy)[:3] == C("soot_3")[:3]:
                 c.set(gx, gy, "teal_0")
@@ -1017,15 +1028,10 @@ def field_r4(c: Canvas) -> None:
                                         (300, 70, 30, 9), (180, 246, 22, 9)]):
         px = blob_patch(c, x, y, rx, ry, 800 + i, "dust_0", only=G, rough=0.4, satellites=3)   # leaf drifts
         edge_shade(c, px, "dust_1", "soot_2")
-        rr_ = rng(810 + i)
-        for (lx, ly) in px:                                  # dense copper leaves inside the drift
-            v = rr_.random()
-            if v < 0.16:
-                c.set(lx, ly, "copper_1")
-            elif v < 0.24:
-                c.set(lx, ly, "copper_2")
-            elif v < 0.27:
-                c.set(lx, ly, "brass_1")
+        pset = set(px)                                       # leaf clumps piled inside the drift
+        for (lx, ly) in poisson(int(x - rx), int(y - ry), int(x + rx), int(y + ry), 9.0, 810 + i):
+            if (lx, ly) in pset:
+                c.paste_over(R4.leaf_clump(lx * 7 + ly), lx - 4, ly - 3)
     for i, (x, y, rx, ry) in enumerate([(262, 156, 12, 5), (420, 236, 10, 4), (176, 96, 10, 4), (366, 114, 9, 4),
                                         (250, 290, 12, 4)]):
         px = blob_patch(c, x, y, rx, ry, 820 + i, "verdigris_0", only=G, rough=0.4, satellites=2)  # moss
@@ -1039,29 +1045,46 @@ def field_r4(c: Canvas) -> None:
                 c.set(x, y, "dust_0")
             elif v < 1.6:
                 c.set(x, y, "soot_2")
-    scatter_details(c, R, 37, r=6.5, keep=lambda x, y: ridge_top(x) + 2 < y < ridge_bot(x) - 1, clump=0.6)
-    R4.leaf_litter(c, L.FIELD_X0 + 2, 0, L.W, L.H, 39,
-                   lambda x, y: ridge_top(x) + 2 < y < ridge_bot(x) - 1 and c.get(x, y)[:3] in rgbset("soot_3", "copper_0", "dust_0"))
-    # inlaid cog-stones along the path, irregular spacing
+    scatter_details(c, R, 37, r=7.5, keep=lambda x, y: ridge_top(x) + 2 < y < ridge_bot(x) - 1, clump=0.8)
     rr = rng(41)
-    x = L.FIELD_X0 + 10
-    while x < L.W - 6:
-        cy = L.road_center(x) + rr.randint(-8, 8)
-        c.paste_over(R4.fallen_gear(x), x, int(cy) - 3)
-        x += rr.randint(22, 48)
     stamps = []
+    # fallen leaves as small clumps with an edge, gathered around the trees and the drifts (not noise)
+    dens = WO.value_noise(L.W, L.H, 40, 43)
+    for (x, y) in poisson(L.FIELD_X0 + 4, 0, L.W - 8, L.H, 9.0, 45):
+        if ridge_top(x) + 4 < y < ridge_bot(x) - 2 and d(x, y) > 1 and dens[y][x] > 0.6 and rr.random() < 0.3:
+            lc = R4.leaf_clump(x * 13 + y)
+            stamps.append((y - 4, x, y - lc.h, lc))
+    # a few dull half-buried gears along the path EDGES (never shiny, never mid-road)
+    x = L.FIELD_X0 + 18
+    while x < L.W - 10:
+        side = rr.choice((-1, 1))
+        cy = L.road_center(x) + side * (L.ROAD_HALF - rr.randint(1, 4))
+        g = R4.buried_gear(x)
+        c.paste_over(g, x, int(cy) - g.h // 2)
+        x += rr.randint(40, 80)
+    # roots crossing the path edge and stumps by the road: the forest is close
+    for (x, side) in [(176, -1), (232, 1), (300, -1), (356, 1), (410, -1)]:
+        cy = L.road_center(x)
+        y0 = int(cy + side * (L.ROAD_HALF + 10))
+        for k in range(rr.randint(1, 2)):        # a root snaking along the path edge
+            ex = x + rr.choice((-1, 1)) * rr.randint(6, 12)
+            ey = int(cy + side * (L.ROAD_HALF + rr.randint(0, 2)))
+            c.line(x, y0 + 4, (x + ex) // 2, ey + side * 2, "brass_0")
+            c.line((x + ex) // 2, ey + side * 2, ex, ey, "brass_0")
+        st = R4.stump(x)
+        stamps.append((y0 + 6, x - 6, y0 - 4, st))
+    def tree_at(x, y, h, seed):
+        t = R4.brass_tree(seed, h)
+        R4.tree_shadow(c, x, y, max(10, h // 2))
+        stamps.append((y, x - t.w // 2, y - t.h + 2, t))
     for i, x in enumerate(uneven_line(91, L.FIELD_X0 - 2, L.W - 10, gap=(0, 14), cluster=(1, 3))):
-        t = R4.brass_tree(300 + i, rr.randint(24, 34))
-        top = ridge_top(x)
-        stamps.append((top, x - t.w // 2, top - t.h + rr.randint(2, 8), t))
+        tree_at(x, ridge_top(x) + rr.randint(-6, 6), rr.randint(20, 40), 300 + i)
     for i, x in enumerate(uneven_line(93, L.FIELD_X0 - 2, L.W - 10, gap=(2, 18), cluster=(1, 3))):
-        t = R4.brass_tree(400 + i, rr.randint(22, 30))
-        bot = ridge_bot(x)
-        stamps.append((bot + 20, x - t.w // 2, bot - t.h // 2 + rr.randint(0, 10), t))
-    for (x, y, s_, h) in [(196, 92, 1, 30), (372, 112, 2, 28), (428, 252, 3, 32), (238, 276, 4, 26)]:
-        t = R4.brass_tree(500 + s_, h)
-        stamps.append((y, x - t.w // 2, y - t.h, t))
-    for (x, y, s_) in [(222, 112, 1), (388, 124, 2), (318, 256, 3), (180, 156, 4), (430, 168, 5), (290, 104, 6)]:
+        tree_at(x, ridge_bot(x) + rr.randint(2, 14), rr.randint(18, 36), 400 + i)
+    for (x, y, s_, h) in [(196, 92, 1, 36), (372, 112, 2, 26), (428, 252, 3, 40), (238, 280, 4, 22),
+                          (168, 150, 5, 28), (330, 92, 6, 20)]:
+        tree_at(x, y, h, 500 + s_)
+    for (x, y, s_) in [(222, 112, 1), (388, 124, 2), (318, 256, 3), (430, 168, 5)]:
         g = R4.fallen_gear(s_ * 7)
         stamps.append((y, x, y - g.h, g))
     stamps.append((240, 330, 234, WO.decal_scrap(2)))

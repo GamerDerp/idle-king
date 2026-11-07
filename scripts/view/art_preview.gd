@@ -38,6 +38,9 @@ var _automaton: AnimatedSprite2D
 var _golems: Array[Dictionary] = []
 var _clock: AnimatedSprite2D
 var _events: Dictionary = {}               # one-shot scripted beats for the screenshot
+var _map_world: Node2D
+var _map_spark: AnimatedSprite2D
+var _map_spark_path: Array[Vector2] = []
 
 const REGION_TOWERS := {
 	1: ["rifle_t0", "riveter_t1", "rifle_t2", "mortar_t1", "mortar_t2"],
@@ -66,6 +69,9 @@ func _ready() -> void:
 	if DevTools.has_arg("kit"):
 		_build_kit()
 		set_process(false)
+		return
+	if DevTools.has_arg("map"):
+		_build_map()
 		return
 	_build_world()
 	_build_ui()
@@ -313,6 +319,9 @@ func _float_text(text: String, pos: Vector2, color_name: String) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	if _map_world != null:
+		_step_map(delta)
+		return
 	_step_enemies(delta)
 	_step_towers(delta)
 	_step_shots(delta)
@@ -1038,3 +1047,178 @@ func _build_kit() -> void:
 		s3.position = Vector2(x + SpriteLib.anchor(n).x, y + 270.0)
 		stage.add_child(s3)
 		x += 36.0
+
+
+# ------------------------------------------------------------------ conquest map mock (--map [--zoom=1|2])
+
+func _json(path: String) -> Dictionary:
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		push_error("art_preview: missing %s" % path)
+		return {}
+	var parsed: Variant = JSON.parse_string(f.get_as_text())
+	return parsed if parsed is Dictionary else {}
+
+
+func _map_state(n: Dictionary) -> String:
+	# a mock save: the outskirts are done, the wastes are half taken, the coal pits are still in fog
+	var region := int(n["region"])
+	var id := str(n["id"])
+	if region == 0:
+		return "maxed" if id in ["r0_horn", "r0_kettle", "r0_road"] else "purchased"
+	if region == 1:
+		if id in ["r1_dogs", "r1_dog_horn", "r1_riveter", "r1_junkers", "r1_curtain", "r1_dog_rumors",
+				"r1_hot_rivets", "r1_lens_rate"]:
+			return "purchased"
+		if id == "r1_heavy_bombs":
+			return "excluded"
+		if id in ["r1_riveter_limit", "r1_junk_horn", "r1_knights", "r1_seek", "r1_mortar", "r1_second_kettle"]:
+			return "available"
+	return "locked"
+
+
+func _build_map() -> void:
+	var zoom := clampi(int(DevTools.get_arg("zoom", "2")), 1, 3)
+	var lay := _json("res://config/map_layout.json")
+	var mj := _json("res://config/map.json")
+	var bgc := ColorRect.new()
+	bgc.color = Config.color("soot_1")
+	bgc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(bgc)
+	_map_world = Node2D.new()
+	_map_world.scale = Vector2(zoom, zoom)
+	add_child(_map_world)
+	var mbg := Sprite2D.new()
+	mbg.texture = SpriteLib.texture("map_bg")
+	mbg.centered = false
+	_map_world.add_child(mbg)
+	var origin: Array = lay.get("origin", [200, 150])
+	var sc := float(lay.get("scale", 2))
+	var o := Vector2(float(origin[0]), float(origin[1]))
+	var by_id: Dictionary = {}
+	for n: Dictionary in mj.get("nodes", []):
+		by_id[str(n["id"])] = n
+	# roads first (dots every 7 px, 10 px clear at both ends)
+	for n: Dictionary in mj.get("nodes", []):
+		for pid: String in n.get("parents", []):
+			if not by_id.has(pid):
+				continue
+			var a: Array = (by_id[pid] as Dictionary)["pos"]
+			var b: Array = n["pos"]
+			var pa := o + Vector2(float(a[0]), float(a[1])) * sc
+			var pb := o + Vector2(float(b[0]), float(b[1])) * sc
+			var st := _map_state(n)
+			var fr := 2 if st in ["purchased", "maxed"] else 1 if st == "available" else 0
+			var ln := pa.distance_to(pb)
+			var dd := 10.0
+			while dd < ln - 10.0:
+				var dot := Sprite2D.new()
+				dot.texture = SpriteLib.texture("map_road_dot", fr)
+				dot.position = pa.lerp(pb, dd / ln).round()
+				_map_world.add_child(dot)
+				dd += 7.0
+			if str(n["id"]) == "r1_knights":
+				_map_spark_path = [pa, pb]
+	# node markers
+	for n: Dictionary in mj.get("nodes", []):
+		var st := _map_state(n)
+		var m := SpriteLib.make("node_" + str(n["kind"]))
+		m.pause()
+		var states: Dictionary = SpriteLib.info("node_" + str(n["kind"])).get("states", {})
+		if st == "available":
+			m.frame = 1 + int(str(n["id"]).length()) % 3
+		else:
+			m.frame = int(states.get(st, 0))
+		var p: Array = n["pos"]
+		m.position = (o + Vector2(float(p[0]), float(p[1])) * sc).round()
+		_map_world.add_child(m)
+	# fog over the regions that are not open yet (2..7), with drifting puffs
+	for r: Dictionary in lay.get("regions", []):
+		if int(r["id"]) < 2 or r.get("fog") == null:
+			continue
+		var fog := Sprite2D.new()
+		fog.texture = SpriteLib.texture(str(r["fog"]))
+		fog.centered = false
+		var fp: Array = r["fog_pos"]
+		fog.position = Vector2(float(fp[0]), float(fp[1]))
+		_map_world.add_child(fog)
+	for k in range(14):
+		var w := SpriteLib.make("map_fog_wisp", k % 4)
+		w.position = Vector2(1500.0 + (k % 7) * 120.0, 1180.0 + (k / 7) * 160.0 + (k % 3) * 30.0)
+		_map_world.add_child(w)
+	# region names (Kotel title font) and the title in the cartouche
+	var names: Array = _txt.get("map_regions", [])
+	for r: Dictionary in lay.get("regions", []):
+		var i := int(r["id"])
+		if i >= names.size():
+			continue
+		var lb := Label.new()
+		lb.text = str(names[i])
+		lb.add_theme_font_override("font", load("res://fonts/kotel_title.fnt"))
+		lb.add_theme_font_size_override("font_size", 16)
+		lb.add_theme_color_override("font_color", Config.color("copper_0" if i < 2 else "parchment_0"))
+		var lp: Array = r["label"]
+		lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lb.size = Vector2(240, 20)
+		lb.position = Vector2(float(lp[0]) - 120.0, float(lp[1]) - 10.0)
+		_map_world.add_child(lb)
+	var tb: Array = lay.get("title_box", [1004, 40, 392, 44])
+	var title := Label.new()
+	title.text = str(_txt.get("map_title", ""))
+	title.add_theme_font_override("font", load("res://fonts/kotel_title.fnt"))
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override("font_color", Config.color("copper_0"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title.position = Vector2(float(tb[0]), float(tb[1]))
+	title.size = Vector2(float(tb[2]), float(tb[3]))
+	_map_world.add_child(title)
+	# camera: centre on the fortress and the wastes (or the whole north half at zoom 1)
+	var focus := Vector2(1330, 820) if zoom >= 2 else Vector2(1240, 760)
+	_map_world.position = (Vector2(640, 360) - focus * zoom).round()
+	# purchase effect on a node and a spark on a road
+	var fx_pos := o + Vector2(700, 340) * sc
+	var spl := SpriteLib.make("map_ink_splat")
+	spl.position = fx_pos
+	spl.sprite_frames.set_animation_loop(&"default", true)
+	_map_world.add_child(spl)
+	_map_spark = SpriteLib.make("map_spark")
+	_map_world.add_child(_map_spark)
+	# UI: progress cartouche and a pinned tooltip card
+	var pr := TextureRect.new()
+	pr.texture = SpriteLib.texture("map_progress_frame")
+	pr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	pr.scale = Vector2(2, 2)
+	pr.position = Vector2(640 - 260, 720 - 52 * 2 - 8)
+	add_child(pr)
+	var pfill := TextureRect.new()
+	pfill.texture = SpriteLib.texture("map_progress_fill")
+	pfill.stretch_mode = TextureRect.STRETCH_TILE
+	pfill.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	pfill.position = pr.position + Vector2(36, 31) * 2
+	pfill.size = Vector2(188 * 0.34 * 2, 8 * 2)
+	add_child(pfill)
+	var pl := Label.new()
+	pl.text = str(_txt.get("map_progress", ""))
+	pl.theme_type_variation = &"InkLabel"
+	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pl.position = pr.position + Vector2(34, 10) * 2
+	pl.size = Vector2(192 * 2, 16 * 2)
+	add_child(pl)
+	var card := PanelContainer.new()
+	card.theme_type_variation = &"MapCard"
+	card.position = Vector2(760, 150)
+	add_child(card)
+	var cv := VBoxContainer.new()
+	cv.add_theme_constant_override("separation", 0)
+	card.add_child(cv)
+	var ct := _label(str(_txt.get("map_card_title", "")), "InkLabel")
+	ct.add_theme_font_override("font", FONT_BOLD)
+	cv.add_child(ct)
+	cv.add_child(_label(str(_txt.get("map_card_body", "")), "InkLabel"))
+
+
+func _step_map(_delta: float) -> void:
+	if _map_spark_path.size() == 2 and _map_spark != null:
+		var k := fmod(_t * 0.6, 1.0)
+		_map_spark.position = _map_spark_path[0].lerp(_map_spark_path[1], k).round()

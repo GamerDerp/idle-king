@@ -29,6 +29,7 @@ import sprites_fx as FX  # noqa: E402
 import sprites_r2 as R2  # noqa: E402
 import sprites_r3 as R3  # noqa: E402
 import sprites_r4 as R4  # noqa: E402
+import sprites_map as MAP  # noqa: E402
 import sprites_towers as TW  # noqa: E402
 import sprites_units as UN  # noqa: E402
 import sprites_world as WO  # noqa: E402
@@ -296,9 +297,11 @@ def build_r3(m: Manifest) -> None:
                   note=f"{name}, tier {tier}; frame 0 idle, 1 " + ("charge, 2 fire (bolt)" if key == "tesla" else
                                                                     "fire, 2 recover"),
                   extra={"muzzle": list(TW.MUZZLE[k])})
-    add_enemy(m, "apothecary", R3.apothecary_frames(), 7, (8, 23), "Аптекарь (R3): heals neighbours", 3)
+    add_enemy(m, "apothecary", R3.apothecary_frames(), 7, (10, 23), "Аптекарь (R3): heals neighbours", 3)
     m.add("fx", "heal_pulse", R3.heal_pulse_frames(), fps=10, anchor=(20, 16), loop=False,
           note="Аптекарь heals (every 3 s): play at his feet, under the units")
+    m.add("fx", "heal_plus", R3.heal_plus_frames(), fps=10, anchor=(4, 13), loop=False,
+          note="over EACH healed neighbour's head at the same moment as heal_pulse")
     add_enemy(m, "diver", R3.diver_frames(True), 6, (8, 23), "Водолаз (R3): helmet = shield (steam/spark only)", 3)
     add_enemy(m, "diver_bare", R3.diver_frames(False), 7, (8, 23), "Водолаз without the helmet (shield broken)", 3)
     m.add("fx", "diver_helmet_break", R3.helmet_break_frames(), fps=12, anchor=(14, 22), loop=False,
@@ -353,7 +356,7 @@ def build_r4(m: Manifest) -> None:
           note="pylon after it breaks (stays as a wreck a few seconds)")
     m.add("fx", "pylon_break", R4.pylon_break_frames(), fps=12, anchor=(14, 26), loop=False,
           note="a pylon breaks")
-    m.add("fx", "shield_dome", R4.shield_dome_frames(), fps=8, anchor=(32, 36),
+    m.add("fx", "shield_dome", R4.shield_dome_frames(), fps=8, anchor=(32, 40),
           note="Часовщик's shield while any pylon stands: centre on the boss feet, above the boss")
     for key, fn, name in (("saw", R4.saw_thrower, "Пилометатель"),):
         for tier in range(3):
@@ -374,6 +377,50 @@ def build_r4(m: Manifest) -> None:
           note="«Часовая башня» mechanism in a yard_slot: ticking loop (hand steps, pendulum swings)")
     m.add("world", "clock_tower_volley", ct["volley"], fps=10, anchor=(23, 59), loop=False,
           note="«тик-так» volley: play once over clock_tower when the tower fires a volley, then back")
+
+
+def _wrap(img) -> Canvas:
+    c = Canvas(img.width, img.height)
+    c.img = img
+    c.px = img.load()
+    return c
+
+
+def build_map(m: Manifest) -> None:
+    with open(os.path.join(ROOT, "config", "map.json"), encoding="utf-8") as f:
+        nodes = json.load(f)["nodes"]
+    img, rid, alpha, layout = MAP.build_map(nodes)
+    m.add("map", "map_bg", _wrap(img), anchor=(0, 0),
+          note="conquest map 2400x1700: art = origin + node pos * scale (config/map_layout.json); "
+               "regions, fog placement, label spots and the title box are in map_layout.json")
+    for r in layout["regions"]:
+        if r["id"] == 0:
+            continue
+        fog, pos = MAP.region_fog(rid, alpha, r["id"], 500 + r["id"])
+        r["fog_pos"] = list(pos)
+        m.add("map", f"map_fog_r{r['id']}", _wrap(fog), anchor=(0, 0),
+              note=f"fog over region {r['id']} until it opens: place at map_layout regions[{r['id']}].fog_pos")
+    MAP.write_layout(ROOT, layout)
+    for kind in MAP.GLYPHS:
+        fr = MAP.node_frames(kind)
+        m.add("map", f"node_{kind}", fr, fps=6, anchor=(fr[0].w // 2, fr[0].h // 2), loop=False,
+              note="node marker; frames: 0 locked, 1-3 available (pulse loop), 4 purchased, 5 maxed, 6 excluded",
+              extra={"states": MAP.STATES})
+    m.add("map", "map_road_dot", MAP.road_dot_frames(), anchor=(1, 1), loop=False,
+          note="road dot every 7 art px along a link (10 px clear at each node); frame 0 locked, 1 open, 2 conquered")
+    m.add("map", "map_spark", MAP.spark_frames(), fps=12, anchor=(4, 4),
+          note="spark travelling along roads from a bought node to the newly opened ones")
+    m.add("map", "map_ink_splat", MAP.ink_splat_frames(), fps=14, anchor=(20, 20), loop=False,
+          note="purchase: ink splat on the node, then map_stamp")
+    m.add("map", "map_stamp", MAP.stamp_frames(), fps=12, anchor=(14, 14), loop=False,
+          note="purchase: wax seal pressed onto the node (after the splat)")
+    m.add("map", "map_fog_wisp", MAP.fog_wisp_frames(), fps=4, anchor=(24, 20),
+          note="drifting puff to scatter over fogged regions (move slowly, random start frame)")
+    m.add("map", "map_fog_burn", MAP.fog_burn_frames(), fps=10, anchor=(32, 30), loop=False,
+          note="region opens: scatter many over the fog, hide the region fog at frame 3")
+    m.add("map", "map_progress_frame", MAP.progress_frame(), anchor=(0, 0),
+          note="«Долина покорена на N%»: text line x 34..225, y 12..26; bar slot x 36..223, y 31..38")
+    m.add("map", "map_progress_fill", MAP.progress_fill(), anchor=(0, 0), note="bar fill tile 4x8")
 
 
 def build_towers(m: Manifest) -> None:
@@ -444,7 +491,8 @@ def font_specimen(variants: dict) -> Image.Image:
 
 
 def contact_sheet(m: Manifest) -> Image.Image:
-    items = [(n, f) for n, f in m.sheets if not n.startswith("battlefield_bg") and n != "steam_curtain"]
+    items = [(n, f) for n, f in m.sheets if not n.startswith(("battlefield_bg", "map_bg", "map_fog_r"))
+             and n != "steam_curtain"]
     pad, maxw = 4, 640
     x = y = pad
     rowh = 0
@@ -484,6 +532,7 @@ def main() -> None:
     build_r2(m)
     build_r3(m)
     build_r4(m)
+    build_map(m)
     m.write()
 
     variants = {n: font_gen.build_font(n, FONTS) for n in ("regular", "bold", "title", "number")}

@@ -169,8 +169,8 @@ def cuckoo_shadow_frames() -> list:
     out = []
     for f in range(4):
         c = Canvas(22, 6)
-        span = (9, 6, 3, 6)[f]
-        c.ellipse(12, 3, 5.5, 1.8, "soot_0", 220)
+        span = (10, 7, 4, 7)[f]
+        c.ellipse(12, 3, 7, 2.2, "soot_0", 230)
         for x in range(12 - span, 13 + span):
             if abs(x - 12) > 3:
                 c.set(x, 2 + (1 if abs(x - 12) > span - 2 else 0), "soot_0", 190)
@@ -316,24 +316,56 @@ def pylon_break_frames() -> list:
     return out
 
 
+def _hex_edge(px: float, py: float, s: float) -> bool:
+    """True on the border of a pointy-top hex grid with circumradius s."""
+    q = (math.sqrt(3) / 3 * px - py / 3) / s
+    rr_ = (2 / 3 * py) / s
+    x, z = q, rr_
+    y = -x - z
+    rx, ry, rz = round(x), round(y), round(z)
+    dx_, dy_, dz_ = abs(rx - x), abs(ry - y), abs(rz - z)
+    if dx_ > dy_ and dx_ > dz_:
+        rx = -ry - rz
+    elif dy_ > dz_:
+        ry = -rx - rz
+    else:
+        rz = -rx - ry
+    cx = s * math.sqrt(3) * (rx + rz / 2)
+    cy = s * 1.5 * rz
+    dx, dy = px - cx, py - cy
+    m = max(abs(dx), abs(dx * 0.5 + dy * 0.866), abs(dx * 0.5 - dy * 0.866))
+    return m > s * 0.866 * 0.8
+
+
 def shield_dome_frames() -> list:
-    """64x40 shield dome around the Часовщик while any pylon stands (4-frame loop, anchor (32, 36)):
-    a translucent teal ellipse with a turning ring of brass gear-teeth along its rim."""
+    """64x44 shield dome over the Часовщик while any pylon stands (4-frame loop, anchor (32, 40) = his
+    feet). A translucent half-dome: faint teal fill, hexagon segments, a bright top-left highlight arc,
+    an opaque-ish rim along the ground with brass gear-teeth turning."""
     out = []
+    cx, cy, rx, ry = 32, 40, 30, 36
     for f in range(4):
-        c = Canvas(64, 40)
-        for y in range(40):
+        c = Canvas(64, 44)
+        for y in range(44):
             for x in range(64):
-                d = ((x + 0.5 - 32) / 30) ** 2 + ((y + 0.5 - 22) / 18) ** 2
-                if d <= 1:
-                    if d > 0.86:
-                        c.set(x, y, "teal_2", 190 if y < 22 else 120)
-                    elif d > 0.7 and y < 16:
-                        c.set(x, y, "steam_3", 60)
-        for t in range(28):
-            a = t / 28 * math.tau + f * math.tau / 112
+                u, v = (x + 0.5 - cx) / rx, (y + 0.5 - cy) / ry
+                d = u * u + v * v
+                if d > 1 or y > cy + 2:
+                    continue
+                edge = _hex_edge(x + 0.5, y + 0.5, 5.0)
+                if d > 0.9:
+                    c.set(x, y, "teal_2", 200)
+                elif edge:
+                    c.set(x, y, "teal_2", 110)
+                else:
+                    c.set(x, y, "teal_1", 35)
+                lit = -(u * 0.6 + v * 0.8)
+                if 0.55 < d < 0.8 and lit > 0.75:
+                    c.set(x, y, "steam_3", 190)                  # top-left highlight arc
+        for t in range(24):                                     # turning gear-teeth along the ground rim
+            a = math.pi * t / 23 + f * math.pi / 96
+            x = round(cx - math.cos(a) * (rx + 0.5))
             if t % 2 == 0:
-                c.set(round(32 + math.cos(a) * 30.5), round(22 + math.sin(a) * 18.5), "brass_3")
+                c.set(x, cy + 1 + (t % 4 == 0), "brass_3")
         out.append(c)
     return out
 
@@ -445,10 +477,21 @@ def golem_tower(tier: int, phase: int) -> Canvas:
     c.rect(18, ty - 5, 24, ty, m[2])
     c.hline(18, 24, ty - 5, m[3])
     c.hline(19, 23, ty - 3, "ember_1" if phase == 2 else "soot_1")   # eye slit lights up on the punch
-    # key on the back
-    ka = (0, 1, 0, 0)[phase]
-    c.hline(10, 12, ty + 6, tr[2])
-    c.ascii(7, ty + 3 + ka, ["hh", "hg", "gf", "ff"] if ka == 0 else ["hhh", ".g.", "fff"])
+    # wind-up key on the back: edge-on at rest, turned flat (big bow) while winding on frame 1
+    c.hline(9, 12, ty + 6, tr[2])
+    if phase == 1:
+        c.ascii(3, ty + 2, [".hhh.", "hg.gf", "hgfgf", "hg.gf", ".fff."])
+        c.set(1, ty + 1, "steam_3")
+        c.set(2, ty + 9, "steam_2")
+    else:
+        c.ascii(7, ty + 3, ["h", "h", "g", "g", "f", "f"])
+    if tier >= 1:            # exhaust stack: short on t1, tall with a crown on t2
+        top = ty - 3 if tier == 1 else ty - 10
+        c.rect(14, top, 15, ty + 1, "copper_2")
+        c.vline(14, top, ty + 1, "copper_3")
+        c.hline(13, 16, top, "brass_3" if tier == 2 else "copper_3")
+        if phase == 2:
+            c.set(15, top - 2, "steam_2")
     # punching arm: shoulder at (28, ty+6); the piston extends right on phase 2
     ext = {0: 0, 1: -2, 2: 9, 3: 4}[phase]
     big = 3.6 + tier * 0.6
@@ -587,29 +630,45 @@ def icon_springs() -> Canvas:
 # ------------------------------------------------------------------ background props
 
 def brass_tree(seed: int, h: int = 30) -> Canvas:
-    """Clockwork tree: a riveted brass trunk with bands, branching arms, a crown of copper-plate leaves
-    with brass gears showing between them. Lit from the top-left; ~24 x h."""
+    """Clockwork tree, 36 x (h+2): a riveted brass trunk that BENDS (seeded lean), 2-4 crooked branches,
+    a crown of copper-plate leaves split into 2-3 masses (not one ball) with brass gears peeking out;
+    the crown shades the top of the trunk; root flares at the foot. Anchor = trunk foot (18, h)."""
     r = rng(seed)
-    w = 32
+    w = 36
     c = Canvas(w, h + 2)
     tx = w // 2
-    # trunk
-    for y in range(h // 2, h):
-        half = 1.6 + (y - h / 2) / (h / 2) * 1.4
-        for x in range(int(tx - half), int(tx + half) + 1):
-            u = (x - (tx - half)) / max(1, 2 * half)
-            c.set(x, y, "brass_3" if u < 0.25 else "brass_2" if u < 0.6 else "brass_1" if u < 0.85 else "brass_0")
-    for y in range(h // 2 + 3, h, 5):
-        c.hline(tx - 2, tx + 2, y, "brass_0")
-    c.hline(tx - 4, tx + 4, h, "brass_0")
-    c.set(tx - 4, h - 1, "brass_1")
-    c.set(tx + 4, h - 1, "brass_1")
-    # crown: copper leaf lobes
-    # branches from the trunk top up into the crown
-    for side in (-1, 1):
-        c.line(tx, h // 2 + 2, tx + side * r.randint(5, 8), h // 2 - r.randint(3, 6), "brass_1")
-    lobes = [(tx + r.uniform(-9, 9), r.uniform(h * 0.18, h * 0.5), r.uniform(4.0, 6.8)) for _ in range(r.randint(6, 8))]
-    lobes.append((tx + r.uniform(-2, 2), h * 0.2, 6.0))
+    lean = r.uniform(-4, 4)
+    top_y = int(h * r.uniform(0.38, 0.5))
+    trunk = []
+    for y in range(top_y, h):
+        t = (h - y) / max(1, h - top_y)             # 0 at the foot, 1 at the top
+        x = tx + lean * t * t
+        half = 1.3 + (1 - t) * 1.6
+        trunk.append((x, y, half))
+        for xx in range(int(x - half), int(x + half) + 1):
+            u = (xx - (x - half)) / max(1, 2 * half)
+            c.set(xx, y, "brass_3" if u < 0.25 else "brass_2" if u < 0.6 else "brass_1" if u < 0.85 else "brass_0")
+    for (x, y, half) in trunk[::5]:
+        c.hline(int(x - half), int(x + half), y, "brass_0")          # bands
+    for side in (-1, 1):                                             # root flares
+        c.line(tx, h - 1, tx + side * r.randint(3, 5), h + 1, "brass_1")
+    # branches
+    tips = []
+    for k in range(r.randint(2, 4)):
+        bx, by, _ = trunk[-1 - r.randint(0, max(1, len(trunk) // 3))]
+        side = (-1) ** k
+        ex, ey = bx + side * r.randint(5, 11), by - r.randint(4, 10)
+        mx, my = (bx + ex) / 2 + side, (by + ey) / 2 + 2                # crooked elbow
+        c.line(round(bx), by, round(mx), round(my), "brass_1")
+        c.line(round(mx), round(my), round(ex), round(ey), "brass_1")
+        tips.append((ex, ey))
+    # crown masses around the branch tips and the trunk top
+    tx2, ty2 = trunk[-1][0], top_y
+    centres = [(tx2, ty2 - 3)] + tips
+    lobes = []
+    for (cx, cy) in centres:
+        for _ in range(r.randint(2, 3)):
+            lobes.append((cx + r.uniform(-3, 3), cy + r.uniform(-3, 2), r.uniform(3.2, 5.5)))
     lobes.sort(key=lambda l: -l[1])
     for (lx, ly, lr) in lobes:
         for y in range(int(ly - lr) - 1, int(ly + lr) + 2):
@@ -617,18 +676,86 @@ def brass_tree(seed: int, h: int = 30) -> Canvas:
                 dx, dy = x + 0.5 - lx, y + 0.5 - ly
                 if dx * dx + dy * dy <= lr * lr:
                     lit = -(dx * 0.6 + dy * 0.8) / lr
-                    c.set(x, y, "copper_3" if lit > 0.45 else "copper_2" if lit > -0.2 else "copper_1" if lit > -0.7 else "copper_0")
-    # leaf plate edges (small dark ticks) and gears peeking through
-    for (lx, ly, lr) in lobes[::2]:
-        c.set(int(lx + lr * 0.5), int(ly + lr * 0.3), "copper_0")
-    for k in range(r.randint(1, 2)):
-        gx, gy, gr = lobes[k][0], lobes[k][1], 2.4
+                    c.set(x, y, "copper_3" if lit > 0.5 else "copper_2" if lit > -0.15 else "copper_1" if lit > -0.65 else "copper_0")
+    # crown shadow on the trunk just below the leaves
+    for (x, y, half) in trunk:
+        if ty2 + 2 <= y <= ty2 + 4:
+            for xx in range(int(x - half), int(x + half) + 1):
+                if c.get(xx, y)[:3] != (0, 0, 0):
+                    c.set(xx, y, "brass_0")
+    for (lx, ly, lr) in lobes[: r.randint(1, 2)]:                     # a gear peeking out of the leaves
         for t in range(12):
             a = t / 12 * math.tau
-            rr_ = gr + (0.8 if t % 2 == 0 else 0)
-            c.set(round(gx + math.cos(a) * rr_), round(gy + math.sin(a) * rr_), "brass_3" if a > 3 else "brass_2")
-        c.set(int(gx), int(gy), "brass_0")
+            rr_ = 2.2 + (0.8 if t % 2 == 0 else 0)
+            c.set(round(lx + math.cos(a) * rr_), round(ly + math.sin(a) * rr_), "brass_3" if a > 3 else "brass_2")
+        c.set(int(lx), int(ly), "brass_0")
     c.outline("soot_0")
+    return c
+
+
+def tree_shadow(c: Canvas, x: int, y: int, w: int) -> None:
+    """Ground shadow of a tree: a soft ellipse to the lower right of the trunk foot (light is top-left)."""
+    for yy in range(y - 2, y + 4):
+        for xx in range(x - 3, x + w):
+            if ((xx - (x + w * 0.4)) / (w * 0.6)) ** 2 + ((yy - (y + 1)) / 3.0) ** 2 <= 1:
+                c.set(xx, yy, "soot_2")
+
+
+def stump(seed: int) -> Canvas:
+    """A sawn-off tree: dark weathered brass bark, a pale cut face with growth rings, roots gripping."""
+    r = rng(seed)
+    c = Canvas(14, 10)
+    c.rect(3, 3, 10, 6, "brass_0")
+    c.vline(3, 3, 6, "brass_1")
+    c.ellipse(6.5, 3, 3.6, 1.6, "parchment_0")
+    c.ellipse(6.5, 3, 2.0, 0.8, "dust_2")
+    c.set(6, 3, "dust_1")
+    for side in (-1, 1):
+        c.line(6 + side * 3, 6, 6 + side * r.randint(5, 6), 8, "brass_0")
+    c.hline(1, 12, 8, "soot_2")
+    c.outline("soot_0")
+    return c
+
+
+def leaf_clump(seed: int) -> Canvas:
+    """A small pile of fallen copper leaves: a solid low mound (not loose pixels) with leaf-plate tips
+    lit top-left, a darker underside and a contact shadow edge."""
+    r = rng(seed)
+    w = r.randint(4, 13)
+    h = r.randint(2, 4)
+    c = Canvas(w + 3, h + 3)
+    c.ellipse(w / 2 + 1, h / 2 + 1.2, w / 2, h / 2 + 0.4, "copper_0" if r.random() < 0.4 else "copper_1")
+    c.ellipse(w / 2 + 0.6, h / 2 + 0.8, w / 2 - 1, h / 2 - 0.2, "copper_1" if r.random() < 0.5 else "copper_2")
+    for _ in range(r.randint(2, 4)):
+        x = r.randint(1, w)
+        ys = [y for y in range(h + 3) if c.opaque(x, y)]
+        if ys:
+            c.set(x, ys[0] - (1 if r.random() < 0.5 else 0), r.choice(("copper_3", "brass_1", "copper_3")))
+    for x in range(w + 3):
+        ys = [y for y in range(h + 3) if c.opaque(x, y)]
+        if ys and ys[-1] + 1 < c.h:
+            c.set(x, ys[-1] + 1, "soot_2")
+    return c
+
+
+def buried_gear(seed: int) -> Canvas:
+    """A dull, rusty gear half sunk in the path: iron_0/copper_0, only the top half shows, a ground lip
+    over the lower half - nothing like the shiny brass Часовой жук."""
+    r = rng(seed)
+    rad = r.uniform(3.2, 4.6)
+    s = int(rad * 2 + 4)
+    c = Canvas(s, s // 2 + 3)
+    cx, cy = s / 2, s / 2
+    teeth = r.choice((8, 10))
+    for y in range(int(cy) + 1):
+        for x in range(s):
+            dx, dy = x + 0.5 - cx, (y + 0.5 - cy) * 1.5
+            d = math.hypot(dx, dy)
+            a = math.atan2(dy, dx)
+            if rad * 0.35 < d <= rad + (0.8 if math.cos(a * teeth) > 0 else 0):
+                c.set(x, y, "iron_1" if dx < -1 else "iron_0" if dx < 2 else "copper_0")
+    c.hline(0, s - 1, int(cy) + 1, "soot_2")
+    c.hline(1, s - 2, int(cy) + 2, "dust_0")
     return c
 
 

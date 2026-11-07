@@ -293,9 +293,14 @@ def steam_curtain_frames(n: int = 6) -> list:
     rr = rng(404)
     params = []
     for vi, vy in enumerate(vents):
-        params.append({"len": rr.uniform(30, 56), "lean": rr.uniform(26, 54), "wide": rr.uniform(0.75, 1.3),
-                       "rise": rr.uniform(0.75, 1.05), "ph": rr.uniform(0, 1), "dy": rr.randint(-2, 2),
-                       "tear": rr.uniform(0.68, 0.88)})
+        params.append({"len": rr.uniform(26, 58), "lean": rr.uniform(14, 60), "wide": rr.uniform(0.7, 1.35),
+                       "rise": rr.uniform(0.6, 1.2), "ph": rr.uniform(0, 1), "dy": rr.randint(-3, 3),
+                       "tear": rr.uniform(0.62, 0.9), "pow": rr.uniform(1.2, 2.4)})
+    # one or two sputtering nozzles: a short weak puff instead of a plume (breaks the herringbone)
+    for vi in (3, 11):
+        if vi < len(params):
+            params[vi]["len"] = rr.uniform(9, 13)
+            params[vi]["wide"] = 0.8
     frames = []
     for f in range(n):
         off = f * P / n
@@ -308,7 +313,7 @@ def steam_curtain_frames(n: int = 6) -> list:
                 s_ = float(si)
                 k = s_ / L_
                 ph = ((s_ - off + vi * 5) / P) % 1.0
-                x = 2.0 + 3.0 * k + p["lean"] * k ** 1.7 + 0.9 * math.sin((s_ - off) / 5.0 + vi * 1.7)
+                x = 2.0 + 3.0 * k + p["lean"] * k ** p["pow"] + 0.9 * math.sin((s_ - off) / 5.0 + vi * 1.7)
                 y = vy + p["dy"] - 1 - s_ * p["rise"]
                 r = (1.5 + 4.3 * k ** 0.75) * p["wide"] * (0.82 + 0.28 * math.sin(math.tau * ph))
                 if k > p["tear"] and math.sin(math.tau * (s_ - off + vi * 7) / 13.0) > 0.45:
