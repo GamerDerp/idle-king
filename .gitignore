@@ -9,3 +9,5 @@ reference/
 # local artifacts
 /shots/
 /sim_out/
+# python
+__pycache__/

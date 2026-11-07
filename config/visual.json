@@ -1,0 +1,14 @@
+{
+  "_comment": "Purely visual constants (sizes, durations, colors by palette name).",
+  "default_locale": "ru",
+  "title_font_size": 72,
+  "subtitle_font_size": 28,
+  "status_font_size": 18,
+  "title_color": "brass_3",
+  "title_shadow_color": "soot_0",
+  "subtitle_color": "parchment_2",
+  "status_color": "iron_3",
+  "background_color": "soot_1",
+  "sprite_preview_scale": 6,
+  "gear_spin_speed": 0.6
+}

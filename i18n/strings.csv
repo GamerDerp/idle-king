@@ -1,0 +1,8 @@
+keys,ru,en
+GAME_TITLE,Король Простоя,Idle King
+GAME_SUBTITLE,Паровая крепость держит оборону,The steam fortress holds the line
+PLACEHOLDER_STATUS,"Фундамент готов: конфиги, числа, тесты, сборка","Foundation ready: configs, numbers, tests, build"
+TIME_DH,%dд %02dч,%dd %02dh
+TIME_HM,%dч %02dм,%dh %02dm
+TIME_MS,%dм %02dс,%dm %02ds
+TIME_S,%dс,%ds
