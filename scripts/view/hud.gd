@@ -481,6 +481,17 @@ func _fill_tip(e: Battle.Enemy) -> void:
 		traits.append(tr("TRAIT_SLOW"))
 	if not (d.get("burrow", {}) as Dictionary).is_empty():
 		traits.append(tr("TRAIT_BURROW_SHORT"))
+	var traits2: PackedStringArray = []
+	if e.front_armor > 0.0:
+		traits2.append(tr("TRAIT_ARMOR") % Fmt.num(roundf(e.front_armor * 100.0)))
+	if e.shield_hp > 0.0:
+		traits2.append(tr("TRAIT_SHIELD"))
+	if e.immune.has("slow") and e.immune.has("knockback") and e.role != "boss":
+		traits2.append(tr("TRAIT_IMMUNE"))
+	if not e.split.is_empty():
+		traits2.append(tr("TRAIT_SPLIT"))
+	if not e.charge.is_empty():
+		traits2.append(tr("TRAIT_CHARGE"))
 	var head := kit.hbox(8)
 	head.add_child(_ink(kit.enemy_name(e.type), true))
 	var hp := _ink("")
@@ -499,6 +510,10 @@ func _fill_tip(e: Battle.Enemy) -> void:
 		row.add_child(_ink(" · ".join(traits)))
 	if row.get_child_count() > 0:
 		_tip_box.add_child(row)
+	for t2: String in traits2:
+		var tl := _ink("• " + t2)
+		tl.add_theme_color_override("font_color", kit.col("copper_0"))
+		_tip_box.add_child(tl)
 	var loot: Dictionary = es.get("loot", d["loot"])
 	_tip_box.add_child(_ink(tr("TIP_LOOT") % kit.loot_text(loot)))
 	refresh_tip_hp(e)

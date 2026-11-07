@@ -30,6 +30,7 @@ class Pop:
 	var crit: bool = false
 	var span: float = 0.0          ## time since creation (merging stops after the merge window)
 	var plate: bool = false        ## label on a dark backing plate
+	var yard: bool = false         ## may sit over the fortress (workshop output in the yard)
 
 var kit: ViewKit
 var draw_ms: float = 0.0          ## last _draw cost (perf readout)
@@ -172,7 +173,7 @@ func _min_for(p: Pop) -> float:
 func _clamp(p: Pop) -> void:
 	var half: float = p.width * 0.5
 	var right: float = 1280.0 - kit.f("panel_width", 380) - 6.0
-	p.pos.x = clampf(p.pos.x, half + _left(), right - half)
+	p.pos.x = clampf(p.pos.x, half + (8.0 if p.yard else _left()), right - half)
 	p.pos.y = maxf(p.pos.y, kit.f("bar_height", 40) + kit.f("popup.top_margin", 40.0) + p.rise + float(p.size))
 
 
@@ -318,6 +319,24 @@ func loot(pos: Vector2, loot_dict: Dictionary) -> void:
 		p.pos = pos + Vector2(20.0, -30.0 + y)
 		y += 22.0
 		_add(p)
+
+
+## Workshop output over its building in the yard: "+3 уголь" with the resource icon, on a plate.
+func produce(pos: Vector2, res: String, amount: float, dy: float) -> void:
+	var p := Pop.new()
+	p.kind = "label"
+	p.text = "+%s %s" % [Fmt.num(amount), kit.res_short(res)]
+	p.color = kit.num_color(res)
+	p.size = 24
+	p.life = kit.f("producer.popup_life", 2.0)
+	p.rise = 30.0
+	p.prio = 2
+	p.pop_t = 0.0
+	p.plate = true
+	p.yard = true
+	p.icon = SpriteLib.texture(kit.res_icon(res))
+	p.pos = pos + Vector2(0, dy)
+	_add(p, false)
 
 
 ## A short label (milestone name, "буль!", "Урон 10 → 13"...). `plate` draws a dark backing.

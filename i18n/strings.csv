@@ -386,3 +386,30 @@ HELP_KEYS,"Клавиши: 1 — «Цеха», 2 — «Карта», Alt — п�
 UI_COMPARE,Сравнить и выбрать,Compare and choose
 UI_CHOICE_WARN,Можно взять только одно: второй вариант закроется до Великой Переплавки.,Only one: the other option closes until the Great Remelt.
 UI_LATER,Позже,Later
+BEH_ARMOR_PIERCE,%s: пробивает лобовую броню,%s: pierces frontal armour
+BEH_DIG,%s: выбивает кротов из нор,%s: digs moles out of their burrows
+BEH_LENS_DIG,Линза выжигает кротов из нор,The lens burns moles out of their burrows
+BEH_ZONE_STATUS,%s: лужа — %s,%s: puddle — %s
+BEH_SCALD_SHRED,Паровая ржавчина: у ошпаренных броня вдвое слабее,Steam rust: scalded enemies' armour is halved
+BEH_WET_METAL,Мокрый металл: искра бьёт ошпаренных ×2,Wet metal: sparks hit scalded enemies ×2
+BEH_PRODUCER,Цех: %s,Workshop: %s
+BEH_PRODUCER_OUT,%s добывает: %s,%s produces: %s
+BEH_ABILITY_PUDDLE,%s оставляет кипящую лужу,%s leaves a boiling puddle
+DIFF_CHAIN,Прыжков молнии,Lightning jumps
+DIFF_BOUNCE,Отскоков,Bounces
+DIFF_ARMOR_PIERCE,Пробой брони,Armour pierce
+DIFF_PROD_OUT,"%s: %s за цикл","%s: %s per cycle"
+DIFF_PROD_CYCLE,"%s: цикл","%s: cycle"
+DIFF_PUDDLE,лужа,puddle
+UI_ARMOR,броня,armour
+UI_HELMET,шлем,helmet
+UI_HELMET_BROKEN,шлем сбит!,helmet off!
+UI_DUG_OUT,выбит!,dug out!
+UI_CHARGE,рывок!,charge!
+UI_SPLIT,раскол!,split!
+UI_BOSS_RETREAT_ARMOR,"Броня погасила ~%s урона: бей навесом, взрывами, линзой","Armour soaked ~%s damage: use lobbed shells, blasts, the lens"
+TRAIT_ARMOR,лобовая броня −%s%% прямому огню,frontal armour −%s%% to direct fire
+TRAIT_SHIELD,медный шлем: снимают пар и искра,copper helmet: only steam and spark remove it
+TRAIT_IMMUNE,не замедлить и не отбросить,can't be slowed or knocked back
+TRAIT_SPLIT,раскалывается на угольки,splits into embers
+TRAIT_CHARGE,делает рывки,charges

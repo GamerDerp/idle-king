@@ -99,6 +99,69 @@
           "ember_1"
         ]
       },
+      "coal_cart": {
+        "walk": "wagon_roll",
+        "fall": "wagon_fall",
+        "shadow": "shadow_m",
+        "pieces": [
+          "iron_2",
+          "iron_1",
+          "soot_2",
+          "brass_2",
+          "soot_1"
+        ]
+      },
+      "coal_golem": {
+        "walk": "golem_walk",
+        "fall": "golem_fall",
+        "shadow": "shadow_m",
+        "pieces": [
+          "soot_2",
+          "iron_1",
+          "ember_2",
+          "ember_1",
+          "soot_1"
+        ],
+        "death": "golem_split"
+      },
+      "coal_ember": {
+        "walk": "ugolek_walk",
+        "fall": "ugolek_fall",
+        "shadow": "shadow_s",
+        "pieces": [
+          "ember_2",
+          "ember_1",
+          "soot_2"
+        ]
+      },
+      "diver": {
+        "walk": "diver_walk",
+        "fall": "diver_fall",
+        "shadow": "shadow_s",
+        "pieces": [
+          "copper_3",
+          "copper_2",
+          "steam_3",
+          "iron_2"
+        ],
+        "bare_walk": "diver_bare_walk",
+        "bare_fall": "diver_bare_fall",
+        "shield_break": "diver_helmet_break"
+      },
+      "drill_giant": {
+        "walk": "drill_boss_walk",
+        "fall": "drill_boss_fall",
+        "shadow": "shadow_l",
+        "pieces": [
+          "iron_2",
+          "brass_2",
+          "soot_2",
+          "ember_1",
+          "iron_3"
+        ],
+        "hit": "drill_boss_hit",
+        "retreat": "drill_boss_retreat"
+      },
       "_default": {
         "walk": "scavenger_walk",
         "fall": "scavenger_fall",
@@ -111,6 +174,8 @@
       "mortar": "mortar",
       "steam_jet": "steam_jet",
       "boiler": "boiler",
+      "tesla": "tesla",
+      "ricochet": "ricochet",
       "_default": "rifle"
     },
     "muzzle": {
@@ -313,7 +378,10 @@
       "tower_drop": 2.5,
       "boss_spawn": 4.0,
       "boss_defeated": 6.0,
-      "fall_boss": 3.0
+      "fall_boss": 3.0,
+      "charge": 1.5,
+      "geyser": 1.5,
+      "drill_ram": 3.0
     },
     "shell_arc": {
       "k": 0.22,
@@ -442,11 +510,51 @@
     },
     "projectile_sprites": {
       "mortar": "shell",
-      "boiler": "boiler_bomb"
+      "boiler": "boiler_bomb",
+      "ricochet": "ricochet_ball"
     },
     "explosion_sprites": {
       "mortar": "explosion",
       "boiler": "boiler_explosion"
-    }
+    },
+    "ability_icons": {
+      "kettle": "king_tea",
+      "geyser": "geyser",
+      "drill_ram": "drill_boss_walk"
+    },
+    "producer_sprites": {
+      "coal_mine": "building_coal_mine"
+    },
+    "puddle_burning": {
+      "_comment": "zone owner (battle.zones[].tower) -> draw burning_puddle flames over the puddle",
+      "boiler": true
+    },
+    "fx": {
+      "_comment": "V3 (R2 in the view): lightning link lifetime, drill ram speed (art px/s) and sprite, armour/helmet label spacing, producer popups.",
+      "bolt_time": 0.2,
+      "drill_ram_speed": 260,
+      "drill_ram_sprite": "drill_boss_walk",
+      "label_every": 0.7,
+      "armor_label_every": 1.2,
+      "helmet_label_every": 5.0,
+      "retreat_time": 1.6,
+      "retreat_speed": 46,
+      "cone_puffs": [
+        0.5,
+        0.85
+      ],
+      "plate_dx": 12,
+      "label_global_every": 1.5
+    },
+    "producer": {
+      "_comment": "workshop in the yard: brass gauge under the building (art px), output popup over it (screen px).",
+      "gauge_w": 30,
+      "gauge_dy": 3,
+      "popup_life": 2.0,
+      "popup_dx": 40,
+      "popup_dy": 56
+    },
+    "region_fade": 2.0,
+    "armor_hit_gap": 0.2
   }
 }

@@ -59,7 +59,8 @@ func _all_unlocked(data: GameData, skip: Dictionary) -> Mods:
 	var m := Mods.new()
 	for r: Variant in data.economy["start"]["regions"]:
 		m.regions[int(r)] = true
-	var groups: Dictionary = {"unlock_tower": data.towers, "unlock_enemy": data.enemies, "unlock_ability": data.abilities}
+	var groups: Dictionary = {"unlock_tower": data.towers, "unlock_enemy": data.enemies, "unlock_ability": data.abilities,
+		"unlock_producer": data.producers}
 	for ty: String in groups:
 		for tgt: String in groups[ty]:
 			if str(skip.get("type", "")) == ty and str(skip.get("target", "")) == tgt:
@@ -104,11 +105,14 @@ func test_every_effect_type_renders_a_row() -> void:
 		var rows: PackedStringArray = kit.change_rows(before, after)
 		assert_false(rows.is_empty(), "%s: effect %s shows no row" % [pair[0], ty])
 		for r: String in rows:
-			assert_false(r.contains("DIFF_") or r.contains("STATUS_") or r.contains("BEH_"), "%s: untranslated row %s" % [pair[0], r])
+			assert_false(r.contains("DIFF_") or r.contains("STATUS_") or r.contains("BEH_") or r.contains("_"),
+				"%s: untranslated row %s" % [pair[0], r])
 		if ty.ends_with("_status"):
 			var has_status: bool = false
 			for r: String in rows:
-				has_status = has_status or (r.contains("→") and r.contains("%"))
+				# strength in % ("Ошпаривание 0% → 60% · 3с") or, for stun, its real length ("Оглушение 0с → 0.6с")
+				has_status = has_status or (r.contains("→") and (r.contains("%") or r.contains(tr("UI_SEC")))
+					and not r.contains("0" + tr("UI_SEC") + "\u00a0→\u00a00" + tr("UI_SEC")))
 			assert_true(has_status, "%s: status %s has a было→станет row: %s" % [pair[0], ty, rows])
 	assert_true(types.size() >= 20, "collected effect types: %d" % types.size())
 
@@ -150,6 +154,85 @@ func test_scene_survives_a_scripted_session() -> void:
 	mg.shop.current_tab = 1
 	mg.hud.refresh()
 	assert_true(mg.popups.pops.size() <= int(mg.kit.f("popup.max", 30)), "popup cap")
+	mg.free()
+	Engine.time_scale = 1.0
+	Game.running = false
+
+
+## Region 2/3 on screen: every R2 enemy, tower, workshop and mechanism is bought / spawned, the Drill
+## Giant fights, and every new event type goes through the screen without engine errors.
+func test_scene_handles_r2_and_r3() -> void:
+	var mg: MainGame = (load(SCENE) as PackedScene).instantiate() as MainGame
+	Engine.get_main_loop().root.add_child(mg)
+	var core: GameCore = mg.core
+	var step := func(sec: float) -> void:
+		var t: float = 0.0
+		while t < sec:
+			core.tick(0.05)
+			mg._process(0.05)
+			mg.bv.fx._process(0.05)
+			mg.bv.decals._process(0.05)
+			mg.popups._process(0.05)
+			mg.loot._process(0.05)
+			mg.hud._process(0.05)
+			t += 0.05
+	for r: String in ["gears", "blueprints", "coal", "copper"]:
+		core.state.add_res(r, 1e9)
+	# the whole map up to R3 (bosses beaten on the spot), except the Drill Giant: he fights on screen below
+	for n: String in core.data.node_order:
+		if n == "r2_boss" or n.begins_with("r2_trophy") or n.begins_with("r3_") or n in ["r2_steam_jet"]:
+			continue
+		core.buy("node:" + n)
+		if core.battle.boss_enemy != null:
+			core.battle.damage(core.battle.boss_enemy, 1e12, "blast", true, "test")
+			core.tick(0.05)
+	for t: String in ["boiler", "mortar", "riveter"]:
+		core.buy("tower:" + t)
+	step.call(1.0)
+	assert_true(mg.bv.buildings.has("coal_mine"), "coal mine stands in the yard")
+	for e: String in ["mole_miner", "coal_cart", "coal_golem", "coal_ember", "diver"]:
+		for i in 3:
+			core.battle.spawn_enemy_at(e, Vector2(420.0 + 60.0 * i, 200.0 + 90.0 * i))
+	step.call(12.0)
+	assert_true(core.call_boss("drill_giant", true), "drill giant called")
+	step.call(4.0)
+	var boss: Battle.Enemy = core.battle.boss_enemy
+	assert_true(boss != null and mg.bv.enemy_view(boss.uid) != null, "boss on screen")
+	# synthetic events with every field the core sends (rare ones may not happen in a short run)
+	var p := Vector2(400, 300)
+	var uid: int = boss.uid
+	for ev: Dictionary in [
+			{"type": "enemy_hit", "uid": uid, "amount": 5.0, "dmg_type": "impact", "crit": false, "pos": boss.pos,
+				"source": "tower:shooter", "armored": true, "shielded": false},
+			{"type": "enemy_charge", "uid": uid, "pos": boss.pos, "duration": 1.0},
+			{"type": "enemy_emerge", "uid": -5, "pos": p, "forced": true},
+			{"type": "enemy_shield_broken", "uid": -6, "pos": p},
+			{"type": "enemy_split", "uid": -7, "enemy": "coal_golem", "pos": p, "child_type": "coal_ember", "children": []},
+			{"type": "chain_fired", "tower": "tesla", "tower_index": 0, "from": Vector2(180, 300), "points": [p, p + Vector2(40, 20)],
+				"hits": 2, "crit": false},
+			{"type": "ricochet", "uid": 1, "tower": "ricochet", "from": p, "to": p + Vector2(30, 10), "bounce": 1},
+			{"type": "geyser", "id": "geyser", "pos": Vector2(330, 300), "radius": 60.0, "hits": 3, "damage": 30.0, "shape": "splash"},
+			{"type": "drill_ram", "id": "drill_ram", "pos": Vector2(290, 360), "x_end": 700.0, "width": 30.0, "hits": 2,
+				"damage": 50.0, "shape": "line"},
+			{"type": "producer_output", "id": "coal_mine", "amount": {"coal": 3.0, "gears": 150.0}, "level": 1},
+			{"type": "enemy_status", "uid": uid, "status": "stun", "pos": boss.pos, "duration": 0.5}]:
+		mg._on_event(ev)
+	step.call(2.0)
+	core.battle.damage(boss, 1e12, "blast", true, "test")
+	step.call(3.0)
+	assert_eq(core.state.boss_status("drill_giant"), "defeated")
+	# region 3: divers with helmets, the tesla coil
+	core.buy("node:r2_trophy_ram")
+	for n: String in ["r3_road", "r3_tesla", "r3_wet_metal", "r3_tesla_limit"]:
+		core.buy("node:" + n)
+	core.buy("tower:tesla")
+	for i in 4:
+		core.battle.spawn_enemy_at("diver", Vector2(400.0 + 50.0 * i, 250.0 + 40.0 * i))
+	step.call(10.0)
+	assert_true(core.mods.is_region_unlocked(3), "region 3 open")
+	assert_eq(mg.bv._bg_name, "battlefield_bg_r3")
+	mg.shop.refresh()
+	mg.hud.refresh()
 	mg.free()
 	Engine.time_scale = 1.0
 	Game.running = false

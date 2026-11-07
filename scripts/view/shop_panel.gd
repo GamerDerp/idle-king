@@ -22,6 +22,7 @@ class Card:
 	var buy_row: Control
 	var price_icon: TextureRect
 	var price: Label
+	var price_col: VBoxContainer      ## price line (+ the wait under it when the price has several resources)
 	var price_more: HBoxContainer     ## further resources of the price: icon + amount each (never cut)
 	var price_sig: String = ""
 	var ttl: Label
@@ -134,19 +135,27 @@ func _card_panel() -> PanelContainer:
 
 func _buy_row(c: Card, button_text: String) -> HBoxContainer:
 	var row := kit.hbox(4)
+	# price column: icon + amounts on top; a long wait drops under them when the price has several resources
+	c.price_col = kit.vbox(0)
+	c.price_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	c.price_col.alignment = BoxContainer.ALIGNMENT_CENTER
+	var top := kit.hbox(4)
 	c.price_icon = kit.icon("res_gears", 32)
-	row.add_child(c.price_icon)
+	top.add_child(c.price_icon)
 	c.price = kit.label("", "PriceLabel")
-	row.add_child(c.price)
+	top.add_child(c.price)
 	c.price_more = kit.hbox(2)
-	row.add_child(c.price_more)
+	top.add_child(c.price_more)
 	c.ttl = kit.label("", "DimLabel")
 	c.ttl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	c.ttl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(c.ttl)
+	top.add_child(c.ttl)
+	c.price_col.add_child(top)
+	row.add_child(c.price_col)
 	c.button = Button.new()
 	c.button.text = button_text
 	c.button.mouse_filter = Control.MOUSE_FILTER_PASS
+	c.button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	c.button.pressed.connect(_on_buy.bind(c.id))
 	row.add_child(c.button)
 	c.buy_row = row
@@ -463,6 +472,12 @@ func _update_price(c: Card, cost: Dictionary, can: bool) -> void:
 			sig += r + ","
 	if sig != c.price_sig:
 		c.price_sig = sig
+		# several resources leave no room for "~1м 03с" beside them: the wait goes under the price
+		var want_parent: Node = c.price_col if sig != "" else c.price_icon.get_parent()
+		if c.ttl.get_parent() != want_parent:
+			c.ttl.get_parent().remove_child(c.ttl)
+			want_parent.add_child(c.ttl)
+			c.ttl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if sig != "" else HORIZONTAL_ALIGNMENT_RIGHT
 		for ch: Node in c.price_more.get_children():
 			c.price_more.remove_child(ch)
 			ch.queue_free()

@@ -30,6 +30,8 @@ var _base_timescale: float = 1.0
 var _slowmo_until: int = 0
 var _milestone_towers: Dictionary = {}
 var _stress: bool = false
+var _fx_demo: bool = false
+var _fx_demo_t: float = 0.0
 var _perf_secs: float = -1.0
 var _perf_start: int = 0
 var _perf_last: int = 0
@@ -49,6 +51,8 @@ var _tip_rest: float = 0.0
 var _follow_t: float = 0.0
 var _tip_uid: int = -1
 var choice: ChoiceOverlay
+var _label_at: Dictionary = {}     ## label kind -> view time it was last shown (global rate limit)
+var _armor_blocked: float = 0.0    ## damage the boss's frontal armour soaked this fight (retreat hint)
 var _buy_list: PackedStringArray = []
 var _buy_at: float = 1.0
 
@@ -111,6 +115,7 @@ func _ready() -> void:
 	_buy_list = DevTools.get_arg("buy", "").split(",", false)
 	_buy_at = DevTools.get_arg("buy-at", "1").to_float()
 	_stress = DevTools.has_arg("stress")
+	_fx_demo = DevTools.has_arg("fx-demo")
 	_mouse_follow = DevTools.get_arg("mouse", "") == "enemy"
 	_perf_secs = DevTools.get_arg("perf", "-1").to_float()
 	hud.refresh()
@@ -137,6 +142,8 @@ func _process(delta: float) -> void:
 		core.set_cursor(mp, over)
 	if _stress:
 		_stress_fill()
+	if _fx_demo:
+		_fx_demo_tick(delta)
 	if not _buy_list.is_empty() and DevTools.game_time >= _buy_at:
 		for id: String in _buy_list:
 			if id.begins_with("compare:"):
@@ -217,6 +224,12 @@ func _on_event(ev: Dictionary) -> void:
 			var mid: Vector2 = kit.to_art(pos) + Vector2(0, -(fx._head_of(ev_v.type) if ev_v != null else 10.0) * 0.5)
 			fx.hit_sparks(mid, str(ev["dmg_type"]), crit)
 			popups.damage(uid, _head_screen(uid, pos), float(ev["amount"]), str(ev["dmg_type"]), crit)
+			if bool(ev.get("armored", false)):
+				_on_armored_hit(ev, mid)
+			elif bool(ev.get("shielded", false)):
+				fx.shield_spark(mid + Vector2(-2, -4))
+				if bv.label_ok(uid, kit.f("fx.helmet_label_every", 5.0)) and _label_free("helmet"):
+					popups.text(_head_screen(uid, pos) + Vector2(-34, 4), tr("UI_HELMET"), kit.col("copper_3"), 24, 0.7, 14.0)
 		"enemy_dot":
 			# scalding shows as steam on the enemy; numbers only for the moat curtain and puddles
 			if str(ev["source"]) == "scald":
@@ -227,7 +240,10 @@ func _on_event(ev: Dictionary) -> void:
 			_on_kill(ev)
 		"enemy_fell_in_moat":
 			var p: Vector2 = ev["pos"]
-			fx.fall(kit.to_art(p), str(ev["enemy"]))
+			var fev: BattleView.EnemyView = bv.enemy_view(int(ev["uid"]))
+			var fsp: Dictionary = kit.enemy_sprites(str(ev["enemy"]))
+			var bare: bool = fev != null and fsp.has("bare_walk") and fev.anim_name == str(fsp["bare_walk"])
+			fx.fall(kit.to_art(p), str(ev["enemy"]), str(fsp.get("bare_fall", "")) if bare else "")
 			popups.text(Vector2(p.x - 22.0, p.y - 26.0), tr("UI_BLUB"), kit.col("steam_2"), 24, 0.9, 16.0)
 			hud.bump_falls()
 		"projectile_fired":
@@ -257,8 +273,44 @@ func _on_event(ev: Dictionary) -> void:
 				popups.damage(-100 - int(ev["index"]), ev["pos"] + Vector2(0, -r * 0.7), float(ev["damage"]), "steam", false,
 					kit.f("popup.lens_every", 0.5))
 		"enemy_status":
-			if str(ev["status"]) == "scald":
-				fx.anim("steam_puff", kit.to_art(_head_screen(int(ev["uid"]), ev["pos"])))
+			match str(ev["status"]):
+				"scald":
+					fx.anim("steam_puff", kit.to_art(_head_screen(int(ev["uid"]), ev["pos"])))
+				"stun":
+					fx.burst(kit.to_art(_head_screen(int(ev["uid"]), ev["pos"])), ["brass_3", "parchment_2"], 4, 22.0, 0.3)
+		"enemy_emerge":
+			if bool(ev["forced"]):
+				var ep: Vector2 = ev["pos"]
+				fx.burst(kit.to_art(ep), ["dust_2", "dust_0", "soot_2", "brass_3"], 10, 40.0, 0.5, 90.0, 1.0, 30.0)
+				if bv.label_ok(int(ev["uid"]), kit.f("fx.label_every", 0.7)) and _label_free("dug"):
+					popups.text(ep + Vector2(0, -30), tr("UI_DUG_OUT"), kit.col("dust_2"), 24, 0.8, 16.0)
+		"enemy_charge":
+			var cp: Vector2 = ev["pos"]
+			fx.dust(kit.to_art(cp) + Vector2(14, -2), 14)
+			popups.text(_head_screen(int(ev["uid"]), cp) + Vector2(0, -10), tr("UI_CHARGE"), kit.num_color("bad"), 24, 0.9, 18.0, true)
+			shake(kit.f("shake.charge", 1.5))
+		"enemy_split":
+			pass   # the golem's own split animation plays on its enemy_killed (game_view.enemy_sprites.*.death)
+		"enemy_shield_broken":
+			var hp2: Vector2 = ev["pos"]
+			var hsp: Dictionary = kit.enemy_sprites(str(bv.enemy_view(int(ev["uid"])).type) if bv.enemy_view(int(ev["uid"])) != null else "diver")
+			fx.helmet_break(kit.to_art(hp2), str(hsp.get("shield_break", "diver_helmet_break")))
+			popups.text(_head_screen(int(ev["uid"]), hp2) + Vector2(0, -8), tr("UI_HELMET_BROKEN"), kit.col("copper_3"), 24, 1.0, 18.0, true)
+		"chain_fired":
+			bv.on_tower_fired(str(ev["tower"]), int(ev["tower_index"]))
+			fx.bolt(ev["from"], ev["points"])
+		"ricochet":
+			fx.ricochet(ev["from"], ev["to"], int(ev["bounce"]))
+		"geyser":
+			fx.geyser(ev["pos"], float(ev["radius"]))
+			bv.flare_furnaces()
+			shake(kit.f("shake.geyser", 1.5))
+		"drill_ram":
+			var rp: Vector2 = ev["pos"]
+			fx.drill_ram(rp.y, rp.x, float(ev["x_end"]))
+			shake(kit.f("shake.drill_ram", 3.0))
+		"producer_output":
+			_on_producer(ev)
 		"enemy_burrow":
 			var bsp: Dictionary = kit.enemy_sprites(str(bv.enemy_view(int(ev["uid"])).type) if bv.enemy_view(int(ev["uid"])) != null else "")
 			var banim: String = str(bsp.get("burrow" if bool(ev["under"]) else "emerge", ""))
@@ -272,15 +324,24 @@ func _on_event(ev: Dictionary) -> void:
 		"unlocked":
 			_on_unlocked(ev)
 		"boss_spawned":
+			_armor_blocked = 0.0
 			var bn: String = tr(str(core.data.bosses[str(ev["boss"])]["name"]))
 			hud.banner(tr("UI_BOSS_COMING") % bn, tr("UI_BOSS_COMING_SUB"), "ember_1")
 			shake(kit.f("shake.boss_spawn", 4.0))
 		"boss_retreated":
 			var bp: Vector2 = kit.to_art(ev["pos"])
-			fx.anim(str(kit.enemy_sprites(str(core.data.bosses[str(ev["boss"])]["enemy"])).get("walk", "boss_walk")),
-				bp, true, Color(1, 1, 1, 0.8), Vector2(40, 0))
+			var bsp2: Dictionary = kit.enemy_sprites(str(core.data.bosses[str(ev["boss"])]["enemy"]))
+			if bsp2.has("retreat"):
+				# backs off to the right, nose up, smoking (its own sprite already faces the retreat)
+				fx.loop_anim(str(bsp2["retreat"]), bp, kit.f("fx.retreat_time", 1.6), Vector2(kit.f("fx.retreat_speed", 46.0), 0))
+			else:
+				fx.anim(str(bsp2.get("walk", "boss_walk")), bp, true, Color(1, 1, 1, 0.8), Vector2(40, 0))
 			fx.steam_burst(bp, 4)
-			hud.banner(tr("UI_BOSS_RETREATED"), "", "copper_1")
+			var sub: String = ""
+			if _armor_blocked >= 1.0:
+				sub = tr("UI_BOSS_RETREAT_ARMOR") % Fmt.num(roundf(_armor_blocked))
+			hud.banner(tr("UI_BOSS_RETREATED"), sub, "copper_1")
+			_armor_blocked = 0.0
 			shake(kit.f("shake.fall_boss", 3.0))
 		"boss_defeated":
 			_boss_pos = ev["pos"]
@@ -302,7 +363,11 @@ func _on_kill(ev: Dictionary) -> void:
 	var p: Vector2 = ev["pos"]
 	var etype: String = str(ev["enemy"])
 	var role: String = str(core.data.enemies.get(etype, {}).get("role", "normal"))
-	bv.fx.kill(kit.to_art(p) + Vector2(0, -4), etype, role != "normal")
+	var death: String = str(kit.enemy_sprites(etype).get("death", ""))
+	if death != "":
+		bv.fx.split(kit.to_art(p), death)
+	else:
+		bv.fx.kill(kit.to_art(p) + Vector2(0, -4), etype, role != "normal")
 	var lt: Dictionary = ev["loot"]
 	if role == "boss":
 		return
@@ -314,6 +379,52 @@ func _on_kill(ev: Dictionary) -> void:
 			continue
 		var n: int = clampi(1 + int(floor(log(maxf(1.0, amt)) / log(10.0))), 1, cmax)
 		loot.fly(p + Vector2(0, -16), r, amt, n)
+
+
+## Direct fire on frontal armour (Бур-Великан): plate-hit frames, a hard spark off the plate, a rate-limited
+## «броня» label, and the damage the plate soaked is tallied for the retreat banner's hint.
+## Short field labels of one kind ("выбит!", "шлем") at most every fx.label_global_every s: a crowd of moles
+## dug out by one blast is one label, not ten.
+func _label_free(kind: String) -> bool:
+	var now: float = bv.view_time()
+	if now - float(_label_at.get(kind, -99.0)) < kit.f("fx.label_global_every", 1.5):
+		return false
+	_label_at[kind] = now
+	return true
+
+
+func _on_armored_hit(ev: Dictionary, mid_art: Vector2) -> void:
+	var uid: int = int(ev["uid"])
+	var e: Battle.Enemy = bv.enemy_by_uid(uid)
+	bv.armor_hit(uid)
+	bv.fx.armor_spark(mid_art + Vector2(-kit.f("fx.plate_dx", 12.0), 0), bool(ev["crit"]))
+	if e != null:
+		var src: String = str(ev.get("source", ""))
+		var ap: float = 0.0
+		if src.begins_with("tower:") and core.mods.tower_stats.has(src.substr(6)):
+			ap = float(core.mods.tower_stats[src.substr(6)].get("armor_pierce", 0.0))
+		var block: float = e.front_armor * (1.0 - ap) * (0.5 if core.mods.scald_shred and e.scald_t > 0.0 else 1.0)
+		if block > 0.0 and block < 1.0:
+			_armor_blocked += float(ev["amount"]) * block / (1.0 - block)
+	if bv.label_ok(uid, kit.f("fx.armor_label_every", 1.2)):
+		popups.text(_head_screen(uid, ev["pos"]) + Vector2(-60, 26), tr("UI_ARMOR"), kit.col("iron_3"), 24, 0.7, 12.0, true)
+
+
+## A workshop delivered a batch: coal hops out of the building, «+3 уголь» / «+150 шест.» over it, and the
+## goods fly to their counters (the reference hid its farm output — ours is loud).
+func _on_producer(ev: Dictionary) -> void:
+	var pid: String = str(ev["id"])
+	var at: Vector2 = bv.building_pos(pid)
+	bv.fx.producer_burst(at)
+	var top: Vector2 = kit.to_screen(at + Vector2(0, -kit.f("producer.popup_dy", 62.0)))
+	var amt: Dictionary = ev["amount"]
+	var dy: float = 0.0
+	for r: String in amt:
+		if float(amt[r]) <= 0.0:
+			continue
+		popups.produce(top + Vector2(kit.f("producer.popup_dx", 40.0), 0), r, float(amt[r]), dy)
+		dy -= 30.0
+		loot.fly(top + Vector2(0, 30), r, float(amt[r]), clampi(1 + int(log(maxf(1.0, float(amt[r]))) / log(10.0)), 1, 4))
 
 
 func _on_purchased(ev: Dictionary) -> void:
@@ -484,6 +595,37 @@ func _follow_enemy() -> void:
 			best = e
 	if best != null:
 		get_viewport().warp_mouse(best.pos + Vector2(0, -best.radius))
+
+
+## --fx-demo: replays every R2/R3 effect (lightning, ricochet, geyser, drill ram, workshop output, armour,
+## helmet, dash, dug-out) on the live field every second, for screenshots of rare moments.
+func _fx_demo_tick(delta: float) -> void:
+	_fx_demo_t -= delta
+	if _fx_demo_t > 0.0:
+		return
+	_fx_demo_t = 1.0
+	var es: Array[Battle.Enemy] = []
+	for e: Battle.Enemy in core.battle.enemies:
+		if e.alive and not e.underground:
+			es.append(e)
+	var tw: Vector2 = core.battle.towers[0].pos if not core.battle.towers.is_empty() else Vector2(180, 360)
+	var pts: Array = []
+	for e: Battle.Enemy in es.slice(0, 4):
+		pts.append(e.pos)
+	if pts.is_empty():
+		pts = [Vector2(450, 300), Vector2(500, 340)]
+	var any: int = es[0].uid if not es.is_empty() else -1
+	for ev: Dictionary in [
+			{"type": "chain_fired", "tower": "tesla", "tower_index": 0, "from": tw, "points": pts, "hits": pts.size(), "crit": false},
+			{"type": "ricochet", "uid": 1, "tower": "ricochet", "from": pts[0], "to": pts[pts.size() - 1], "bounce": 1},
+			{"type": "geyser", "id": "geyser", "pos": Vector2(340, 250 + randf() * 250.0), "radius": 60.0, "hits": 0, "damage": 0.0, "shape": "splash"},
+			{"type": "drill_ram", "id": "drill_ram", "pos": Vector2(290, 200 + randf() * 300.0), "x_end": 720.0, "width": 30.0,
+				"hits": 0, "damage": 0.0, "shape": "line"},
+			{"type": "producer_output", "id": core.data.producers.keys()[0], "amount": {"coal": 6.0, "gears": 300.0}, "level": 1},
+			{"type": "enemy_emerge", "uid": any, "pos": pts[0], "forced": true}]:
+		if str(ev["type"]) == "producer_output" and bv.buildings.is_empty():
+			continue
+		_on_event(ev)
 
 
 func _stress_fill() -> void:

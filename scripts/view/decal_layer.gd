@@ -78,13 +78,34 @@ func _draw_body() -> void:
 	var teal: Color = kit.col("teal_1")
 	var teal2: Color = kit.col("teal_2")
 	var steam: Color = kit.col("steam_3")
+	var tar: Color = kit.col("soot_1")
+	var tar2: Color = kit.col("copper_0")
+	var burn_sprite: String = str(kit.v("puddle_sprites.burning", "burning_puddle"))
+	var burn_n: int = int(SpriteLib.info(burn_sprite).get("frames", 1))
+	var burn_fps: float = float(SpriteLib.info(burn_sprite).get("fps", 8.0))
+	var burn_anc: Vector2 = SpriteLib.anchor(burn_sprite)
+	var burn_w: float = float(SpriteLib.frame_size(burn_sprite).x)
 	for z: Battle.Zone in core.battle.zones:
 		var c: Vector2 = kit.to_art(z.pos).round()
 		var r: float = z.radius / kit.art_scale
 		var left: float = clampf(1.0 - z.t / maxf(0.01, z.duration), 0.0, 1.0)
 		var fade: float = clampf(left * 4.0, 0.0, 1.0)
-		_blob(c, r, r * 0.5, Color(teal, 0.55 * fade))
-		_blob(c, r * 0.7, r * 0.33, Color(teal2, 0.5 * fade))
+		var sticky: bool = not z.statuses.is_empty()
+		if sticky:
+			# tar puddle (slows): dark, glossy, few bubbles
+			_blob(c, r, r * 0.5, Color(tar, 0.7 * fade))
+			_blob(c + Vector2(-1, -1), r * 0.6, r * 0.28, Color(tar2, 0.6 * fade))
+		else:
+			_blob(c, r, r * 0.5, Color(teal, 0.55 * fade))
+			_blob(c, r * 0.7, r * 0.33, Color(teal2, 0.5 * fade))
+		if bool(kit.v("puddle_burning." + z.tower, false)):
+			# a boiler's puddle burns: flames tiled across it (pixel sprites are never scaled)
+			var n: int = maxi(1, int(ceil(2.0 * r / burn_w)))
+			for j in n:
+				var dx: float = (float(j) - (n - 1) * 0.5) * burn_w * 0.6
+				var fr: int = (int(_time * burn_fps) + j + z.uid) % maxi(1, burn_n)
+				draw_texture(SpriteLib.texture(burn_sprite, fr), (c + Vector2(dx, float(j % 2) * 2.0 - 1.0) - burn_anc).round(),
+					Color(1, 1, 1, fade))
 		for j in 3:
 			var ph: float = fmod(_time * 1.7 + j * 0.37 + z.uid * 0.13, 1.0)
 			var bp: Vector2 = c + Vector2(sin(j * 2.1 + z.uid) * r * 0.5, cos(j * 1.7) * r * 0.2 - ph * 3.0)

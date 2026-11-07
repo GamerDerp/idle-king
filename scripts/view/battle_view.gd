@@ -19,6 +19,9 @@ class EnemyView:
 	var new_t: float = 0.0
 	var stamp: int = 0
 	var art_pos: Vector2 = Vector2.ZERO
+	var anim_name: String = ""     ## sprite shown now (walk / bare_walk / hit)
+	var hit_t: float = 0.0          ## armour hit frames left (Бур: plate sparks)
+	var label_t: float = -9.0       ## last "броня"/"шлем" label time (rate limit)
 
 
 class TowerView:
@@ -66,7 +69,11 @@ var _steam: MoatFx
 var _wisps: Array[AnimatedSprite2D] = []
 var _wisp_t: Array[float] = []       ## 0..1 phase of each wisp's drift from the bank onto the field
 var _furnaces: Array[AnimatedSprite2D] = []
+var _furnace_flare: float = 0.0
 var _region_t: float = 0.0
+var _bg_old: Sprite2D
+var _bg_fade: float = 0.0
+var buildings: Dictionary = {}       ## producer id -> AnimatedSprite2D in a yard slot
 
 
 func setup(view_kit: ViewKit) -> void:
@@ -82,6 +89,7 @@ func setup(view_kit: ViewKit) -> void:
 	for e: Battle.Enemy in core.battle.enemies:
 		seen_enemy_types[e.type] = -1.0
 	sync_towers()
+	_update_region()
 	_ready_done = true
 
 
@@ -96,6 +104,11 @@ func _build_scenery() -> void:
 	_bg = Sprite2D.new()
 	_bg.centered = false
 	add_child(_bg)
+	# the previous region's field fades out over the new one (region change)
+	_bg_old = Sprite2D.new()
+	_bg_old.centered = false
+	_bg_old.visible = false
+	add_child(_bg_old)
 	_update_region()
 	var moat_x: Array = lay.get("moat_x", [108, 137])
 	var size: Array = lay.get("size", [450, 340])
@@ -180,17 +193,71 @@ func _update_region() -> void:
 			best = r
 	var bg_name: String = str((regs.get(str(best), {}) as Dictionary).get("bg", "battlefield_bg")) if best >= 0 else "battlefield_bg"
 	if bg_name != _bg_name:
+		if _bg_name != "" and _ready_done:
+			_bg_old.texture = _bg.texture
+			_bg_old.modulate.a = 1.0
+			_bg_old.visible = true
+			_bg_fade = kit.f("region_fade", 2.0)
 		_bg_name = bg_name
 		_bg.texture = SpriteLib.texture(bg_name)
+	_update_furnaces()
+	if _wall != null:
+		_update_buildings()
+
+
+## «Топка рва» doors on the wall face (R2+): off until bought, warm when the curtain is boosted, hot with
+## geysers; a geyser eruption flares them for a moment.
+func _update_furnaces() -> void:
 	var base_w: float = float(core.data.waves["curtain_width"])
 	var state: String = ""
 	if core.mods.is_region_unlocked(2):
-		state = "moat_furnace_hot" if core.mods.moat_width > base_w else "moat_furnace_off"
+		state = "moat_furnace_off"
+		if core.mods.moat_width > base_w:
+			state = "moat_furnace_warm"
+		if core.mods.abilities.has("geyser") or _furnace_flare > 0.0:
+			state = "moat_furnace_hot"
 	for fu: AnimatedSprite2D in _furnaces:
 		fu.visible = state != ""
 		if state != "" and fu.sprite_frames != SpriteLib.sprite_frames(state):
 			fu.sprite_frames = SpriteLib.sprite_frames(state)
 			fu.play(&"default")
+
+
+func flare_furnaces() -> void:
+	_furnace_flare = 0.8
+	_update_furnaces()
+	var face: Array = lay.get("face_x", [96, 107])
+	for fu: AnimatedSprite2D in _furnaces:
+		if fu.visible:
+			fx.burst(fu.position + Vector2(float(face[1]) - float(face[0]), 12), ["ember_2", "brass_3", "ember_1"], 5, 26.0, 0.4, 30.0, 1.0, 8.0)
+
+
+## Workshops (producers) stand in the yard slots: one building per unlocked producer.
+func _update_buildings() -> void:
+	var slots: Array = lay.get("yard_slots", [])
+	var i: int = 0
+	for pid: String in core.data.producers:
+		var spr: String = str(kit.v("producer_sprites." + pid, ""))
+		if spr == "" or i >= slots.size():
+			continue
+		var slot: Array = slots[i]
+		i += 1
+		if not core.mods.producers.has(pid) or buildings.has(pid):
+			continue
+		var b := SpriteLib.make(spr)
+		b.position = Vector2(float(slot[0]), float(slot[1]))
+		_wall.add_child(b)
+		buildings[pid] = b
+		if _ready_done:
+			fx.steam_burst(b.position + Vector2(0, -6), 6)
+			fx.tier_ring(b.position + Vector2(0, -24))
+			if shake_cb.is_valid():
+				shake_cb.call(kit.f("shake.tower_drop", 2.5))
+
+
+func building_pos(pid: String) -> Vector2:
+	var b: AnimatedSprite2D = buildings.get(pid, null)
+	return b.position if b != null else Vector2(27, 150)
 
 
 # --- towers ----------------------------------------------------------------------
@@ -371,6 +438,9 @@ func _acquire(e: Battle.Enemy) -> EnemyView:
 	ev.node.sprite_frames = SpriteLib.sprite_frames(walk)
 	ev.node.offset = -SpriteLib.anchor(walk)
 	ev.node.play(&"default")
+	ev.anim_name = walk
+	ev.hit_t = -1.0
+	ev.label_t = -9.0
 	ev.node.frame = e.uid % 4
 	ev.node.material = null
 	ev.node.speed_scale = 1.0
@@ -416,7 +486,16 @@ func _update_enemies(delta: float) -> void:
 		ev.art_pos = ap
 		ev.node.position = ap
 		ev.node.visible = not e.underground
-		ev.node.speed_scale = 1.0 - (e.slow_f if e.slow_t > 0.0 else 0.0)
+		ev.node.speed_scale = 0.0 if e.stun_t > 0.0 else 1.0 - (e.slow_f if e.slow_t > 0.0 else 0.0)
+		ev.hit_t -= delta
+		var want: String = _enemy_anim(e, ev)
+		if want != ev.anim_name:
+			var fr: int = ev.node.frame
+			ev.anim_name = want
+			ev.node.sprite_frames = SpriteLib.sprite_frames(want)
+			ev.node.offset = -SpriteLib.anchor(want)
+			ev.node.play(&"default")
+			ev.node.frame = fr % maxi(1, ev.node.sprite_frames.get_frame_count(&"default"))
 		if ev.new_t > 0.0:
 			ev.new_t -= delta
 		if ev.flash_t > 0.0:
@@ -430,6 +509,34 @@ func _update_enemies(delta: float) -> void:
 			gone.append(ev)
 	for ev in gone:
 		_release(ev)
+
+
+## Sprite an enemy shows now: Бур-Великан's plate-hit frames while direct fire rings off the armour,
+## the diver without his helmet once the shield is gone, else the walk cycle.
+func _enemy_anim(e: Battle.Enemy, ev: EnemyView) -> String:
+	var sp: Dictionary = kit.enemy_sprites(e.type)
+	if ev.hit_t > 0.0 and sp.has("hit"):
+		return str(sp["hit"])
+	if e.shield_max > 0.0 and e.shield_hp <= 0.0 and sp.has("bare_walk"):
+		return str(sp["bare_walk"])
+	return str(sp.get("walk", "scavenger_walk"))
+
+
+## Direct fire hit frontal armour: show the plate-hit frames (rate-limited so the walk still reads).
+func armor_hit(uid: int) -> void:
+	var ev: EnemyView = enemies.get(uid, null)
+	if ev == null or ev.hit_t > -kit.f("armor_hit_gap", 0.2):
+		return
+	ev.hit_t = float(SpriteLib.info(str(kit.enemy_sprites(ev.type).get("hit", "drill_boss_hit"))).get("frames", 2)) / 12.0
+
+
+## True (and remembers the time) when an enemy may show another short label ("броня", "шлем").
+func label_ok(uid: int, every: float) -> bool:
+	var ev: EnemyView = enemies.get(uid, null)
+	if ev == null or _time - ev.label_t < every:
+		return false
+	ev.label_t = _time
+	return true
 
 
 func flash_enemy(uid: int, crit: bool) -> void:
@@ -528,6 +635,10 @@ func _update_curtain(delta: float) -> void:
 	fx.curtain_puff(Vector2(_bank_x + randf_range(0.0, maxf(4.0, w * 0.5)), y))
 
 
+func view_time() -> float:
+	return _time
+
+
 func bank_x() -> float:
 	return _bank_x
 
@@ -539,6 +650,14 @@ func update_view(delta: float) -> void:
 	_update_enemies(delta)
 	_update_king(delta)
 	_update_curtain(delta)
+	if _bg_fade > 0.0:
+		_bg_fade -= delta
+		_bg_old.modulate.a = clampf(_bg_fade / kit.f("region_fade", 2.0), 0.0, 1.0)
+		_bg_old.visible = _bg_fade > 0.0
+	if _furnace_flare > 0.0:
+		_furnace_flare -= delta
+		if _furnace_flare <= 0.0:
+			_update_furnaces()
 	_region_t -= delta
 	if _region_t <= 0.0:
 		_region_t = 0.5

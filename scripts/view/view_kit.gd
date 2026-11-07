@@ -297,7 +297,37 @@ func behaviour_text(key: String) -> String:
 		"boss":
 			var bn: String = str(core.data.bosses[a]["name"]) if core.data.bosses.has(a) else a
 			return tr("BEH_BOSS") % tr(bn)
+		"armor_pierce":
+			return tr("BEH_ARMOR_PIERCE") % tower_name(a)
+		"dig":
+			return tr("BEH_DIG") % tower_name(a)
+		"lens_dig":
+			return tr("BEH_LENS_DIG")
+		"zone_status":
+			return tr("BEH_ZONE_STATUS") % [tower_name(a), status_name(b)]
+		"scald_shred":
+			return tr("BEH_SCALD_SHRED")
+		"wet_metal":
+			return tr("BEH_WET_METAL")
+		"producer":
+			return tr("BEH_PRODUCER") % producer_name(a)
+		"producer_out":
+			return tr("BEH_PRODUCER_OUT") % [producer_name(a), tr("RES_%s_SHORT" % b.to_upper())]
+		"ability_puddle":
+			return tr("BEH_ABILITY_PUDDLE") % ability_name(a)
 	return key
+
+
+func producer_name(pid: String) -> String:
+	return tr(str(core.data.producers[pid]["name"])) if core.data.producers.has(pid) else pid
+
+
+## Short duration: "0.6с", "3с" (status lengths are often under a second).
+func dur(seconds: float) -> String:
+	if seconds >= 60.0:
+		return Fmt.time(seconds)
+	var q: float = 0.01 if seconds < 1.0 else 0.1
+	return Fmt.num(snappedf(seconds, q) if seconds < 10.0 else roundf(seconds)) + tr("UI_SEC")
 
 
 ## Icon sprite for a behaviour key (toasts).
@@ -307,13 +337,20 @@ func behaviour_icon(key: String) -> String:
 	match p[0]:
 		"enemy":
 			return str(enemy_sprites(a).get("walk", "scavenger_walk"))
-		"tower", "tier", "pierce", "splash", "multishot", "knockback", "cluster", "crit_chain", "status":
+		"tower", "tier", "pierce", "splash", "multishot", "knockback", "cluster", "crit_chain", "status", \
+				"armor_pierce", "dig", "zone_status":
 			return tower_sprite(a, core.tower_tier(a)) if core.data.towers.has(a) else "rifle_t0"
 		"region":
 			return "res_blueprints"
-		"ability", "ability_count", "ability_status":
-			return "king_idle"
-		"lens_seek", "lens_status", "lens_extra":
+		"ability", "ability_count", "ability_status", "ability_puddle":
+			return str(v("ability_icons." + a, "king_idle"))
+		"producer", "producer_out":
+			return str(v("producer_sprites." + a, "res_coal"))
+		"scald_shred":
+			return "dmg_steam"
+		"wet_metal":
+			return "wet_metal"
+		"lens_seek", "lens_status", "lens_extra", "lens_dig":
 			return "steam_lens"
 		"moat_curtain", "moat_slow":
 			return "steam_puff"
@@ -363,7 +400,13 @@ func diff_lines(id: String, after: Mods = null, before: Mods = null) -> Array:
 		_cmp(out, pre + tr("DIFF_KNOCKBACK"), float(a["knockback"]), float(b["knockback"]), icon_name)
 		_cmp(out, pre + tr("DIFF_CLUSTER"), float(a["cluster"]), float(b["cluster"]), icon_name)
 		_cmp(out, pre + tr("DIFF_RANGE"), float(a["range_max"]), float(b["range_max"]), icon_name)
+		_cmp(out, pre + tr("DIFF_ARMOR_PIERCE"), float(a.get("armor_pierce", 0.0)) * 100.0,
+			float(b.get("armor_pierce", 0.0)) * 100.0, icon_name, "%")
+		_cmp(out, pre + tr("DIFF_CHAIN"), float(a.get("chain", 0)), float(b.get("chain", 0)), icon_name)
+		_cmp(out, pre + tr("DIFF_BOUNCE"), float(a.get("bounces", 0)), float(b.get("bounces", 0)), icon_name)
 		_status_rows(out, pre, a["statuses"], b["statuses"])
+		_status_rows(out, (pre if pre != "" else tower_name(t) + ": ") + tr("DIFF_PUDDLE") + " — ",
+			a.get("zone_statuses", {}), b.get("zone_statuses", {}))
 	# lens
 	var la: Dictionary = before.lens
 	var lb: Dictionary = after.lens
@@ -396,6 +439,21 @@ func diff_lines(id: String, after: Mods = null, before: Mods = null) -> Array:
 		_cmp(out, ability_name(ab) + ": " + tr("DIFF_DMG"), float(aa["dmg"]), float(bb["dmg"]), "dmg_steam")
 		_cmp(out, ability_name(ab) + ": " + tr("DIFF_COUNT"), float(aa["count"]), float(bb["count"]), "dmg_steam")
 		_status_rows(out, ability_name(ab) + ": ", aa["statuses"], bb["statuses"])
+	# producers (workshops): output per cycle and cycle length
+	for pid: String in after.producers:
+		if not before.producers.has(pid):
+			continue
+		var pa: Dictionary = before.producers[pid]
+		var pb: Dictionary = after.producers[pid]
+		var pn: String = producer_name(pid)
+		var oa: Dictionary = pa["output"]
+		var ob: Dictionary = pb["output"]
+		for r: String in ob:
+			_cmp(out, tr("DIFF_PROD_OUT") % [pn, res_short(r)], float(oa.get(r, 0.0)), float(ob[r]), res_icon(r))
+		var n0: int = out.size()
+		_cmp(out, tr("DIFF_PROD_CYCLE") % pn, float(pa["interval"]), float(pb["interval"]), res_icon("coal"), "", false)
+		if out.size() > n0:
+			out[n0]["text"] = "%s %s → %s" % [tr("DIFF_PROD_CYCLE") % pn, dur(float(pa["interval"])), dur(float(pb["interval"]))]
 	# enemies (baits: reward good, health bad); no name prefix when only one enemy changes
 	var per_enemy: Dictionary = {}
 	for e: String in before.unlocked_enemies:
@@ -441,12 +499,18 @@ func _status_rows(out: Array, pre: String, sa: Dictionary, sb: Dictionary) -> vo
 		var da: float = float(a.get("duration", 0.0))
 		var db: float = float(b.get("duration", 0.0))
 		var n: int = out.size()
-		_cmp(out, pre + status_name(st).capitalize(), va, vb, "dmg_steam", "%")
+		var sname: String = status_name(st) if pre != "" else status_name(st).capitalize()
+		var icon_name: String = "dmg_steam" if st == "scald" else "dmg_impact"
+		# a status with no strength (stun: the enemy just stands still) is all about its length
+		if va <= 0.0 and vb <= 0.0:
+			if absf(da - db) > 1e-4:
+				out.append({"text": "%s%s %s\u00a0→\u00a0%s" % [pre, sname, dur(da), dur(db)], "good": db > da, "icon": icon_name})
+			continue
+		_cmp(out, pre + sname, va, vb, icon_name, "%")
 		if out.size() > n:
-			out[n]["text"] = str(out[n]["text"]).replace(" → ", "\u00a0→\u00a0") + "\u00a0·\u00a0" + Fmt.time(db)
+			out[n]["text"] = str(out[n]["text"]).replace(" → ", "\u00a0→\u00a0") + "\u00a0·\u00a0" + dur(db)
 		elif absf(da - db) > 1e-4:
-			out.append({"text": "%s%s: %s → %s" % [pre, status_name(st).capitalize(), Fmt.time(da), Fmt.time(db)],
-				"good": db > da, "icon": "dmg_steam"})
+			out.append({"text": "%s%s %s\u00a0→\u00a0%s" % [pre, sname, dur(da), dur(db)], "good": db > da, "icon": icon_name})
 
 
 ## Short summary of a tower type (choice cards, unlock nodes): "Урон 10 · 1.7/с · дальн. 320".
@@ -527,8 +591,10 @@ func node_icon(id: String) -> String:
 			return "steam_lens"
 		if ty.begins_with("moat"):
 			return "steam_push"
-		if ty.begins_with("ability"):
-			return "king_tea"
+		if ty.begins_with("ability") or ty == "unlock_ability":
+			return str(v("ability_icons." + tgt, "king_tea"))
+		if ty.begins_with("producer") or ty == "unlock_producer":
+			return str(v("producer_sprites." + tgt, "res_coal"))
 		if ty == "call_boss" and core.data.bosses.has(tgt):
 			return str(enemy_sprites(str(core.data.bosses[tgt]["enemy"])).get("walk", "boss_walk"))
 	var icon_name: String = str(v("node_kind_icons." + kind, "res_blueprints"))
