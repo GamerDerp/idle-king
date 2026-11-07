@@ -20,11 +20,14 @@ GATE_Y = 196         # gatehouse centre (road ends here, bridge is raised)
 
 # tower slots on the walkway: (x, y) = feet anchor in art px (bottom-centre of the tower base)
 TOWER_SLOTS = [(72, 78), (72, 117), (72, 156), (72, 266), (72, 306)]
-KING_POS = (66, 186)           # the King stands on the gatehouse roof (feet)
+KING_POS = (74, 186)           # the King stands on the gatehouse roof (feet)
 GATE_TOP = GATE_Y - 36         # gatehouse sprite top (its drawbridge centre is at GATE_Y)
-SMOKE_POINTS = []              # chimney mouths, filled by gen_art (courtyard_props)
+SMOKE_POINTS = []              # chimney mouths, filled by gen_art (sprites_field.courtyard)
 STEAM_VENTS_Y = list(range(10, 352, 18))   # steam nozzle (mouth) y positions along the moat
 PIPE_X = 101                   # x of the steam main tile (14 px wide; nozzle mouth at PIPE_X+13)
+# open paved plots in the courtyard for producer buildings (bottom-centre anchor, building <= 50x60)
+YARD_SLOTS = [(27, 150), (27, 226)]
+FURNACE_Y = [52, 128, 270]     # «Топка рва» fire doors on the wall's outer face (top y), x = FACE_X0
 
 
 def road_center(x: float) -> float:
@@ -43,5 +46,6 @@ def as_dict() -> dict:
         "tower_slots": [list(p) for p in TOWER_SLOTS], "king_pos": list(KING_POS),
         "steam_vents_y": STEAM_VENTS_Y, "pipe_x": PIPE_X, "gate_top": GATE_TOP,
         "smoke_points": [list(p) for p in SMOKE_POINTS],
+        "yard_slots": [list(p) for p in YARD_SLOTS], "furnace_y": FURNACE_Y, "steam_curtain_x": PIPE_X + 11,
         "road_samples": [[x, round(road_center(x), 1)] for x in range(FIELD_X0, W + 1, 16)],
     }

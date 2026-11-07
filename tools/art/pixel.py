@@ -296,3 +296,77 @@ def cloud(c: Canvas, cx: float, cy: float, r: float, seed: int, alpha: int = 255
                     else:
                         name = dark
                     c.set(x, y, name, alpha)
+
+
+# ------------------------------------------------------------------ scatter & organic shapes
+
+def poisson(x0: int, y0: int, x1: int, y1: int, r: float, seed: int, k: int = 24) -> list:
+    """Blue-noise points (Bridson): no two closer than r. Deterministic; no lattice, no visible grid."""
+    rr = random.Random(seed)
+    cell = r / math.sqrt(2)
+    gw, gh = int((x1 - x0) / cell) + 1, int((y1 - y0) / cell) + 1
+    grid = [[None] * gw for _ in range(gh)]
+    pts, active = [], []
+
+    def put(p):
+        pts.append(p)
+        active.append(p)
+        grid[int((p[1] - y0) / cell)][int((p[0] - x0) / cell)] = p
+
+    put((rr.uniform(x0, x1), rr.uniform(y0, y1)))
+    while active:
+        i = rr.randrange(len(active))
+        px, py = active[i]
+        for _ in range(k):
+            a = rr.uniform(0, math.tau)
+            d = rr.uniform(r, 2 * r)
+            qx, qy = px + math.cos(a) * d, py + math.sin(a) * d
+            if not (x0 <= qx < x1 and y0 <= qy < y1):
+                continue
+            gx, gy = int((qx - x0) / cell), int((qy - y0) / cell)
+            ok = True
+            for yy in range(max(0, gy - 2), min(gh, gy + 3)):
+                for xx in range(max(0, gx - 2), min(gw, gx + 3)):
+                    o = grid[yy][xx]
+                    if o and (o[0] - qx) ** 2 + (o[1] - qy) ** 2 < r * r:
+                        ok = False
+                        break
+                if not ok:
+                    break
+            if ok:
+                put((qx, qy))
+                break
+        else:
+            active.pop(i)
+    return [(int(x), int(y)) for x, y in pts]
+
+
+def wobble(seed: int, n: int = 3):
+    """Smooth periodic 1-D noise f(angle or t) in about [-1, 1]: a few sines with random phases."""
+    rr = random.Random(seed)
+    waves = [(rr.randint(2, 7), rr.uniform(0, math.tau), rr.uniform(0.4, 1.0)) for _ in range(n)]
+    norm = sum(w[2] for w in waves)
+    return lambda a: sum(math.sin(a * f + p) * amp for f, p, amp in waves) / norm
+
+
+def organic(cx: float, cy: float, rx: float, ry: float, seed: int, rough: float = 0.28):
+    """Inside-test for an irregular blob: an ellipse whose radius wobbles with the angle."""
+    f = wobble(seed, 4)
+
+    def inside(x: float, y: float) -> bool:
+        dx, dy = (x - cx) / rx, (y - cy) / ry
+        a = math.atan2(dy, dx)
+        return dx * dx + dy * dy <= (1.0 + rough * f(a)) ** 2
+    return inside
+
+
+def fill_shape(c: "Canvas", inside, box: tuple, name: str, only=None, alpha: int = 255) -> list:
+    """Fill pixels where inside(x+.5, y+.5); returns the filled pixel list. `only`: set of rgb allowed under."""
+    x0, y0, x1, y1 = box
+    out = []
+    for y in range(max(0, int(y0)), min(c.h, int(y1) + 1)):
+        for x in range(max(0, int(x0)), min(c.w, int(x1) + 1)):
+            if inside(x + 0.5, y + 0.5) and (only is None or c.get(x, y)[:3] in only):
+                c.set(x, y, name, alpha)
+                out.append((x, y))
+    return out

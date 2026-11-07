@@ -24,10 +24,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import font_gen  # noqa: E402
 import layout as L  # noqa: E402
 import palette as pal  # noqa: E402
+import sprites_field as FLD  # noqa: E402
 import sprites_fx as FX  # noqa: E402
+import sprites_r2 as R2  # noqa: E402
+import sprites_r3 as R3  # noqa: E402
 import sprites_towers as TW  # noqa: E402
 import sprites_units as UN  # noqa: E402
-import sprites_r2 as R2  # noqa: E402
 import sprites_world as WO  # noqa: E402
 import ui_gen  # noqa: E402
 from pixel import Canvas, contrast, main_color, strip, upscale  # noqa: E402
@@ -59,7 +61,7 @@ class Manifest:
         self.sheets = []   # (name, frames) for the contact sheet
 
     def add(self, category: str, name: str, frames, fps: float = 0, anchor=None, loop: bool = True,
-            note: str = "") -> None:
+            note: str = "", extra: dict = None) -> None:
         if isinstance(frames, Canvas):
             frames = [frames]
         rel = f"{category}/{name}.png"
@@ -69,6 +71,8 @@ class Manifest:
                  "fps": fps, "anchor": list(anchor) if anchor else [w // 2, h - 1], "loop": loop}
         if note:
             entry["note"] = note
+        if extra:
+            entry.update(extra)
         self.sprites[name] = entry
         self.sheets.append((name, frames))
 
@@ -78,6 +82,8 @@ class Manifest:
                         "horizontally; anchor is in frame pixels (feet / pivot). Art is shown at 'scale'.",
             "scale": L.SCALE,
             "battlefield": L.as_dict(),
+            "regions": {str(k): {"bg": "battlefield_bg" if k == 1 else f"battlefield_bg_r{k}", "ground": v["ground"]}
+                        for k, v in FLD.REGIONS.items()},
             "sprites": dict(sorted(self.sprites.items())),
         }
         with open(os.path.join(SPRITES, "manifest.json"), "w", encoding="utf-8") as f:
@@ -143,22 +149,32 @@ def build_world(m: Manifest) -> None:
     road = [WO.road_tile(i) for i in range(3)]
     m.add("world", "ground_tiles", ground, anchor=(0, 0), note="6 variants of 16x16 seamless ground")
     m.add("world", "road_tiles", road, anchor=(0, 0), note="3 variants, ruts run horizontally")
-    bg = WO.battlefield_bg(ground, road)
-    smoke = WO.courtyard_props(bg)
-    bastion = WO.bastion()
-    bg.paste_over(bastion, L.WALK_X0 - 8, -16)
-    bg.paste_over(bastion, L.WALK_X0 - 8, L.H - 22)
-    gate = WO.gatehouse()
-    bg.paste_over(gate, L.WALK_X0 - 2, L.GATE_TOP)
+    bg, smoke = FLD.compose_bg(1)
     m.add("world", "battlefield_bg", bg, anchor=(0, 0),
-          note="static battlefield 450x340: courtyard, wall, gatehouse, moat bed, bank, field, road")
+          note="region 1 (R0-R1) battlefield 450x340: courtyard, wall, gatehouse, moat bed, bank, field, road")
+    bg2, _ = FLD.compose_bg(2)
+    m.add("world", "battlefield_bg_r2", bg2, anchor=(0, 0),
+          note="region 2 «Угольные копи»: same fortress, coal-dark field, rail track on the road, slag heaps, adit")
+    bg3, _ = FLD.compose_bg(3)
+    m.add("world", "battlefield_bg_r3", bg3, anchor=(0, 0),
+          note="region 3 «Медные болота»: same fortress, marsh field, pools, boardwalk road, reeds")
     L.SMOKE_POINTS[:] = smoke
+    gate = WO.gatehouse()
+    bastion = WO.bastion()
     m.add("world", "moat_water", WO.moat_frames(), fps=5, anchor=(0, 0),
           note="tile vertically over moat_x from y=0 every 64 px; share the frame index")
     sheet = WO.steam_sheet_frames()
     m.add("world", "steam_sheet", sheet, fps=10, anchor=(0, sheet[0].h - 1),
-          note="steam curtain sheet; anchor = nozzle mouth: place at (pipe_x+13, vent y), above water and pipes; "
-               "offset the start frame per sheet")
+          note="rising steam column (curtain); anchor = nozzle mouth: place at (pipe_x+13, vent y), above water "
+               "and pipes; offset the start frame per sheet. Foot has an opaque foam churn")
+    m.add("world", "steam_curtain", WO.steam_curtain_frames(), fps=10, anchor=(0, 0),
+          note="the whole curtain in one sprite (replaces steam_sheet + steam_shadow): place at "
+               f"(steam_curtain_x={WO.CURTAIN_X}, 0) after moat_water and steam_pipe, before units")
+    m.add("world", "steam_shadow", WO.steam_shadow_frames(), fps=10, anchor=(0, 0),
+          note="shadow of a steam column on the water; same position/frame as its steam_sheet, drawn right "
+               "after moat_water (under pipes and columns)")
+    m.add("world", "steam_wisps", WO.steam_wisp_frames(), fps=8, anchor=(0, 29),
+          note="loose wisps drifting east over the bank; place 3-6 at (bank_x0-6, y), above enemies, random start")
     m.add("world", "steam_pipe", WO.steam_pipe(), anchor=(0, 10),
           note="brass steam main tile with one nozzle; place at (pipe_x, vent y) over the water; skip near the gate")
     m.add("world", "steam_pipe_valve", WO.steam_pipe(valve=True), anchor=(0, 10), note="same with a valve wheel")
@@ -182,11 +198,22 @@ def build_world(m: Manifest) -> None:
 MIN_ENEMY_CONTRAST = 2.0   # main colour vs dust_1 (the field), WCAG-style luminance ratio
 
 
-def check_enemy_contrast(name: str, frame: Canvas) -> None:
+def check_enemy_contrast(name: str, frame: Canvas, region: int = 1) -> None:
+    ground = FLD.REGIONS[region]["ground"]
     mc = main_color(frame)
-    k = contrast(mc, "dust_1")
+    k = contrast(mc, ground)
     if k < MIN_ENEMY_CONTRAST:
-        raise SystemExit(f"{name}: main colour {mc} has contrast {k:.2f} vs dust_1 (< {MIN_ENEMY_CONTRAST})")
+        raise SystemExit(f"{name}: main colour {mc} has contrast {k:.2f} vs {ground} (< {MIN_ENEMY_CONTRAST})")
+
+
+def add_enemy(m: "Manifest", key: str, frames: list, fps: float, anchor, note: str, region: int,
+              anim: str = "walk") -> None:
+    """walk/run strip + the generic 3-frame fall into the moat."""
+    check_enemy_contrast(key, frames[0], region)
+    m.add("enemies", f"{key}_{anim}", frames, fps=fps, anchor=anchor, note=note)
+    fall = UN.fall_frames(frames[0])
+    m.add("enemies", f"{key}_fall", fall, fps=8, anchor=(fall[0].w // 2, fall[0].h - 3), loop=False,
+          note=f"{note}: falls into the moat; anchor = waterline under the feet; free after the last frame")
 
 
 def build_units(m: Manifest) -> None:
@@ -194,10 +221,7 @@ def build_units(m: Manifest) -> None:
             ("scavenger", UN.scavenger_frames, 7, (7, 19), "Бродяга"),
             ("junk_cart", UN.junk_cart_frames, 5, (15, 19), "Старьёвщик с тележкой"),
             ("hound", UN.hound_frames, 12, (9, 12), "Ржавый пёс"),
-            ("boss", UN.boss_frames, 5, (14, 29), "Вожак пустошей"),
-            ("knight", R2.knight_frames, 6, (7, 21), "Жестяной латник"),
-            ("guard", R2.guard_frames, 7, (7, 19), "Подручный вожака"),
-            ("mole", R2.mole_frames, 8, (9, 14), "Крот-шахтёр")):
+            ("boss", UN.boss_frames, 5, (14, 29), "Вожак пустошей")):
         frames = fn()
         check_enemy_contrast(key, frames[0])
         m.add("enemies", f"{key}_{'run' if key == 'hound' else 'walk'}", frames, fps=fps, anchor=anchor, note=note)
@@ -205,19 +229,86 @@ def build_units(m: Manifest) -> None:
         m.add("enemies", f"{key}_fall", fall, fps=8, anchor=(fall[0].w // 2, fall[0].h - 3), loop=False,
               note=f"{note}: falls into the moat; anchor = waterline under the feet; free after the last frame")
     k = UN.king_frames()
-    m.add("characters", "king_idle", k["idle"], fps=2, anchor=(8, 22), note="breathing + nod loop")
-    m.add("characters", "king_tea", k["tea"], fps=4, anchor=(8, 22), loop=False, note="one sip, then back to idle")
+    m.add("characters", "king_idle", k["idle"], fps=2, anchor=(19, 26),
+          note="breathing + nod loop; the samovar stands to his left (west) inside the frame")
+    m.add("characters", "king_tea", k["tea"], fps=4, anchor=(19, 26), loop=False, note="one sip, then back to idle")
+
+
+def build_r2(m: Manifest) -> None:
+    mole = R2.mole_frames()
+    add_enemy(m, "mole", mole, 7, (9, 19), "Крот-шахтёр (R2)", 2)
+    m.add("enemies", "mole_burrow", R2.mole_burrow_frames(mole[0]), fps=10, anchor=(11, 21), loop=False,
+          note="mole dives underground (then show mole_mound); anchor = feet")
+    m.add("enemies", "mole_emerge", R2.mole_emerge_frames(mole[0]), fps=10, anchor=(11, 21), loop=False,
+          note="mound bursts, mole climbs out (then mole_walk)")
+    m.add("enemies", "mole_mound", R2.mole_mound_frames(), fps=8, anchor=(10, 10),
+          note="dirt mound moving underground while the mole is invulnerable; slide along the road")
+    add_enemy(m, "wagon", R2.wagon_frames(), 8, (13, 19), "Вагонетка (R2): heavy, no slow/knockback", 2, "roll")
+    golem = R2.golem_frames()
+    add_enemy(m, "golem", golem, 5, (11, 23), "Угольный голем (R2)", 2)
+    m.add("fx", "golem_split", R2.golem_split_frames(), fps=10, anchor=(16, 25), loop=False,
+          note="golem death: shatters; spawn two ugolek_walk at frame 4 at x-6 / x+6")
+    add_enemy(m, "ugolek", R2.ugolek_frames(), 12, (5, 9), "«уголёк» (golem split child)", 2)
+    boss = R2.drill_boss_frames()
+    add_enemy(m, "drill_boss", boss["walk"], 6, (30, 51), "Бур-Великан (R2 boss): front plate = ×0.3 direct", 2)
+    m.add("enemies", "drill_boss_hit", boss["hit"], fps=12, anchor=(30, 51), loop=False,
+          note="sparks on the front plate (direct hit absorbed); play over walk for 2 frames, then back")
+    m.add("enemies", "drill_boss_retreat", boss["retreat"], fps=6, anchor=(30, 51),
+          note="boss backs off (moves right): drill stopped, treads reversed, heavy smoke")
+    add_enemy(m, "knight", R2.knight_frames(), 6, (7, 21), "Жестяной латник", 1)
+    add_enemy(m, "guard", R2.guard_frames(), 7, (7, 19), "Подручный вожака", 1)
+    for key, fn, name in (("steam_jet", R2.steamjet, "Пароструй"), ("boiler", R2.boilerbomb, "Котлобой")):
+        for tier in range(3):
+            frames = [fn(tier, p) for p in range(3)]
+            k = f"{key}_t{tier}"
+            m.add("towers", k, frames, anchor=(TW.AX, TW.AY), loop=False,
+                  note=f"{name}, tier {tier}; frame 0 idle, 1 fire, 2 recover", extra={"muzzle": list(TW.MUZZLE[k])})
+    m.add("fx", "steam_cone", R2.steam_cone_frames(), fps=10, anchor=(0, 18),
+          note="Пароструй cone, loop while firing; anchor = nozzle mouth (tower muzzle); semi-transparent")
+    m.add("projectiles", "boiler_bomb", R2.boiler_bomb_frames(), fps=12, anchor=(5, 6), note="Котлобой shot")
+    m.add("fx", "boiler_explosion", R2.boiler_explosion_frames(), fps=12, anchor=(24, 36), loop=False,
+          note="Котлобой impact: bigger than explosion, flying rivets; then spawn burning_puddle")
+    m.add("fx", "burning_puddle", R2.burning_puddle_frames(), fps=8, anchor=(16, 10),
+          note="burning puddle loop under the impact (~3 s), draw under units")
+    m.add("fx", "geyser", R2.geyser_frames(), fps=9, anchor=(12, 57), loop=False,
+          note="Гейзеры: eruption on the field near the moat")
+    m.add("pickups", "coal_chunk_fly", R2.coal_chunk_fly_frames(), fps=14, anchor=(4, 4),
+          note="coal loot flying to the coal counter (like gear_coin_fly)")
+    m.add("world", "building_coal_mine", R2.coal_mine_frames(), fps=6, anchor=(25, 59),
+          note="«Угольная шахта» producer; place at a manifest yard_slot; wheel turns, cart runs")
+    for st in ("off", "warm", "hot"):
+        m.add("world", f"moat_furnace_{st}", R2.moat_furnace_frames(st), fps=6, anchor=(0, 0),
+              note="«Топка рва» fire door on the wall's outer face: place at (face_x0, furnace_y[i]); "
+                   "off = not bought, warm = bought, hot = curtain boosted / geysers active")
+
+
+def build_r3(m: Manifest) -> None:
+    add_enemy(m, "toad", R3.toad_frames(), 8, (10, 26),
+              "Механожаба (R3): frames sit, crouch, leap, airborne (not a ground target), land", 3, "hop")
+    for key, fn, name in (("tesla", R3.tesla, "Тесла-катушка"), ("ricochet", R3.ricochet, "Рикошетная пушка")):
+        for tier in range(3):
+            k = f"{key}_t{tier}"
+            m.add("towers", k, [fn(tier, p) for p in range(3)], anchor=(TW.AX, TW.AY), loop=False,
+                  note=f"{name}, tier {tier}; frame 0 idle, 1 " + ("charge, 2 fire (bolt)" if key == "tesla" else
+                                                                    "fire, 2 recover"),
+                  extra={"muzzle": list(TW.MUZZLE[k])})
+    m.add("fx", "tesla_arc", R3.tesla_arc_frames(), fps=14, anchor=(8, 8),
+          note="crackle on a tesla hit / on the sphere while charging (loop or play 3 frames)")
+    m.add("fx", "chain_lightning", R3.chain_lightning_frames(), fps=16, anchor=(0, 4),
+          note="one link of the chain: 32 px segment, ends on y=4; scale x to the link length and rotate")
+    m.add("projectiles", "ricochet_ball", R3.ricochet_ball_frames(), fps=14, anchor=(4, 4))
+    m.add("fx", "bounce_spark", R3.bounce_spark_frames(), fps=14, anchor=(8, 8), loop=False,
+          note="ricochet ball bounces off an enemy (+15% per bounce)")
 
 
 def build_towers(m: Manifest) -> None:
-    names = {"rifle": "Паровой стрелок", "riveter": "Клепальщик", "mortar": "Мортира",
-             "steam_jet": "Пароструй", "boiler": "Котлобой"}
-    towers = TW.all_towers()
-    towers.update(R2.r2_towers())
-    for key, frames in towers.items():
+    names = {"rifle": "Паровой стрелок", "riveter": "Клепальщик", "mortar": "Мортира"}
+    for key, frames in TW.all_towers().items():
         base, tier = key.rsplit("_t", 1)
         m.add("towers", key, frames, fps=0, anchor=(TW.AX, TW.AY), loop=False,
-              note=f"{names[base]}, tier {tier} ({['iron', 'brass', 'gilded'][int(tier)]}); frame 0 idle, 1 fire")
+              note=f"{names[base]}, tier {tier} ({['iron', 'brass', 'gilded'][int(tier)]}); frame 0 idle, "
+                   "1 fire (recoil + flash, ~0.07 s), 2 recover (smoke, ~0.1 s), then 0",
+              extra={"muzzle": list(TW.MUZZLE[key])})
 
 
 def build_fx(m: Manifest) -> None:
@@ -231,6 +322,10 @@ def build_fx(m: Manifest) -> None:
     m.add("fx", "hit_spark", FX.spark_frames(), fps=18, anchor=(4, 4), loop=False)
     m.add("fx", "explosion", FX.explosion_frames(), fps=12, anchor=(16, 20), loop=False)
     m.add("fx", "steam_puff", FX.steam_puff_frames(), fps=10, anchor=(8, 12), loop=False)
+    m.add("fx", "steam_push", FX.steam_push_frames(), fps=12, anchor=(3, 14), loop=False,
+          note="steam curtain shoves an enemy back: play at the enemy's feet when knocked back")
+    m.add("fx", "muzzle_smoke", FX.muzzle_smoke_frames(), fps=12, anchor=(3, 9), loop=False,
+          note="shot smoke: spawn at tower position - tower anchor + manifest 'muzzle' when a tower fires")
     m.add("fx", "scrap_burst", FX.scrap_burst_frames(), fps=14, anchor=(16, 20), loop=False,
           note="kill effect: debris flies out of the enemy; play at the enemy's feet, then free")
     m.add("fx", "splash", FX.splash_frames(), fps=10, anchor=(12, 24), loop=False)
@@ -239,7 +334,7 @@ def build_fx(m: Manifest) -> None:
           note="5-frame small coin flying to the counter")
     m.add("pickups", "blueprint", FX.icon_blueprint(), anchor=(8, 8))
     for key, fn in (("gears", FX.icon_gears), ("blueprints", FX.icon_blueprint), ("coal", FX.icon_coal),
-                    ("copper", FX.icon_copper), ("springs", FX.icon_springs), ("ether", FX.icon_ether),
+                    ("copper", R3.icon_copper), ("springs", FX.icon_springs), ("ether", FX.icon_ether),
                     ("seal", FX.icon_seal)):
         m.add("icons", f"res_{key}", fn(), anchor=(8, 8))
     for key, fn in (("impact", FX.icon_dmg_impact), ("steam", FX.icon_dmg_steam), ("spark", FX.icon_dmg_spark),
@@ -274,7 +369,7 @@ def font_specimen(variants: dict) -> Image.Image:
 
 
 def contact_sheet(m: Manifest) -> Image.Image:
-    items = [(n, f) for n, f in m.sheets if n not in ("battlefield_bg",)]
+    items = [(n, f) for n, f in m.sheets if not n.startswith("battlefield_bg") and n != "steam_curtain"]
     pad, maxw = 4, 640
     x = y = pad
     rowh = 0
@@ -311,6 +406,8 @@ def main() -> None:
     build_units(m)
     build_towers(m)
     build_fx(m)
+    build_r2(m)
+    build_r3(m)
     m.write()
 
     variants = {n: font_gen.build_font(n, FONTS) for n in ("regular", "bold", "title", "number")}
@@ -318,8 +415,9 @@ def main() -> None:
 
     font_specimen(variants).save(os.path.join(DOCS_ART, "font_specimen.png"))
     contact_sheet(m).save(os.path.join(DOCS_ART, "sprites_sheet.png"))
-    upscale(next(f for n, f in m.sheets if n == "battlefield_bg")[0].img, 2).save(
-        os.path.join(DOCS_ART, "battlefield_bg_2x.png"))
+    for n, f in m.sheets:
+        if n.startswith("battlefield_bg"):
+            upscale(f[0].img, 2).save(os.path.join(DOCS_ART, f"{n}_2x.png"))
     print(f"gen_art: {len(m.sprites)} sprites, {len(variants)} fonts, {len(ui_gen.TEXTURES)} UI textures, palette {len(pal.PALETTE)} colours")
 
 

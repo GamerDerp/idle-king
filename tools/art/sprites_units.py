@@ -6,49 +6,48 @@ from pixel import Canvas, from_ascii, rim_light
 
 # ------------------------------------------------------------------ Бродяга (scavenger), 16x20
 
+# Hooded tramp: a pointed hood with the face showing under it, a patched cloak, a big lumpy sack on
+# his back (with a pipe sticking out), a walking stick in front. The hood + sack make the silhouette.
 SCAV_BODY = """
-................
-.....0000.......
-....0XXXW0..00..
-...0XXXXWW00hg0.
-..0hhgXXXW0dhf0.
-..0vyhgXXW0dcf0.
-..0hgg0XW0dcce0.
-...0ppo0W0dcbb0.
-..0TTRRRR0Wcbb0.
-..0RTTRRRTRWcb0.
-..0XXRRXXRRTR0..
-..0XXXXXXWWRT0..
-.0pXXXXWXXWW0R..
-.0o0XXXWXXWW00..
-..0.0XWWXWW0....
+.....00.........
+....0XX0........
+...0XXXW0..0000.
+..0XXWWWW00LMMN0
+..0XW000W0LMMMN0
+..0X0pp00LLMNMM0
+..0Wp0po0LLMMMM0
+.0d0ppp0LLLMMNM0
+.0c0Wo0WLLLLMMM0
+.0cXXXWWWLLLLML0
+.0cXXXXWWWLLLLL0
+.0cpXXXWWW0LLL0.
+.0c0XXXXWWW000..
+.0c0XXXXXWWW0...
+.0c0VXXXXWWV0...
+..0..0VVVVV0....
 """
 SCAV_LEGS = [
     """
-....03333.......
-....03.033......
-...033..033.....
-..0110..0110....
-..000....000....
+.....0bb0b0.....
+....0b0..0b0....
+...011...0110...
+...000....000...
 """,
     """
-.....0333.......
-.....0330.......
-.....0330.......
-....01100.......
-....0000........
+.....0bbb0......
+......0bb0......
+.....0110.......
+.....0000.......
 """,
     """
-....03333.......
-....033.03......
-...033...03.....
-..0110...0110...
-..000.....000...
+.....0b0bb0.....
+....0b0..0b0....
+...0110...011...
+...0000...000...
 """,
     """
-.....0333.......
-......033.......
-......033.......
+.....0bbb0......
+......0b0.......
 .....0110.......
 .....0000.......
 """,
@@ -60,9 +59,11 @@ def scavenger_frames() -> list:
     for i, legs in enumerate(SCAV_LEGS):
         c = Canvas(16, 20)
         bob = 0 if i % 2 == 0 else -1
-        c.ascii(0, 15, [r.ljust(16, ".").replace("3", "b") for r in legs.strip("\n").split("\n")])
+        c.ascii(0, 16, [r.ljust(16, ".") for r in legs.strip("\n").split("\n")])
         body = from_ascii(SCAV_BODY)
         c.paste_over(body, 0, bob)
+        if i % 2:   # the pipe in the sack bobs
+            c.set(14, 1 + bob, "iron_2")
         c.outline("soot_0")
         rim_light(c)
         frames.append(c)
@@ -299,48 +300,90 @@ def fall_frames(walk0: Canvas) -> list:
     return out
 
 
-# ------------------------------------------------------------------ the King, 18x22 (faces right, toward the field)
+# ------------------------------------------------------------------ the King, 30x28 (faces right, toward the field)
+# Not a Santa: teal robe with brass trim, a brass gorget collar, brass goggles over the eyes, a grey
+# handlebar moustache (no white beard), a small brass crown with ember gems, and his samovar beside him.
 
-KING = """
-.h..h.h.h.........
-hgh.hgThg.........
-.g..hhhhhh........
-.g..fgfgfgf.......
-.g...tpppp........
-.g...tpp0pp.......
-.g...tppppopp.....
-.g...ttuuuup......
-.g....tuuvt.......
-.gvvv0vvvv0vv.....
-vvgv0vvvvv0vv0v...
-RRgTRRRhRRRRRRR...
-RRgTRRRhgRRRRRRR..
-RRgTRRRhgRRRRRRR..
-RRgRRRRhgRRRRRRR..
-.RgRRRRhgRRRRRQ...
-.RgRRRRhgRRRRQQ...
-.QgRRRRhgRRRRQQ...
-.QgQRRRhgRRRQQQ...
-.v0vv0vv0vv0vv....
-..00.......00.....
-..11.......11.....
+KING_HEAD = """
+.......h..h..h....
+.......hg.hgThg...
+......fgRgggggRf..
+......eeeeeeeeee..
+.....cnhhhnnnhhhn.
+....ccnhyxhnhyxxh.
+....cdphhhpophhho.
+....cdpdddppdddpp.
+....cdpp0pppp0pp..
+.....cppppppooop..
+.....cdddddoodddd.
+....dc.ccddddcc.dd
+.......ppnnpp.....
+"""
+KING_BODY = """
+.....ehhgggggfe...
+....ehhggfffffffe.
+...yehgfeeeeeefexy
+..xyyeeexxxxxxexxy
+..yyxxxxhxxxxwxxx.
+.xyxxxxxgxxxxwwxx.
+.xyxxxxxhxxxxwwx..
+.xyxxxxxgxxxwwwx..
+.xyxxxxxhxxxwwwx..
+.xxxxxxxgxxwwwww..
+.ffggggghgggfffe..
+..................
+"""
+KING_ARM = """
+.yxx.
+.xxwx
+..xwp
+...pp
+"""
+KING_FEET = """
+...01........10...
+..011........110..
+"""
+SAMOVAR = """
+.....00.....
+....0po0....
+...0opoon0..
+...0nooonn0.
+....0eeee0..
+...0hhggf0..
+..0hhgggff0.
+.0ehNgggffe0
+0e0NNgggfe0e0
+.0.hNgggfe0.0
+..0hhgggfe000
+..0hggTRfe0n0
+...0hgffe0.0.
+....0eee0...
+....0hgf0...
+...0hggfe0..
+..0eeeeeee0.
+...0.....0..
 """
 CUP = ["vvvu", "uvu.", ".u.."]
 
 
-def _king_canvas(head_dy: int = 0, body_dy: int = 0, cup=(13, 13), sip: bool = False, steam: int = -1) -> Canvas:
-    base = from_ascii(KING)
-    c = Canvas(20, 24)
-    rows = base.img
-    for y in range(base.h):
-        dy = 1 + (head_dy if y <= 8 else body_dy if y <= 18 else 0)
-        for x in range(base.w):
-            p = rows.getpixel((x, y))
-            if p[3]:
-                c.px[x + 1, y + dy] = p
-    if sip:  # eyes closed while sipping
-        c.set(9, 6 + head_dy, "copper_2")
+def _king_canvas(head_dy: int = 0, body_dy: int = 0, cup=(25, 15), sip: bool = False, steam: int = -1,
+                 samovar_steam: int = 0) -> Canvas:
+    c = Canvas(30, 28)
+    head = from_ascii(KING_HEAD)
+    body = from_ascii(KING_BODY)
+    sam = from_ascii(SAMOVAR)
+    c.paste_over(sam, 0, 9)
+    for (dx, dy) in [((samovar_steam % 2), 0), (1 - samovar_steam % 2, -2), (samovar_steam % 2 + 1, -4)][:2 + samovar_steam % 2]:
+        c.set(5 + dx, 8 + dy, "steam_2" if dy else "steam_3")
+    c.ascii(10, 25, KING_FEET.strip("\n").split("\n"))
+    c.paste_over(body, 10, 13 + body_dy)
+    c.paste_over(head, 10, 1 + head_dy + body_dy)
+    if sip:  # the goggled eyes squint while sipping
+        c.set(15, 8 + head_dy + body_dy, "brass_1")
+        c.set(20, 8 + head_dy + body_dy, "brass_1")
     cx, cy = cup
+    arm = from_ascii(KING_ARM)
+    c.paste_over(arm, cx - 4, cy - 1 + (1 if cy < 13 else 0))
     c.ascii(cx, cy, CUP)
     if steam >= 0:
         c.set(cx + 1 + steam % 2, cy - 2, "steam_2")
@@ -352,17 +395,17 @@ def _king_canvas(head_dy: int = 0, body_dy: int = 0, cup=(13, 13), sip: bool = F
 
 def king_frames() -> dict:
     idle = [
-        _king_canvas(steam=0),
-        _king_canvas(head_dy=-1, body_dy=-1, steam=1),          # breathe in: shoulders and crown rise
-        _king_canvas(steam=0),
-        _king_canvas(head_dy=1, steam=1),                       # small nod
+        _king_canvas(steam=0, samovar_steam=0),
+        _king_canvas(head_dy=-1, body_dy=0, steam=1, samovar_steam=1),     # breathe in: head rises
+        _king_canvas(steam=0, samovar_steam=2),
+        _king_canvas(head_dy=1, steam=1, samovar_steam=3),                 # small nod
     ]
     tea = [
-        _king_canvas(cup=(13, 13), steam=0),
-        _king_canvas(cup=(13, 10), steam=1),
-        _king_canvas(cup=(12, 7), sip=True),
-        _king_canvas(cup=(12, 7), sip=True, head_dy=-1),
-        _king_canvas(cup=(13, 10), steam=0),
-        _king_canvas(cup=(13, 13), steam=1),
+        _king_canvas(cup=(25, 15), steam=0, samovar_steam=0),
+        _king_canvas(cup=(25, 12), steam=1, samovar_steam=1),
+        _king_canvas(cup=(23, 9), sip=True, samovar_steam=2),
+        _king_canvas(cup=(23, 9), sip=True, head_dy=-1, samovar_steam=3),
+        _king_canvas(cup=(25, 12), steam=0, samovar_steam=0),
+        _king_canvas(cup=(25, 15), steam=1, samovar_steam=1),
     ]
     return {"idle": idle, "tea": tea}
