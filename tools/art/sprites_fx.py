@@ -145,6 +145,46 @@ def steam_puff_frames() -> list:
     return out
 
 
+def steam_push_frames() -> list:
+    """30x22 «пар отбрасывает врага»: a gust shoves east from the curtain. 5 frames, anchor (3, 14) = the
+    enemy's feet (the gust starts just behind/left of it). Speed streaks + a fat puff, then torn wisps."""
+    out = []
+    for i in range(5):
+        c = Canvas(30, 22)
+        t = i / 4
+        a = (235, 225, 200, 150, 90)[i]
+        cx = 5 + t * 16
+        cloud(c, cx, 12 - t * 2, 3.2 + t * 2.6, seed=71 + (i > 2), alpha=a, tail=i >= 2)
+        if i < 3:
+            cloud(c, cx - 3, 15 - t, 2.0 + t * 1.2, seed=73, alpha=a, tail=False)
+        for k, (dy, ln) in enumerate([(-4, 6), (0, 9), (4, 5), (7, 4)]):   # speed streaks
+            x0 = int(cx + 4 + t * 4 + (k % 2) * 2)
+            if i < 4:
+                for x in range(x0, min(30, x0 + ln - i)):
+                    c.set(x, 12 + dy, "steam_3" if x - x0 < 2 else "steam_2", a)
+        for (dx, dy) in [(-2, 3), (2, 5), (6, 4)][: 3 - min(i, 3)]:   # hot droplets
+            c.set(int(cx + dx + t * 6), 16 + dy - i, "teal_2")
+        out.append(c)
+    return out
+
+
+def muzzle_smoke_frames() -> list:
+    """14x14 grey-white smoke ring that puffs out of a muzzle and rises/fades. 5 frames, anchor (3, 9):
+    spawn at the tower's manifest 'muzzle' point on frame 1 of the tower's fire animation."""
+    out = []
+    for i in range(5):
+        c = Canvas(14, 14)
+        t = i / 4
+        a = (240, 220, 180, 130, 70)[i]
+        cloud(c, 4 + t * 4, 9 - t * 4, 2.2 + t * 2.6, seed=81, alpha=a, dark="iron_1", mid="steam_1",
+              light="steam_2", tail=i >= 2)
+        if i == 0:
+            c.set(2, 9, "ember_2")
+            c.set(3, 8, "parchment_2")
+        out.append(c)
+    return out
+
+
 def scrap_burst_frames() -> list:
     """32x32 kill burst: gears, bolts and plate shards fly out and fall, with a dust puff. 6 frames."""
     parts = [

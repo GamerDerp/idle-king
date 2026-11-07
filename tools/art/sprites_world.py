@@ -142,11 +142,18 @@ def moat_frames() -> list:
         for y in range(TH):
             c.hline(0, 4, y, "teal_0")
             c.set(5, y, "teal_0" if (y + f) % 2 == 0 else "teal_1")
-        # depth at the foot of the stone bank on the east side
+        # depth at the foot of the stone bank on the east side, with a crisp foam lace (opaque pixels)
         for y in range(TH):
             c.hline(TW - 2, TW - 1, y, "teal_0")
             if (y + f) % 3 == 0:
                 c.set(TW - 3, y, "teal_0")
+            ph = (y * 7 + f * 3) % 11
+            if ph in (0, 1):
+                c.set(TW - 3, y, "steam_2")
+            elif ph == 2:
+                c.set(TW - 4, y, "teal_2")
+            elif ph == 5:
+                c.set(TW - 3, y, "teal_2")
         # slow ripples: short highlight dashes drifting down with the frame (wrap)
         for (x, y, ln) in ripples:
             yy = (y + f) % TH
@@ -162,8 +169,9 @@ def moat_frames() -> list:
                 c.set(bx, by + 1, "teal_2")
                 c.set(bx, by, "teal_0")
             elif st == 2 and big:
-                c.hline(bx - 1, bx + 1, by - 1, "steam_3")
-                c.set(bx - 2, by, "steam_2")
+                c.hline(bx - 1, bx + 1, by - 1, "teal_2")
+                c.set(bx, by - 1, "steam_3")
+                c.set(bx - 2, by, "teal_2")
                 c.set(bx + 2, by, "teal_2")
                 c.hline(bx - 1, bx + 1, by + 1, "teal_2")
                 c.hline(bx - 1, bx + 1, by, "teal_0")
@@ -196,41 +204,179 @@ def puff(c: Canvas, cx: float, cy: float, r: float, alpha: int = 255, dark: str 
                 c.set(x, y, name, alpha)
 
 
-def steam_sheet_frames(n: int = 6, height: int = 64) -> list:
-    """24 x height steam sheet (anchor = nozzle mouth, bottom-left). Loops seamlessly.
+SHEET_W, SHEET_H = 40, 72
 
-    A semi-opaque sheet that leaves the nozzle as a jet, rises and leans east on the moat's heat draft:
-    lit left edge, shaded right edge, ragged edges and streaks scroll upward, torn wisps at the top.
-    Sheets every 18 px overlap into a feathered curtain where every sheet stays readable.
+
+def steam_sheet_frames(n: int = 6) -> list:
+    """40x72 rising steam column (anchor = nozzle mouth, bottom-left). Loops seamlessly.
+
+    The column leaves the nozzle as a short jet over a crisp churn of foam, rises nearly vertically
+    (that is height in the 3/4 view), then the moat's draft bends it east so the thin, torn top drifts
+    over the east bank. Its silhouette is a union of discs whose radii bulge and scroll upward, so the
+    edge is lumpy; lit top-left rim, shaded lower-right rim, a few curl lines where the bulges meet.
+    Steam is semi-transparent; the foam at its foot is opaque - the two never read the same.
+    Columns every 18 px overlap into the curtain.
     """
-    W = 24
-    period = 72.0
+    P = 12.0                       # bulge period along the column (scrolls P per loop)
+    L_ = SHEET_H - 12
     frames = []
     for f in range(n):
-        c = Canvas(W, height)
-        ph = f * period / n
-        for y in range(height):
-            k = (height - 1 - y) / (height - 1)          # 0 at the nozzle, 1 at the top
-            v = y + ph                                   # texture coordinate scrolls upward
-            wob = math.sin(math.tau * v / 24.0) + 0.6 * math.sin(math.tau * v / 18.0 + 1.3)
-            wob2 = math.sin(math.tau * v / 36.0 + 2.1) + 0.5 * math.sin(math.tau * v / 12.0 + 0.4)
-            half = 2.2 + k * 2.8
-            cx = 3.0 + (k ** 0.8) * 14.0
-            x0 = int(round(cx - half + wob * 0.8))
-            x1 = int(round(cx + half + wob2 * 0.9))
-            if k < 0.07:   # the jet leaving the nozzle
-                x0, x1 = 0, 6
-            if k > 0.62 and (math.sin(math.tau * v / 9.0) + math.sin(math.tau * v / 24.0 + 0.7)) > 0.4:
-                continue   # torn wisps near the top
-            alpha = int(215 - 150 * k)
-            for x in range(max(0, x0), min(W, x1 + 1)):
-                if x <= x0:
-                    name = "steam_3"
-                elif x >= x1 - 1:
-                    name = "steam_1"
+        off = f * P / n
+        discs = []
+        for si in range(0, int(L_) + 1):
+            s_ = float(si)
+            k = s_ / L_
+            x = 4.0 + (k ** 1.35) * 22.0 + 0.8 * math.sin((s_ - off) / 6.0)
+            y = SHEET_H - 3 - s_
+            ph = ((s_ - off) / P) % 1.0
+            r = (1.8 + 4.4 * k ** 0.8) * (0.86 + 0.26 * math.sin(math.tau * ph))
+            torn = k > 0.72 and math.sin(math.tau * (s_ - off) / (P * 1.5) + 1.0) > 0.35
+            discs.append((x, y, r, k, ph, torn))
+
+        def inside(px, py):
+            for (x, y, r, k, ph, torn) in discs:
+                if not torn and (px - x) ** 2 + (py - y) ** 2 <= r * r:
+                    return k
+            return None
+        c = Canvas(SHEET_W, SHEET_H)
+        for py in range(SHEET_H):
+            for px in range(SHEET_W):
+                k = inside(px + 0.5, py + 0.5)
+                if k is None:
+                    continue
+                a = int(210 - 150 * k)
+                if inside(px - 0.7, py - 1.2) is None:
+                    name = "steam_3"                         # lit rim
+                elif inside(px + 2.0, py + 1.5) is None:
+                    name = "steam_1"                         # shaded rim
                 else:
-                    name = "steam_3" if (x - x0) == 1 and k < 0.6 else "steam_2"
-                c.set(x, y, name, alpha)
+                    name = "steam_2"
+                c.set(px, py, name, a)
+        # curl lines: the lower-right arc of each bulge, inside the column
+        for (x, y, r, k, ph, torn) in discs:
+            if torn or abs(ph - 0.25) > 0.5 / P or k < 0.12:
+                continue
+            for t in range(-2, 5):
+                ang = math.radians(10 + t * 18)
+                qx, qy = x + math.cos(ang) * (r - 1), y + math.sin(ang) * (r - 1)
+                if c.opaque(int(qx), int(qy)) and inside(qx + 1.5, qy + 1.5) is not None:
+                    c.set(int(qx), int(qy), "steam_1", int(210 - 150 * k))
+        for y in range(SHEET_H - 4, SHEET_H):      # the jet out of the nozzle
+            for x in range(0, 8 - (SHEET_H - 1 - y)):
+                c.set(x, y, "steam_3" if y >= SHEET_H - 2 else "steam_2", 230)
+        # opaque foam churn where the jet hits the water (crisp pixels, teal + white)
+        for i, (dx, dy) in enumerate([(1, 0), (3, 0), (5, 0), (7, 0), (9, 0), (2, -1), (6, -1), (4, 1), (8, 1)]):
+            if (i + f) % 3:
+                c.set(dx + (f % 2), SHEET_H - 1 + min(0, dy), "steam_3" if (i + f) % 2 else "teal_2")
+        frames.append(c)
+    return frames
+
+
+CURTAIN_X = L.PIPE_X + 11      # left edge of the curtain sprite (nozzle mouths are at x = CURTAIN_X + 2)
+CURTAIN_W = 52
+
+
+def steam_curtain_frames(n: int = 6) -> list:
+    """The whole steam curtain as ONE sprite (52 x field height, anchor (0, 0) at (CURTAIN_X, 0)), 6-frame loop.
+
+    One plume per nozzle (layout.STEAM_VENTS_Y, none at the gate): it leaves the nozzle as a jet, rises
+    and is bent east by the moat's draft, so the torn tops drift over the east bank - the screen-right
+    extent is the curtain's HEIGHT. Plumes are merged before shading, so the lit rim (top-left) and the
+    shaded rim (bottom-right) follow the curtain's outer silhouette instead of every overlap; inside
+    there are only a few soft folds. Steam alpha falls with height. Under the steam, its SHADOW lies on
+    the water (semi-transparent soot, offset down-right), visible between plumes and through the steam.
+    The foam churn at each nozzle is opaque and crisp."""
+    H = L.H
+    P = 12.0
+    vents = [vy for vy in L.STEAM_VENTS_Y if abs(vy - L.GATE_Y) >= 30]
+    water_x1 = L.MOAT_X1 - CURTAIN_X            # last water column inside the sprite
+    frames = []
+    for f in range(n):
+        off = f * P / n
+        discs = []      # (x, y, r, k, vent_index)
+        for vi, vy in enumerate(vents):
+            L_ = 44.0
+            for si in range(0, int(L_) + 1):
+                s_ = float(si)
+                k = s_ / L_
+                ph = ((s_ - off + vi * 5) / P) % 1.0
+                x = 2.0 + 4.0 * k + 26.0 * k ** 1.8 + 0.8 * math.sin((s_ - off) / 5.0 + vi)
+                y = vy - 1 - s_ * 0.95
+                r = (1.6 + 4.2 * k ** 0.75) * (0.85 + 0.25 * math.sin(math.tau * ph))
+                if k > 0.7 and math.sin(math.tau * (s_ - off + vi * 7) / 16.0) > 0.45:
+                    continue        # torn top
+                discs.append((x, y, r, k, vi))
+        grid = {}
+        for (x, y, r, k, vi) in discs:
+            for py in range(int(y - r) - 1, int(y + r) + 2):
+                for px in range(int(x - r) - 1, int(x + r) + 2):
+                    if 0 <= px < CURTAIN_W and 0 <= py < H and (px + 0.5 - x) ** 2 + (py + 0.5 - y) ** 2 <= r * r:
+                        old = grid.get((px, py))
+                        if old is None or k < old[0]:
+                            grid[(px, py)] = (k, vi)
+        c = Canvas(CURTAIN_W, H)
+        # shadow on the water first: the steam mask shifted down-right, clipped to the water/bank edge
+        for (px, py), (k, vi) in grid.items():
+            sx, sy = px + 3, py + 6
+            if sx <= water_x1 + 1 and sy < H and (sx, sy) not in grid and k < 0.75:
+                c.set(sx, sy, "soot_0", 60)
+        for (px, py), (k, vi) in grid.items():
+            a = int(200 - 115 * k)
+            up, left = grid.get((px, py - 1)), grid.get((px - 1, py))
+            down, right = grid.get((px, py + 1)), grid.get((px + 1, py))
+            if up is None or left is None:
+                name = "steam_3"
+            elif down is None or right is None:
+                name = "steam_1"
+            elif up[1] != vi and up[0] > k + 0.25:
+                name = "steam_1"            # soft fold where a lower plume overlaps a higher one
+            else:
+                name = "steam_2"
+            c.set(px, py, name, a)
+        for vy in vents:      # opaque jets + foam churn at the nozzles
+            for y in range(vy - 3, vy + 1):
+                for x in range(1, 8 - (vy - y)):
+                    c.set(x, y, "steam_3" if y >= vy - 1 else "steam_2", 230)
+            for i, (dx, dy) in enumerate([(2, 1), (4, 1), (6, 1), (8, 1), (10, 1), (3, 2), (7, 2), (5, 0), (9, 0)]):
+                if (i + f + vy) % 3:
+                    c.set(dx + (f % 2), vy + dy - 1, "steam_3" if (i + f) % 2 else "teal_2")
+        frames.append(c)
+    return frames
+
+
+def steam_shadow_frames(n: int = 6) -> list:
+    """Shadow of a steam column on the water: 30x12, anchor (0, 0) = the nozzle mouth.
+    Light is top-left, so the column's shadow falls to the lower right; draw it after the water, before
+    the pipes and the columns. Semi-transparent soot (a shadow, not a colour)."""
+    frames = []
+    for f in range(n):
+        c = Canvas(30, 12)
+        for x in range(30):
+            t = x / 29
+            cy = 2.0 + t * 6.0 + 0.6 * math.sin(math.tau * (f / n) + x / 5.0)
+            half = 1.2 + 2.2 * math.sin(math.pi * min(1.0, t * 1.15))
+            for y in range(12):
+                d = abs(y - cy)
+                if d <= half:
+                    c.set(x, y, "soot_0", 70 if d < half - 0.8 and 3 < x < 24 else 40)
+        frames.append(c)
+    return frames
+
+
+def steam_wisp_frames(n: int = 8) -> list:
+    """36x30 loose wisps that break off the curtain and drift east over the bank, fading out (loop).
+    Place a few along the bank (x ~ bank_x0 - 6, any y), above the enemies layer."""
+    frames = []
+    for f in range(n):
+        c = Canvas(36, 30)
+        for j, (sx, sy, sr, seed) in enumerate([(4, 24, 3.0, 61), (8, 18, 2.4, 62)]):
+            t = ((f + j * n // 2) % n) / n
+            x = sx + t * 24
+            y = sy - t * 14
+            r = sr + t * 2.5
+            a = int(170 * (1 - t) ** 0.8)
+            if a > 20:
+                cloud(c, x, y, r, seed=seed + f // 2, alpha=a, tail=t > 0.3)
         frames.append(c)
     return frames
 
@@ -706,262 +852,42 @@ def signpost() -> Canvas:
 ...DDDDD....
 """)
 
-# ------------------------------------------------------------------ battlefield background
+# ------------------------------------------------------------------ edge vegetation (fields: sprites_field.py)
 
-def _road_mask(x: int, y: int, r) -> float:
-    """Signed distance-ish to the road edge (negative inside)."""
-    cy = L.road_center(x)
-    return abs(y - cy) - L.ROAD_HALF
+BUSH_TONES = {
+    "olive": ("soot_3", "brass_0", "brass_1", "parchment_0"),
+    "rust": ("soot_3", "copper_0", "copper_1", "copper_2"),
+    "sage": ("soot_3", "verdigris_0", "verdigris_1", "verdigris_2"),
+}
 
 
-def bush(seed: int) -> Canvas:
-    """Dry shrub clump (dark olive, lit top-left) for the field's framing edges."""
+def bush(seed: int, tone: str = None) -> Canvas:
+    """Dry shrub clump lit top-left for the field's framing edges. Size, lobe count and tone vary with
+    the seed (olive / rusty / sage), so a row of them never reads as a stamp."""
     r = rng(seed)
-    w = r.randint(10, 15)
-    c = Canvas(w + 2, 11)
-    for i in range(r.randint(3, 4)):
-        cx = 2 + (w - 4) * i / 3 + r.uniform(-1, 1)
-        cy = r.uniform(4.5, 6.5)
-        rad = r.uniform(2.4, 3.6)
-        for y in range(11):
-            for x in range(w + 2):
+    tone = tone or r.choice(("olive", "olive", "rust", "sage"))
+    dark, d1, d2, tip = BUSH_TONES[tone]
+    w = r.randint(6, 17)
+    hh = r.randint(7, 12)
+    c = Canvas(w + 3, hh + 1)
+    lobes = r.randint(2, 5)
+    for i in range(lobes):
+        cx = 2 + (w - 3) * (i + 0.5) / lobes + r.uniform(-1.2, 1.2)
+        rad = r.uniform(2.0, min(4.2, hh / 2.2))
+        cy = hh - rad - r.uniform(0, 1.5)
+        for y in range(hh + 1):
+            for x in range(w + 3):
                 dx, dy = x + 0.5 - cx, y + 0.5 - cy
                 if dx * dx + dy * dy <= rad * rad:
                     lit = -(dx * 0.6 + dy * 0.8) / rad
-                    c.set(x, y, "brass_1" if lit > 0.35 else "brass_0" if lit > -0.5 else "soot_3")
-    for k in range(4):  # a few dry twigs and lit leaf tips
-        x = r.randrange(1, w)
-        c.set(x, 2, "parchment_0")
+                    c.set(x, y, d2 if lit > 0.35 else d1 if lit > -0.5 else dark)
+    for k in range(r.randint(1, 4)):   # twigs and lit leaf tips
+        x = r.randrange(1, w + 1)
+        for y in range(hh):
+            if c.opaque(x, y):
+                c.set(x, y - 1, tip)
+                if r.random() < 0.4:
+                    c.set(x + r.choice((-1, 1)), y - 2, d1)
+                break
     c.outline("soot_1")
     return c
-
-
-def _blob(c: Canvas, ellipses: list, name: str, only: tuple = None) -> None:
-    """Fill a smooth union of ellipses [(cx, cy, rx, ry)] (no noise, clean pixel edges)."""
-    xs0 = int(min(e[0] - e[2] for e in ellipses)) - 1
-    xs1 = int(max(e[0] + e[2] for e in ellipses)) + 1
-    ys0 = int(min(e[1] - e[3] for e in ellipses)) - 1
-    ys1 = int(max(e[1] + e[3] for e in ellipses)) + 1
-    for y in range(max(0, ys0), min(c.h, ys1 + 1)):
-        for x in range(max(L.FIELD_X0, xs0), min(c.w, xs1 + 1)):
-            for (cx, cy, rx, ry) in ellipses:
-                if ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1.0:
-                    if only is None or c.get(x, y)[:3] in only:
-                        c.set(x, y, name)
-                    break
-
-
-def battlefield_bg(ground_tiles: list, road_tiles: list) -> Canvas:
-    W, H = L.W, L.H
-    c = Canvas(W, H, "dust_1")
-    r = rng(7)
-    D1 = C("dust_1")[:3]
-    # base ground tiles (subtle texture only)
-    for ty in range(0, H, 16):
-        for tx in range(L.FIELD_X0 - 16, W, 16):
-            t = ground_tiles[(tx * 7 + ty * 13 + (tx // 16) * (ty // 16)) % len(ground_tiles)]
-            c.blit(t, tx, ty)
-    # composition: 5 large pale dry flats with smooth edges
-    for blob in (
-        [(205, 120, 34, 16), (236, 128, 26, 12)],
-        [(318, 236, 40, 15), (352, 228, 22, 11)],
-        [(410, 150, 30, 13)],
-        [(176, 238, 20, 10), (190, 246, 16, 8)],
-        [(300, 70, 28, 10), (330, 76, 18, 8)],
-    ):
-        _blob(c, blob, "dust_2", only=(D1,))
-    # framing ridges: dark higher ground along the top and bottom edges leads the eye to the road
-    for x in range(L.FIELD_X0, W):
-        t = (x - L.FIELD_X0) / (W - L.FIELD_X0)
-        top = int(20 + 7 * math.sin(t * 7.1 + 0.5) + 4 * math.sin(t * 17.0))
-        bot = int(H - 22 - 6 * math.sin(t * 6.3 + 1.7) - 3 * math.sin(t * 15.0 + 0.2))
-        for y in range(0, top):
-            c.set(x, y, "dust_0" if (x * 3 + y * 5) % 23 else "soot_3")
-        c.set(x, top, "soot_3")              # the ridge's south face: a short dark drop
-        c.set(x, top + 1, "soot_3")
-        c.set(x, top + 2, "dust_0")
-        c.set(x, top - 1, "dust_1")          # lit rim of the ridge top
-        for y in range(bot, H):
-            c.set(x, y, "dust_0" if (x * 5 + y * 3) % 29 else "soot_3")
-        c.set(x, bot, "dust_1")              # lit lip of the low bank in the foreground
-        c.set(x, bot + 1, "dust_0")
-    # road (tile texture inside a wobbly mask, darker shoulder)
-    edge_noise = [r.choice((0, 0, 1, 1, 2)) for _ in range(W)]
-    for x in range(L.FIELD_X0 - 2, W):
-        cy = L.road_center(x)
-        for y in range(H):
-            d = abs(y - cy) - L.ROAD_HALF + edge_noise[x] * 0.7
-            if d < 0:
-                tile = road_tiles[(x // 16) % len(road_tiles)]
-                yy = int(y - cy + 64) % 16
-                c.px[x, y] = tile.px[x % 16, yy]
-            elif d < 2:
-                c.set(x, y, "dust_0")
-    stamps = []   # (y_sort, x, y, canvas)
-    # bushes and boulders on both ridges
-    for i, x in enumerate(range(L.FIELD_X0 + 6, W - 8, 19)):
-        x += r.randint(-4, 4)
-        t = (x - L.FIELD_X0) / (W - L.FIELD_X0)
-        top = int(20 + 7 * math.sin(t * 7.1 + 0.5) + 4 * math.sin(t * 17.0))
-        bot = int(H - 22 - 6 * math.sin(t * 6.3 + 1.7) - 3 * math.sin(t * 15.0 + 0.2))
-        b = bush(i) if i % 3 else boulder(r.randint(9, 13), r.randint(7, 9), i)
-        stamps.append((top, x, top - b.h + r.randint(2, 5), b))
-        b2 = bush(i + 50) if i % 4 else boulder(r.randint(10, 14), r.randint(7, 10), i + 9)
-        stamps.append((bot + 9, x + r.randint(-5, 5), bot - 3 + r.randint(0, 6), b2))
-    # roadside tussocks and stones along both edges
-    for i, x in enumerate(range(L.FIELD_X0 + 14, W - 4, 13)):
-        x += r.randint(-3, 3)
-        for side in (-1, 1):
-            if r.random() < 0.35:
-                continue
-            y = int(L.road_center(x) + side * (L.ROAD_HALF + r.randint(1, 4)))
-            d = decal_grass(i * 2 + (side > 0)) if r.random() < 0.65 else decal_rocks(i + 3 * side)
-            stamps.append((y, x, y - d.h + 2, d))
-    # clusters: A boiler wreck + scrap + grass, B wheel + rocks, C dead tree + boulder + crater, D crater + rocks
-    clusters = [
-        [(232, 98, wreck_boiler()), (222, 110, decal_scrap(1)), (266, 108, decal_scrap(2)),
-         (216, 104, decal_grass(3)), (270, 100, decal_grass(4)), (250, 112, decal_rocks(5))],
-        [(372, 280, wreck_wheel()), (395, 284, boulder(16, 11, 5)), (360, 292, boulder(9, 7, 7)),
-         (390, 276, decal_grass(6)), (352, 284, decal_grass(7))],
-        [(186, 262, dead_tree()), (204, 276, boulder(14, 10, 11)), (166, 278, crater(7, 4)),
-         (178, 286, decal_grass(8)), (214, 268, decal_grass(9))],
-        [(398, 92, crater(9, 5)), (420, 102, boulder(12, 8, 13)), (386, 104, decal_rocks(10)),
-         (412, 88, decal_scrap(4))],
-    ]
-    for cl in clusters:
-        for (x, y, d) in cl:
-            stamps.append((y + d.h, x, y, d))
-    stamps.sort(key=lambda s_: s_[0])
-    for (_ys, x, y, d) in stamps:
-        if abs(y + d.h - L.road_center(x)) < L.ROAD_HALF - 3 and d.w > 9:
-            continue   # never put big props on the road
-        c.paste_over(d, x, y)
-    # outer bank: a stone retaining edge. Its west face (toward the moat) is lit; the coping casts
-    # a short shadow east onto the field; the water at its foot is darker (in the moat tile).
-    for y in range(H):
-        c.set(L.BANK_X0, y, "soot_1")                       # wet line at the waterline
-        for x in range(L.BANK_X0 + 1, L.BANK_X0 + 4):       # lit vertical face
-            c.set(x, y, "iron_2")
-        c.set(L.BANK_X0 + 1, y, "iron_3")
-        if (y + 2) % 7 == 0:                                # block joints
-            c.hline(L.BANK_X0 + 1, L.BANK_X0 + 3, y, "iron_1")
-        for x in range(L.BANK_X0 + 4, L.BANK_X0 + 8):       # coping top
-            c.set(x, y, "iron_1")
-        c.set(L.BANK_X0 + 4, y, "iron_3")
-        c.set(L.BANK_X0 + 5, y, "iron_2")
-        if y % 9 == 4:
-            c.hline(L.BANK_X0 + 4, L.BANK_X0 + 7, y, "iron_0")
-        c.set(L.BANK_X0 + 8, y, "soot_3")                   # cast shadow on the field
-        c.set(L.BANK_X0 + 9, y, "dust_0")
-        if y % 11 == 3:
-            c.set(L.BANK_X0, y, "steam_2")                  # foam flecks at the waterline
-    # moat bed (covered at runtime by the animated water tiles)
-    water = moat_frames()[0]
-    for y in range(0, H, water.h):
-        c.blit(water, L.MOAT_X0, y)
-    # broken bridge stub on the bank, at the road's end
-    gy = L.GATE_Y
-    x_end = L.FIELD_X0 + 12
-    for y in range(gy - 10, gy + 11):
-        cut = L.BANK_X0 + ((y * 5) % 3)
-        for x in range(cut, x_end):
-            plank = (y - gy + 10) // 4
-            c.set(x, y, "brass_1" if plank % 2 else "brass_0")
-            if (y - gy + 10) % 4 == 0:
-                c.set(x, y, "soot_3")
-        c.set(cut, y, "brass_2")
-    c.hline(L.BANK_X0, x_end, gy - 11, "soot_1")
-    c.hline(L.BANK_X0, x_end, gy + 11, "soot_1")
-    c.hline(L.BANK_X0, x_end, gy + 12, "soot_2")
-    for x in (L.BANK_X0 + 3, x_end - 3):  # posts
-        c.rect(x, gy - 13, x + 2, gy - 9, "copper_1")
-        c.set(x, gy - 13, "copper_3")
-        c.rect(x, gy + 10, x + 2, gy + 14, "copper_1")
-        c.set(x, gy + 10, "copper_3")
-    # courtyard: big flagstones, low contrast (one ramp step) so it does not compete with the towers
-    for y in range(H):
-        for x in range(0, L.WALK_X0):
-            c.set(x, y, "soot_2")
-    for y in range(0, H, 8):
-        off = 5 if (y // 8) % 2 else 0
-        c.hline(0, L.WALK_X0 - 1, y, "soot_1")
-        for x in range(off, L.WALK_X0, 10):
-            c.vline(x, y + 1, y + 7, "soot_1")
-    # wall strip, tiled
-    ws = wall_section()
-    for y in range(0, H, 32):
-        c.blit(ws, L.WALK_X0, y)
-    # brass steam main along the moat's west edge (also drawn at runtime over the water)
-    for i, vy in enumerate(L.STEAM_VENTS_Y):
-        if abs(vy - L.GATE_Y) < 30:
-            continue
-        c.paste_over(steam_pipe(valve=(i % 4 == 1)), L.PIPE_X, vy - 10)
-    return c
-
-
-def courtyard_props(c: Canvas) -> list:
-    """Draws static courtyard props into c; returns chimney top positions for smoke [(x, y)]."""
-    smoke = []
-    # boiler house: big copper boiler in a brick shed
-    bx, by = 4, 238
-    # shed roof (top view), copper plates
-    for y in range(by, by + 30):
-        for x in range(bx, bx + 46):
-            c.set(x, y, "copper_1" if (x + (y // 4) * 2) % 8 else "copper_0")
-    c.hline(bx, bx + 45, by, "copper_3")
-    c.vline(bx, by, by + 29, "copper_2")
-    for y in range(by + 4, by + 30, 4):
-        c.hline(bx + 1, bx + 45, y, "copper_0")
-    # shed front (south face) with furnace mouth glowing
-    for y in range(by + 30, by + 46):
-        for x in range(bx, bx + 46):
-            c.set(x, y, "soot_3" if (y // 3 + x // 6) % 2 else "copper_0")
-    c.hline(bx, bx + 45, by + 30, "copper_2")
-    c.rect(bx + 14, by + 34, bx + 28, by + 45, "soot_0")
-    c.rect(bx + 15, by + 36, bx + 27, by + 45, "ember_0")
-    c.rect(bx + 17, by + 38, bx + 25, by + 45, "ember_1")
-    c.rect(bx + 19, by + 41, bx + 23, by + 45, "ember_2")
-    for x in range(bx + 15, bx + 28, 3):
-        c.vline(x, by + 34, by + 45, "soot_1")
-    c.frame(bx - 1, by - 1, bx + 46, by + 46, "soot_0")
-    # coal pile
-    for i, (x, y, rr) in enumerate([(10, 292, 4), (16, 290, 5), (22, 293, 4), (14, 295, 3)]):
-        c.disc(x, y, rr, "soot_1")
-    for (x, y) in [(9, 289), (15, 287), (21, 290), (17, 292), (12, 293)]:
-        c.set(x, y, "iron_0")
-        c.set(x + 1, y, "soot_3")
-    # chimneys on the shed
-    ch = chimney()
-    for (x, y) in [(bx + 4, by - 26), (bx + 32, by - 20)]:
-        c.paste_over(ch, x, y)
-        smoke.append((x + 5, y + 2))
-    # workshop (north): iron hall with a big gear on the wall
-    wx, wy = 4, 40
-    for y in range(wy, wy + 26):
-        for x in range(wx, wx + 46):
-            c.set(x, y, "verdigris_0" if (x + y // 3) % 7 else "soot_3")
-    c.hline(wx, wx + 45, wy, "verdigris_2")
-    c.vline(wx, wy, wy + 25, "verdigris_1")
-    for y in range(wy + 3, wy + 26, 5):
-        c.hline(wx + 1, wx + 45, y, "verdigris_1")
-    for y in range(wy + 26, wy + 40):
-        for x in range(wx, wx + 46):
-            c.set(x, y, "iron_1")
-        c.set(wx, y, "iron_2")
-    c.hline(wx, wx + 45, wy + 26, "iron_3")
-    c.rect(wx + 6, wy + 30, wx + 12, wy + 39, "soot_0")
-    c.rect(wx + 7, wy + 31, wx + 11, wy + 39, "ember_0")
-    c.rect(wx + 30, wy + 30, wx + 40, wy + 37, "soot_1")
-    c.rect(wx + 31, wy + 31, wx + 39, wy + 36, "ember_1")
-    c.vline(wx + 35, wy + 31, wy + 36, "soot_1")
-    c.frame(wx - 1, wy - 1, wx + 46, wy + 40, "soot_0")
-    smoke.append((wx + 38, wy - 22))
-    c.paste_over(ch, wx + 33, wy - 24)
-    # pipes from the boiler to the wall (feed the steam curtain)
-    p = pipe_h(L.WALK_X0 - (bx + 46) + 2)
-    c.paste_over(p, bx + 46, by + 12)
-    p2 = pipe_v(by - 120)
-    c.paste_over(p2, 26, 120 + 4)
-    c.paste_over(pipe_h(L.WALK_X0 - 26), 26, 118)
-    c.paste_over(valve_wheel(), 23, 150)
-    return smoke

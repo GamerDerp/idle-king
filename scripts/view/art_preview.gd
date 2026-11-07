@@ -2,6 +2,7 @@ extends Control
 ## Art preview: a composed, animated mock of the battle screen (dev only, not wired to the game core).
 ## Shows every sprite category, the UI theme and the pixel fonts in their intended 2x layout.
 ## Run: godot --path . res://scenes/art_preview.tscn  (screenshot: add `-- --shot=shots/preview.png --shot-time=3`)
+## `-- --region=2` shows the «Угольные копи» composition, `--region=3` the «Медные болота» starters.
 
 const TEXT_PATH := "res://scenes/art_preview_text.json"
 const FONT_BOLD := preload("res://fonts/kotel_bold.fnt")
@@ -15,6 +16,7 @@ var _lay: Dictionary = {}
 var _world: Node2D
 var _units: Node2D
 var _fx: Node2D
+var _decals: Node2D
 var _lens: AnimatedSprite2D
 var _king: AnimatedSprite2D
 var _enemies: Array[Dictionary] = []
@@ -24,12 +26,34 @@ var _floaters: Array[Dictionary] = []
 var _t: float = 0.0
 var _king_timer: float = 0.0
 var _rng := RandomNumberGenerator.new()
+var _region: int = 1
+var _cone: AnimatedSprite2D
+var _cone_timer: float = 0.0
+var _geyser_timer: float = 2.65
+var _mounds: Array[Dictionary] = []
+
+const REGION_TOWERS := {
+	1: ["rifle_t0", "riveter_t1", "rifle_t2", "mortar_t1", "mortar_t2"],
+	2: ["steam_jet_t1", "rifle_t2", "boiler_t1", "mortar_t2", "boiler_t2"],
+	3: ["tesla_t1", "ricochet_t1", "tesla_t2", "mortar_t2", "ricochet_t2"],
+}
+const PERIOD := {"rifle": 0.9, "riveter": 1.4, "mortar": 2.6, "steam_jet": 2.2, "boiler": 2.4,
+	"tesla": 1.6, "ricochet": 1.8}
+const PROJ := {"rifle": "bullet", "riveter": "rivet", "mortar": "shell", "boiler": "boiler_bomb",
+	"ricochet": "ricochet_ball"}
+const SPEED := {"scavenger_walk": 9.0, "junk_cart_walk": 5.0, "hound_run": 20.0, "boss_walk": 4.0,
+	"mole_walk": 8.0, "wagon_roll": 14.0, "golem_walk": 4.5, "ugolek_walk": 12.0, "drill_boss_walk": 3.0,
+	"toad_hop": 10.0}
 
 
 func _ready() -> void:
 	_rng.seed = 7
 	_txt = _load_text()
 	_lay = SpriteLib.layout()
+	_region = clampi(int(DevTools.get_arg("region", "1")), 1, 3)
+	var over: Dictionary = _txt.get("region%d" % _region, {})
+	for k: String in over:
+		_txt[k] = over[k]
 	if DevTools.has_arg("kit"):
 		_build_kit()
 		set_process(false)
@@ -76,8 +100,9 @@ func _build_world() -> void:
 	_world.position = _arr2("screen_offset")
 	add_child(_world)
 
+	var regions: Dictionary = SpriteLib.manifest().get("regions", {})
 	var bg := Sprite2D.new()
-	bg.texture = SpriteLib.texture("battlefield_bg")
+	bg.texture = SpriteLib.texture(str((regions.get(str(_region), {}) as Dictionary).get("bg", "battlefield_bg")))
 	bg.centered = false
 	_world.add_child(bg)
 
@@ -90,27 +115,7 @@ func _build_world() -> void:
 		w.position = Vector2(float(moat_x[0]), float(y))
 		_world.add_child(w)
 
-	# towers on the wall
-	var kinds: Array[String] = ["rifle_t0", "riveter_t1", "rifle_t2", "mortar_t1", "mortar_t2"]
-	var slots: Array = _lay.get("tower_slots", [])
-	for i in range(mini(slots.size(), kinds.size())):
-		var s: Array = slots[i]
-		var tw := SpriteLib.make(kinds[i])
-		tw.position = Vector2(float(s[0]), float(s[1]))
-		var tsh := SpriteLib.make("shadow_l")
-		tsh.position = Vector2(2, -2)
-		tsh.show_behind_parent = true
-		tw.add_child(tsh)
-		_world.add_child(tw)
-		var base_kind := kinds[i].get_slice("_", 0)
-		_towers.append({"node": tw, "kind": base_kind, "timer": 0.4 * i + 0.3,
-			"period": {"rifle": 0.9, "riveter": 1.4, "mortar": 2.6}[base_kind], "flash": 0.0})
-
-	_king = SpriteLib.make("king_idle")
-	_king.position = _arr2("king_pos")
-	_world.add_child(_king)
-
-	# steam main over the water, then the curtain of sheets above it
+	# the steam main over the water
 	var vents: Array = _lay.get("steam_vents_y", [])
 	var pipe_x := float(_lay.get("pipe_x", 101))
 	var gate_y := float(_lay.get("gate_y", 196))
@@ -121,52 +126,120 @@ func _build_world() -> void:
 		var pipe := SpriteLib.make("steam_pipe_valve" if i % 4 == 1 else "steam_pipe")
 		pipe.position = Vector2(pipe_x, vy)
 		_world.add_child(pipe)
-	for i in range(vents.size()):
-		var vy := float(vents[i])
-		if absf(vy - gate_y) < 30.0:
-			continue
-		var st := SpriteLib.make("steam_sheet", (i * 7) % 6)
-		st.position = Vector2(pipe_x + 13.0, vy)
-		_world.add_child(st)
+
+	# «Топка рва» doors on the wall face (regions 2+)
+	if _region >= 2:
+		var face: Array = _lay.get("face_x", [96, 107])
+		var fy: Array = _lay.get("furnace_y", [])
+		for i in range(fy.size()):
+			var fu := SpriteLib.make("moat_furnace_hot" if i != 1 else "moat_furnace_warm", i)
+			fu.position = Vector2(float(face[0]), float(fy[i]))
+			_world.add_child(fu)
+		# the coal mine in the first yard slot
+		var slots_y: Array = _lay.get("yard_slots", [])
+		if not slots_y.is_empty():
+			var s0: Array = slots_y[0]
+			var mine := SpriteLib.make("building_coal_mine")
+			mine.position = Vector2(float(s0[0]), float(s0[1]))
+			_world.add_child(mine)
+
+	# towers on the wall
+	var kinds: Array = REGION_TOWERS[_region]
+	var slots: Array = _lay.get("tower_slots", [])
+	for i in range(mini(slots.size(), kinds.size())):
+		var s: Array = slots[i]
+		var tw := SpriteLib.make(str(kinds[i]))
+		tw.position = Vector2(float(s[0]), float(s[1]))
+		tw.pause()
+		var tsh := SpriteLib.make("shadow_l")
+		tsh.position = Vector2(2, -2)
+		tsh.show_behind_parent = true
+		tw.add_child(tsh)
+		_world.add_child(tw)
+		var base_kind := str(kinds[i]).substr(0, str(kinds[i]).rfind("_t"))
+		_towers.append({"node": tw, "kind": base_kind, "name": str(kinds[i]), "timer": 0.4 * i + 0.3,
+			"period": PERIOD[base_kind], "anim": 0.0})
+
+	_king = SpriteLib.make("king_idle")
+	_king.position = _arr2("king_pos")
+	_world.add_child(_king)
+
+	# the whole curtain (plumes + their shadow on the water) is one sprite
+	var curtain := SpriteLib.make("steam_curtain")
+	curtain.position = Vector2(float(_lay.get("steam_curtain_x", 112)), 0.0)
+	_world.add_child(curtain)
 
 	for p: Array in _lay.get("smoke_points", []):
 		var sm := SpriteLib.make("chimney_smoke", _rng.randi_range(0, 3))
 		sm.position = Vector2(float(p[0]), float(p[1]))
 		_world.add_child(sm)
 
+	_decals = Node2D.new()
+	_world.add_child(_decals)
 	_units = Node2D.new()
 	_units.y_sort_enabled = true
 	_world.add_child(_units)
 	_fx = Node2D.new()
 	_world.add_child(_fx)
 
-	# enemies already on the road
-	var field_x0 := float(_lay.get("field_x0", 146))
-	var spawn: Array = [
-		["scavenger_walk", 176.0, -8.0], ["scavenger_walk", 196.0, 7.0], ["hound_run", 226.0, -2.0],
-		["junk_cart_walk", 262.0, 5.0], ["scavenger_walk", 288.0, -12.0], ["scavenger_walk", 300.0, 10.0],
-		["boss_walk", 352.0, 0.0], ["hound_run", 330.0, 14.0], ["scavenger_walk", 368.0, -14.0],
-		["scavenger_walk", 384.0, 12.0], ["junk_cart_walk", 412.0, -6.0], ["scavenger_walk", 432.0, 8.0],
-		["hound_run", 446.0, -12.0], ["scavenger_walk", 240.0, 16.0], ["scavenger_walk", 318.0, -20.0],
-	]
+	# loose wisps drifting over the east bank, above the units
+	var bank0 := float((_lay.get("bank_x", [138, 145]) as Array)[0])
+	for i in range(7):
+		var wsp := SpriteLib.make("steam_wisps", (i * 3) % 8)
+		wsp.position = Vector2(bank0 - 8.0, 30.0 + i * 46.0 + float((i * 13) % 17))
+		_world.add_child(wsp)
+
+	var spawn: Array = []
+	match _region:
+		2:
+			spawn = [
+				["mole_walk", 178.0, -8.0], ["wagon_roll", 214.0, 4.0], ["golem_walk", 246.0, -12.0],
+				["ugolek_walk", 262.0, 12.0], ["ugolek_walk", 270.0, 16.0], ["mole_walk", 300.0, 10.0],
+				["drill_boss_walk", 360.0, 0.0], ["golem_walk", 410.0, 12.0], ["wagon_roll", 430.0, -10.0],
+				["mole_walk", 196.0, 14.0], ["hound_run", 330.0, -18.0], ["scavenger_walk", 398.0, -16.0],
+			]
+			_mounds.append({"x": 236.0, "lane": 20.0})
+			_mounds.append({"x": 320.0, "lane": -20.0})
+		3:
+			spawn = [
+				["toad_hop", 180.0, -8.0], ["toad_hop", 214.0, 8.0], ["mole_walk", 244.0, -12.0],
+				["toad_hop", 270.0, 14.0], ["golem_walk", 300.0, -4.0], ["toad_hop", 334.0, 10.0],
+				["wagon_roll", 380.0, -8.0], ["toad_hop", 410.0, 14.0], ["toad_hop", 440.0, -14.0],
+				["hound_run", 230.0, 18.0],
+			]
+		_:
+			spawn = [
+				["scavenger_walk", 176.0, -8.0], ["scavenger_walk", 196.0, 7.0], ["hound_run", 226.0, -2.0],
+				["junk_cart_walk", 262.0, 5.0], ["scavenger_walk", 288.0, -12.0], ["scavenger_walk", 300.0, 10.0],
+				["boss_walk", 352.0, 0.0], ["hound_run", 330.0, 14.0], ["scavenger_walk", 368.0, -14.0],
+				["scavenger_walk", 384.0, 12.0], ["junk_cart_walk", 412.0, -6.0], ["scavenger_walk", 432.0, 8.0],
+				["hound_run", 446.0, -12.0], ["scavenger_walk", 240.0, 16.0], ["scavenger_walk", 318.0, -20.0],
+			]
 	for e: Array in spawn:
 		_spawn_enemy(str(e[0]), float(e[1]), float(e[2]))
-	assert(field_x0 > 0.0)
+	for m in _mounds:
+		var n := SpriteLib.make("mole_mound", _rng.randi_range(0, 3))
+		m["node"] = n
+		_decals.add_child(n)
 
+	_cone = SpriteLib.make("steam_cone")
+	_cone.visible = false
+	_fx.add_child(_cone)
 	_lens = SpriteLib.make("steam_lens")
 	_world.add_child(_lens)
 
 
 func _spawn_enemy(kind: String, x: float, lane: float) -> void:
 	var n := SpriteLib.make(kind, _rng.randi_range(0, 3))
-	var sh_name: String = {"boss_walk": "shadow_l", "junk_cart_walk": "shadow_l", "hound_run": "shadow_m"}.get(kind, "shadow_s")
+	var sh_name: String = {"boss_walk": "shadow_l", "junk_cart_walk": "shadow_l", "hound_run": "shadow_m",
+		"drill_boss_walk": "shadow_l", "wagon_roll": "shadow_l", "golem_walk": "shadow_m"}.get(kind, "shadow_s")
 	var sh := SpriteLib.make(sh_name)
 	sh.position = Vector2(1, 0)
 	sh.show_behind_parent = true
 	n.add_child(sh)
 	_units.add_child(n)
-	var speed: float = {"scavenger_walk": 9.0, "junk_cart_walk": 5.0, "hound_run": 20.0, "boss_walk": 4.0}[kind]
-	_enemies.append({"node": n, "x": x, "lane": lane, "speed": speed, "kind": kind})
+	var speed: float = SPEED[kind]
+	_enemies.append({"node": n, "x": x, "lane": lane, "speed": speed, "kind": kind, "pushed": false})
 	_place_enemy(_enemies[_enemies.size() - 1])
 
 
@@ -203,6 +276,13 @@ func _process(delta: float) -> void:
 	_step_floaters(delta)
 	_step_lens()
 	_step_king(delta)
+	_step_region(delta)
+
+
+func _fall_name(kind: String) -> String:
+	if kind.begins_with("junk"):
+		return "junk_cart_fall"
+	return kind.substr(0, kind.rfind("_")) + "_fall"
 
 
 func _step_enemies(delta: float) -> void:
@@ -212,10 +292,16 @@ func _step_enemies(delta: float) -> void:
 		if float(e["x"]) < bank + 3.0:
 			var n: AnimatedSprite2D = e["node"]
 			var kind: String = e["kind"]
-			_fx_once(kind.get_slice("_", 0) + ("_cart" if kind.begins_with("junk") else "") + "_fall",
-				Vector2(bank - 10.0, n.position.y))
-			_fx_once("splash", Vector2(bank - 10.0, n.position.y))
-			e["x"] = 470.0
+			if not bool(e["pushed"]) and kind != "wagon_roll":
+				# the curtain shoves it back once (wagons are too heavy)
+				e["pushed"] = true
+				e["x"] = float(e["x"]) + 22.0
+				_fx_once("steam_push", Vector2(bank + 4.0, n.position.y))
+			else:
+				_fx_once(_fall_name(kind), Vector2(bank - 10.0, n.position.y))
+				_fx_once("splash", Vector2(bank - 10.0, n.position.y))
+				e["x"] = 470.0
+				e["pushed"] = false
 		_place_enemy(e)
 
 
@@ -227,33 +313,78 @@ func _target() -> Dictionary:
 	return best
 
 
+func _muzzle(tw: Dictionary) -> Vector2:
+	var n: AnimatedSprite2D = tw["node"]
+	var info := SpriteLib.info(str(tw["name"]))
+	var mz: Array = info.get("muzzle", [28, 20])
+	return n.position - SpriteLib.anchor(str(tw["name"])) + Vector2(float(mz[0]), float(mz[1]))
+
+
 func _step_towers(delta: float) -> void:
 	for tw in _towers:
 		var n: AnimatedSprite2D = tw["node"]
 		tw["timer"] = float(tw["timer"]) - delta
-		if float(tw["flash"]) > 0.0:
-			tw["flash"] = float(tw["flash"]) - delta
-			if float(tw["flash"]) <= 0.0:
+		if float(tw["anim"]) > 0.0:
+			# fire (frame 1) ~0.07 s -> recover (frame 2) ~0.1 s -> idle
+			tw["anim"] = float(tw["anim"]) - delta
+			n.frame = 2 if float(tw["anim"]) < 0.1 else 1
+			if float(tw["anim"]) <= 0.0:
 				n.frame = 0
-		if float(tw["timer"]) <= 0.0:
-			tw["timer"] = float(tw["period"])
-			var tgt := _target()
-			if tgt.is_empty():
+		if float(tw["timer"]) > 0.0:
+			continue
+		tw["timer"] = float(tw["period"])
+		var tgt := _target()
+		if tgt.is_empty():
+			continue
+		tw["anim"] = 0.17
+		n.frame = 1
+		var kind: String = tw["kind"]
+		var from := _muzzle(tw)
+		var tn: AnimatedSprite2D = tgt["node"]
+		match kind:
+			"steam_jet":
+				_cone.position = from.round()
+				_cone.visible = true
+				_cone_timer = 1.2
 				continue
-			n.frame = 1
-			tw["flash"] = 0.12
-			var kind: String = tw["kind"]
-			var from := n.position + Vector2(14, -18)
-			if kind == "mortar":
-				from = n.position + Vector2(12, -26)
-			var tn: AnimatedSprite2D = tgt["node"]
-			var dur: float = {"rifle": 0.35, "riveter": 0.45, "mortar": 1.1}[kind]
-			var to := tn.position + Vector2(-float(tgt["speed"]) * dur, -6.0)
-			var proj: String = {"rifle": "bullet", "riveter": "rivet", "mortar": "shell"}[kind]
-			var p := SpriteLib.make(proj)
-			p.position = from
-			_fx.add_child(p)
-			_shots.append({"node": p, "from": from, "to": to, "t": 0.0, "dur": dur, "kind": kind})
+			"tesla":
+				_chain(from, tgt)
+				continue
+		_fx_once("muzzle_smoke", from)
+		var dur: float = {"rifle": 0.35, "riveter": 0.45, "mortar": 1.1, "boiler": 1.0, "ricochet": 0.45}[kind]
+		var to := tn.position + Vector2(-float(tgt["speed"]) * dur, -6.0)
+		var p := SpriteLib.make(str(PROJ[kind]))
+		p.position = from
+		_fx.add_child(p)
+		_shots.append({"node": p, "from": from, "to": to, "t": 0.0, "dur": dur, "kind": kind, "tgt": tgt})
+
+
+## Tesla: one segment sprite per link, scaled to the link length and rotated.
+func _chain(from: Vector2, first: Dictionary) -> void:
+	var pts: Array[Vector2] = [from]
+	var cur := first
+	for k in range(3):
+		var cn: AnimatedSprite2D = cur["node"]
+		pts.append(cn.position + Vector2(0, -8))
+		var nxt: Dictionary = {}
+		for e in _enemies:
+			if e == cur or float(e["x"]) < float(cur["x"]):
+				continue
+			if nxt.is_empty() or float(e["x"]) < float(nxt["x"]):
+				nxt = e
+		if nxt.is_empty() or float(nxt["x"]) - float(cur["x"]) > 70.0:
+			break
+		cur = nxt
+	for i in range(pts.size() - 1):
+		var seg := SpriteLib.make("chain_lightning", i % 3)
+		var d := pts[i + 1] - pts[i]
+		seg.position = pts[i].round()
+		seg.rotation = d.angle()
+		seg.scale = Vector2(d.length() / 32.0, 1.0)
+		_fx.add_child(seg)
+		get_tree().create_timer(0.22).timeout.connect(seg.queue_free)
+		_fx_once("tesla_arc", pts[i + 1])
+		_float_text(str((_txt.get("dmg_numbers", ["1"]) as Array)[0]), pts[i + 1] + Vector2(-3, -12), "brass_3")
 
 
 func _step_shots(delta: float) -> void:
@@ -264,27 +395,88 @@ func _step_shots(delta: float) -> void:
 		var from: Vector2 = s["from"]
 		var to: Vector2 = s["to"]
 		var pos := from.lerp(to, k)
-		if str(s["kind"]) == "mortar":
+		var kind := str(s["kind"])
+		if kind == "mortar" or kind == "boiler":
 			pos.y -= sin(k * PI) * 60.0
 		var n: AnimatedSprite2D = s["node"]
 		n.position = pos.round()
-		if k >= 1.0:
-			done.append(s)
-			n.queue_free()
-			var nums: Array = _txt.get("dmg_numbers", ["1"])
-			if str(s["kind"]) == "mortar":
+		if k < 1.0:
+			continue
+		done.append(s)
+		var nums: Array = _txt.get("dmg_numbers", ["1"])
+		match kind:
+			"mortar":
+				n.queue_free()
 				_fx_once("explosion", to + Vector2(0, 6))
 				_fx_once("scrap_burst", to + Vector2(0, 6))
 				_float_text(str(nums[2]), to + Vector2(-4, -26), "ember_2")
-				var coin := SpriteLib.make("gear_coin_fly")
-				coin.position = (to + Vector2(6, -10)).round()
-				_fx.add_child(coin)
-				_floaters.append({"node": coin, "age": 0.0, "y": coin.position.y, "coin": true})
-			else:
+				_coin(to)
+			"boiler":
+				n.queue_free()
+				var pud := SpriteLib.make("burning_puddle")
+				pud.position = (to + Vector2(0, 8)).round()
+				_decals.add_child(pud)
+				get_tree().create_timer(3.0).timeout.connect(pud.queue_free)
+				_fx_once("boiler_explosion", to + Vector2(0, 8))
+				_float_text(str(nums[2]), to + Vector2(-4, -30), "ember_2")
+				_coin(to)
+			"ricochet":
+				_fx_once("bounce_spark", to)
+				_float_text(str(nums[1]), to + Vector2(-3, -16), "parchment_2")
+				var bounces := int(s.get("b", 0))
+				if bounces < 2:
+					s["b"] = bounces + 1
+					s["from"] = to
+					s["to"] = to + Vector2(26, -10 + 20 * (bounces % 2))
+					s["t"] = 0.0
+					s["dur"] = 0.3
+					done.erase(s)
+				else:
+					n.queue_free()
+			_:
+				n.queue_free()
+				var tgt: Dictionary = s.get("tgt", {})
+				if not tgt.is_empty() and str(tgt["kind"]) == "drill_boss_walk":
+					_boss_hit(tgt)
 				_fx_once("hit_spark", to)
 				_float_text(str(nums[_rng.randi_range(0, 1)]), to + Vector2(-3, -16), "parchment_2")
 	for s in done:
 		_shots.erase(s)
+
+
+func _coin(to: Vector2) -> void:
+	var coin := SpriteLib.make("coal_chunk_fly" if _region == 2 else "gear_coin_fly")
+	coin.position = (to + Vector2(6, -10)).round()
+	_fx.add_child(coin)
+	_floaters.append({"node": coin, "age": 0.0, "y": coin.position.y, "coin": true})
+
+
+## Direct hits on the drill boss land on its front plate: sparks (hit strip) for a moment.
+func _boss_hit(e: Dictionary) -> void:
+	var n: AnimatedSprite2D = e["node"]
+	n.sprite_frames = SpriteLib.sprite_frames("drill_boss_hit")
+	n.play(&"default")
+	get_tree().create_timer(0.18).timeout.connect(func() -> void:
+		n.sprite_frames = SpriteLib.sprite_frames("drill_boss_walk")
+		n.play(&"default"))
+
+
+func _step_region(delta: float) -> void:
+	if _cone != null:
+		_cone_timer -= delta
+		_cone.visible = _cone_timer > 0.0
+	for m in _mounds:
+		m["x"] = float(m["x"]) - 8.0 * delta
+		if float(m["x"]) < 170.0:
+			_fx_once("mole_emerge", Vector2(170.0, _road_y(170.0) + float(m["lane"])))
+			m["x"] = 440.0
+		var mn: AnimatedSprite2D = m["node"]
+		mn.position = Vector2(roundf(float(m["x"])), roundf(_road_y(float(m["x"])) + float(m["lane"])))
+	if _region == 2:
+		_geyser_timer -= delta
+		if _geyser_timer <= 0.0:
+			_geyser_timer = 4.0
+			_fx_once("geyser", Vector2(166.0, _road_y(166.0) + 14.0))
 
 
 func _step_floaters(delta: float) -> void:
@@ -656,3 +848,16 @@ func _build_kit() -> void:
 		e.sprite_frames.set_animation_loop(&"default", true)
 		e.play(&"default")
 		stage.add_child(e)
+	# region 2/3 starters: enemies and gilded towers
+	x = 0.0
+	for n: String in ["mole_walk", "wagon_roll", "golem_walk", "ugolek_walk", "toad_hop"]:
+		var s2 := SpriteLib.make(n)
+		s2.position = Vector2(x + SpriteLib.anchor(n).x, y + 222.0)
+		stage.add_child(s2)
+		x += float(SpriteLib.frame_size(n).x) + 6.0
+	x = 0.0
+	for n: String in ["steam_jet_t2", "boiler_t2", "tesla_t2", "ricochet_t2"]:
+		var s3 := SpriteLib.make(n)
+		s3.position = Vector2(x + SpriteLib.anchor(n).x, y + 270.0)
+		stage.add_child(s3)
+		x += 36.0

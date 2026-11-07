@@ -126,5 +126,147 @@
       "Котёл рва",
       "Шестерёнчатая мастерская"
     ]
+  },
+  "region2": {
+    "goal": "Цель: Угольные копи — Бур-Великан",
+    "res": [
+      [
+        "res_gears",
+        "48.7K",
+        "+1.2K/с"
+      ],
+      [
+        "res_blueprints",
+        "1.9K",
+        "+9/с"
+      ],
+      [
+        "res_coal",
+        "312",
+        "+4.5/с"
+      ],
+      [
+        "res_seal",
+        "3",
+        ""
+      ]
+    ],
+    "header": "Котельные цеха",
+    "cards": [
+      {
+        "tower": "steam_jet_t1",
+        "name": "Пароструй",
+        "level": "Ур. 4 · 1/2 на стене",
+        "dmg": "dmg_steam",
+        "effect": "Ошпаривание 3 → 4 с",
+        "price": "9.6K",
+        "affordable": true,
+        "button": "Купить"
+      },
+      {
+        "tower": "boiler_t2",
+        "name": "Котлобой",
+        "level": "Ур. 9 · 2/2 на стене",
+        "dmg": "dmg_blast",
+        "effect": "Лужа 3 → 4 с",
+        "price": "31K",
+        "affordable": false,
+        "button": "Купить"
+      },
+      {
+        "tower": "mortar_t2",
+        "name": "Мортира",
+        "level": "Ур. 15 · 2/2 на стене",
+        "dmg": "dmg_blast",
+        "effect": "Взрыв +20%",
+        "price": "44K",
+        "affordable": false,
+        "button": "Купить"
+      },
+      {
+        "tower": "",
+        "name": "Топка рва",
+        "level": "Механизм · уголь 2/с",
+        "dmg": "dmg_steam",
+        "effect": "Завеса ×1.5 → ×2",
+        "price": "120",
+        "affordable": true,
+        "button": "Улучшить"
+      }
+    ],
+    "tooltip_title": "Крот-шахтёр",
+    "tooltip_body": "Роет ход: в норе неуязвим.\nДобыча: 9 шестерён, 1 уголь.",
+    "boss_button": "Вызвать Бур-Великана"
+  },
+  "region3": {
+    "goal": "Цель: Медные болота — Механожаба",
+    "res": [
+      [
+        "res_gears",
+        "2.1M",
+        "+38K/с"
+      ],
+      [
+        "res_blueprints",
+        "14K",
+        "+60/с"
+      ],
+      [
+        "res_coal",
+        "2.4K",
+        "+12/с"
+      ],
+      [
+        "res_copper",
+        "96",
+        "+1.1/с"
+      ]
+    ],
+    "header": "Электроцеха",
+    "cards": [
+      {
+        "tower": "tesla_t1",
+        "name": "Тесла-катушка",
+        "level": "Ур. 3 · 1/2 на стене",
+        "dmg": "dmg_spark",
+        "effect": "Цепь 3 → 4 цели",
+        "price": "210K",
+        "affordable": true,
+        "button": "Купить"
+      },
+      {
+        "tower": "ricochet_t2",
+        "name": "Рикошетная пушка",
+        "level": "Ур. 6 · 2/2 на стене",
+        "dmg": "dmg_impact",
+        "effect": "Отскок +15%",
+        "price": "480K",
+        "affordable": false,
+        "button": "Купить"
+      },
+      {
+        "tower": "mortar_t2",
+        "name": "Мортира",
+        "level": "Ур. 22 · 2/2 на стене",
+        "dmg": "dmg_blast",
+        "effect": "Взрыв +20%",
+        "price": "1.3M",
+        "affordable": false,
+        "button": "Купить"
+      },
+      {
+        "tower": "",
+        "name": "Паровая линза",
+        "level": "Механизм · авто ×0.8",
+        "dmg": "dmg_steam",
+        "effect": "Пар 40 → 52/тик",
+        "price": "96K",
+        "affordable": true,
+        "button": "Улучшить"
+      }
+    ],
+    "tooltip_title": "Механожаба",
+    "tooltip_body": "Прыгает: в прыжке не цель.\nДобыча: 30 шестерён, 1 медь.",
+    "boss_button": "Вызвать Медного Спрута"
   }
 }
