@@ -413,3 +413,35 @@ TRAIT_SHIELD,медный шлем: снимают пар и искра,copper h
 TRAIT_IMMUNE,не замедлить и не отбросить,can't be slowed or knocked back
 TRAIT_SPLIT,раскалывается на угольки,splits into embers
 TRAIT_CHARGE,делает рывки,charges
+UI_MAP_OPEN,Открыть карту (M),Open the map (M)
+UI_MAP_BACK,К бою (M),Back to battle (M)
+UI_MAP_HOME,К крепости,To the fortress
+UI_MAP_TITLE,Карта завоеваний долины,Map of the valley's conquest
+UI_MAP_PROGRESS,Долина покорена на %d%%,The valley is %d%% conquered
+UI_MAP_UNKNOWN,неизведанно,uncharted
+UI_MAP_REGION_COUNT,взято %d из %d,%d of %d taken
+UI_MAP_LIVE,"Бой идёт: врагов %d, в рву %d","Battle on: %d enemies, %d in the moat"
+UI_MAP_LEVEL,ур. %d/%d,lv. %d/%d
+UI_MAP_CHOICE,выбор,choice
+UI_MAP_CHOICE_WARN,Выбор навсегда до Переплавки: второй путь закроется.,A choice until the Remelt: the other path closes.
+UI_MAP_CLICK,"Клик — купить, удерживай — ещё уровни","Click to buy, hold for more levels"
+UI_MAP_LOCKED,Сначала: %s,First: %s
+UI_MAP_EXCLUDED,Закрыто выбором до Переплавки,Closed by a choice until the Remelt
+UI_MAP_MAXED,Взято полностью,Fully taken
+UI_MAP_REWARD,Награда за победу: %s,Reward for defeating: %s
+UI_MAP_OR,или,or
+UI_MAP_HINT_BUY,что купить,buy this
+MAP_KIND_SPINE,Дорога,Road
+MAP_KIND_TOWER,Башня,Tower
+MAP_KIND_BAIT,Приманка,Bait
+MAP_KIND_LENS,Линза,Lens
+MAP_KIND_MECHANISM,Механизм,Mechanism
+MAP_KIND_MOAT,Ров,Moat
+MAP_KIND_SYNERGY,Связка,Synergy
+MAP_KIND_GLOBAL,Указ,Decree
+MAP_KIND_BOSS,Хозяин региона,Region boss
+MAP_KIND_REWARD,Трофей,Trophy
+MAP_KIND_REGION,Новые земли,New lands
+MAP_KIND_PRODUCER,Цех,Workshop
+MAP_KIND_CHOICE,Развилка,Fork
+UI_MAP_CLICK1,Клик — купить,Click to buy

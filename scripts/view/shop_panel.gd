@@ -10,6 +10,7 @@ extends TabContainer
 
 signal bought(id: String, at: Vector2)
 signal compare_requested(ids: Array)
+signal map_requested
 
 class Card:
 	var id: String = ""
@@ -310,6 +311,13 @@ func _rebuild_shop(ids: Array[String]) -> void:
 func _rebuild_map(ids: Array[String]) -> void:
 	_clear(_map_list, ["node", "choice"])
 	_header(_map_list, tr("UI_MAP_HEADER"), tr("UI_MAP_HINT"))
+	# the conquest map itself: a big brass button on top of the list
+	var open_btn := Button.new()
+	open_btn.text = tr("UI_MAP_OPEN")
+	open_btn.icon = SpriteLib.texture("node_spine", 4)
+	open_btn.expand_icon = false
+	open_btn.pressed.connect(func() -> void: map_requested.emit())
+	_map_list.add_child(open_btn)
 	var nodes: Array = []
 	for id in ids:
 		if id.begins_with("node:"):

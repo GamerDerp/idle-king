@@ -13,6 +13,7 @@ var ids: Array = []
 var _card: PanelContainer
 var _cols: HBoxContainer
 var _buttons: Dictionary = {}
+var full_width: bool = false      ## over the conquest map: dim and centre on the whole screen, not just the field
 
 
 func setup(view_kit: ViewKit, shop_panel: ShopPanel) -> void:
@@ -36,6 +37,7 @@ func setup(view_kit: ViewKit, shop_panel: ShopPanel) -> void:
 
 func open(group: Array) -> void:
 	ids = group.duplicate()
+	size.x = 1280.0 if full_width else 1280.0 - kit.f("panel_width", 380)
 	for c: Node in _card.get_children():
 		_card.remove_child(c)
 		c.queue_free()

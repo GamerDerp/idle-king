@@ -236,3 +236,52 @@ func test_scene_handles_r2_and_r3() -> void:
 	mg.free()
 	Engine.time_scale = 1.0
 	Game.running = false
+
+
+## Conquest map: opens, buys a node by click (ink splat + stamp + road sparks), a region's fog burns when it
+## opens, a choice opens the comparison instead of buying; a 250-node dummy map stays cheap per frame.
+func test_conquest_map() -> void:
+	var mg: MainGame = (load(SCENE) as PackedScene).instantiate() as MainGame
+	Engine.get_main_loop().root.add_child(mg)
+	var core: GameCore = mg.core
+	var map: MapScreen = mg.map
+	assert_true(map != null and not map.visible, "map built, closed")
+	map.open()
+	assert_true(map.visible, "map open")
+	core.state.add_res("gears", 1e9)
+	core.state.add_res("blueprints", 1e9)
+	map._refresh(true)
+	var horn: MapScreen.MNode = map.nodes["r0_horn"]
+	assert_eq(horn.status, "available")
+	assert_true(map.click(horn), "click buys an available node")
+	assert_eq(core.level_of("node:r0_horn"), 1)
+	assert_true(map._fx.size() >= 2, "splat + stamp (+ sparks)")
+	assert_true(map._hint != null, "something to suggest")
+	# the road to the wastes: region 1 opens, its fog burns away
+	for n: String in ["r0_kettle", "r0_loopholes", "r0_rumors", "r1_dogs"]:
+		core.buy("node:" + n)
+	map._refresh(true)
+	assert_true(map._fog_fade.has(1), "region 1 fog burns")
+	for i in 40:
+		map._process(0.05)
+	assert_false((map._fog[1] as Sprite2D).visible, "fog gone")
+	# a choice pair opens the comparison window, buys nothing
+	var horn2: MapScreen.MNode = map.nodes["r1_dog_horn"]
+	assert_false(map.click(horn2), "choice is not bought by a click")
+	assert_true(mg.choice.visible, "comparison opened")
+	mg.choice.close()
+	map.close()
+	# a full late-game map: 250 nodes over 8 regions
+	var big := MapScreen.new()
+	mg.add_child(big)
+	big.setup(mg.kit, mg.shop, mg.choice, 250)
+	assert_true(big.order.size() >= 240, "dummy nodes: %d" % big.order.size())
+	big.open()
+	var worst: float = 0.0
+	for i in 20:
+		big._process(0.05)
+		worst = maxf(worst, big.draw_ms)
+	assert_true(worst < 8.0, "map frame cost %.2f ms" % worst)
+	mg.free()
+	Engine.time_scale = 1.0
+	Game.running = false

@@ -51,9 +51,11 @@ var _tip_rest: float = 0.0
 var _follow_t: float = 0.0
 var _tip_uid: int = -1
 var choice: ChoiceOverlay
+var map: MapScreen
 var _label_at: Dictionary = {}     ## label kind -> view time it was last shown (global rate limit)
 var _armor_blocked: float = 0.0    ## damage the boss's frontal armour soaked this fight (retreat hint)
 var _buy_list: PackedStringArray = []
+var _map_at: float = -1.0
 var _buy_at: float = 1.0
 
 
@@ -92,11 +94,20 @@ func _ready() -> void:
 	shop.name = "Shop"
 	add_child(shop)
 	shop.setup(kit)
+	map = MapScreen.new()
+	map.name = "Map"
+	add_child(map)
 	choice = ChoiceOverlay.new()
 	choice.name = "Choice"
 	add_child(choice)
 	choice.setup(kit, shop)
 	shop.compare_requested.connect(choice.open)
+	map.setup(kit, shop, choice, int(DevTools.get_arg("map-dummy", "0")))
+	shop.map_requested.connect(map.open)
+	# the battle keeps ticking under the map, but nothing of it is visible: skip drawing it
+	map.visibility_changed.connect(func() -> void:
+		_shake_root.visible = not map.visible
+		shop.visible = not map.visible)
 	loot = LootFly.new()
 	loot.name = "LootFly"
 	add_child(loot)
@@ -122,6 +133,9 @@ func _ready() -> void:
 	shop.refresh()
 	if DevTools.has_arg("tab"):
 		shop.current_tab = clampi(DevTools.get_arg("tab").to_int(), 0, shop.get_tab_count() - 1)
+	_map_at = DevTools.get_arg("open-map", "-1").to_float()
+	if DevTools.has_arg("map-zoom"):
+		map.call_deferred("_set_zoom", DevTools.get_arg("map-zoom").to_int(), Vector2(640, 340))
 	print("Main scene ready: MainGame (locale %s, t=%.0fs)" % [TranslationServer.get_locale(), core.state.time])
 
 
@@ -137,13 +151,22 @@ func _process(delta: float) -> void:
 			_follow_enemy()
 	if Game.bot == null:
 		var mp: Vector2 = get_global_mouse_position()
-		var over: bool = not choice.visible and mp.x < _field_w and mp.y > kit.f("bar_height", 40) and core.battle.in_field(mp) \
+		var over: bool = not choice.visible and not map.visible and mp.x < _field_w and mp.y > kit.f("bar_height", 40) and core.battle.in_field(mp) \
 			and get_viewport().get_visible_rect().has_point(get_viewport().get_mouse_position())
 		core.set_cursor(mp, over)
 	if _stress:
 		_stress_fill()
 	if _fx_demo:
 		_fx_demo_tick(delta)
+	if _map_at >= 0.0 and DevTools.game_time >= _map_at:
+		_map_at = -1.0
+		map.open()
+		map.recentre()
+		if DevTools.has_arg("map-focus"):
+			var fp: PackedStringArray = DevTools.get_arg("map-focus").split(",")
+			map.focus_art(Vector2(fp[0].to_float(), fp[1].to_float()))
+		if DevTools.get_arg("mouse", "") == "map-hint":
+			_warp_to_hint.call_deferred()
 	if not _buy_list.is_empty() and DevTools.game_time >= _buy_at:
 		for id: String in _buy_list:
 			if id.begins_with("compare:"):
@@ -195,10 +218,20 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	var k: InputEventKey = event as InputEventKey
 	if k != null and k.pressed and not k.echo:
-		if k.keycode == KEY_1:
+		if k.keycode == KEY_M:
+			map.toggle()
+		elif k.keycode == KEY_ESCAPE and map.visible:
+			map.close()
+		elif k.keycode == KEY_1:
 			shop.current_tab = 0
 		elif k.keycode == KEY_2:
 			shop.current_tab = 1
+
+
+## --mouse=map-hint (screenshots): the cursor rests on the suggested node, so its tooltip shows.
+func _warp_to_hint() -> void:
+	if map._hint != null:
+		get_viewport().warp_mouse(map.global_position + map.screen_of(map._hint))
 
 
 # --- events -> feedback ------------------------------------------------------------------
@@ -372,6 +405,8 @@ func _on_kill(ev: Dictionary) -> void:
 	if role == "boss":
 		return
 	popups.loot(_head_screen(int(ev["uid"]), p), lt)
+	if map.visible:
+		return   # loot is already counted; coins flying out of a hidden battle would cross the map
 	var cmax: int = int(kit.f("loot.coins_per_kill_max", 3))
 	for r: String in lt:
 		var amt: float = float(lt[r])
@@ -414,6 +449,8 @@ func _on_armored_hit(ev: Dictionary, mid_art: Vector2) -> void:
 ## goods fly to their counters (the reference hid its farm output — ours is loud).
 func _on_producer(ev: Dictionary) -> void:
 	var pid: String = str(ev["id"])
+	if map.visible:
+		return
 	var at: Vector2 = bv.building_pos(pid)
 	bv.fx.producer_burst(at)
 	var top: Vector2 = kit.to_screen(at + Vector2(0, -kit.f("producer.popup_dy", 62.0)))
@@ -515,7 +552,8 @@ func _on_goal_clicked(goal_id: String) -> void:
 				shop.refresh()
 				hud.refresh()
 		else:
-			shop.show_node(goal_id)
+			# not affordable yet: show it where it lies on the conquest map
+			map.show_node(goal_id.substr(5))
 	elif goal_id.begins_with("boss:"):
 		_on_boss_call()
 
@@ -540,7 +578,7 @@ func _update_tooltip(delta: float) -> void:
 	if not want:
 		_tip_uid = -1
 	if not want or (Game.bot != null and not _mouse_follow) or mp.x >= _field_w or mp.y < kit.f("bar_height", 40) \
-			or choice.visible:
+			or choice.visible or map.visible:
 		hud.show_enemy_tip(null, mp)
 		return
 	# pick the enemy once (generous radius: it keeps walking), then follow it while the mouse rests

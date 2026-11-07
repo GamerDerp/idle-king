@@ -555,6 +555,51 @@
       "popup_dy": 56
     },
     "region_fade": 2.0,
-    "armor_hit_gap": 0.2
+    "armor_hit_gap": 0.2,
+    "map": {
+      "_comment": "M1 conquest map (scripts/view/map_screen.gd). Art px on map_bg (config/map_layout.json); zoom is an integer 1..zoom_max. Roads: a dot every road_step px, road_gap clear at both ends. effect_sprites: a node with this effect uses that marker instead of node_<kind>. region_silhouettes: the creature drawn in ink over a fogged region (what lies beyond).",
+      "zoom": 2,
+      "zoom_max": 3,
+      "pan_speed": 700,
+      "edge_px": 6,
+      "drag_px": 5,
+      "pick_px": 13,
+      "road_step": 7,
+      "road_gap": 10,
+      "fork_clear": 26,
+      "pulse_fps": 6,
+      "stamp_stagger": 0.18,
+      "spark_speed": 160,
+      "burn_puffs": 46,
+      "max_fx": 160,
+      "wisps_per_region": 5,
+      "banner_time": 2.8,
+      "tip_w": 360,
+      "tip_rows": 4,
+      "progress_bar": [
+        36,
+        31,
+        188,
+        8
+      ],
+      "progress_text": [
+        34,
+        10,
+        192,
+        16
+      ],
+      "effect_sprites": {
+        "unlock_producer": "node_producer",
+        "producer_amount_mult": "node_producer",
+        "producer_rate_mult": "node_producer",
+        "producer_output_add": "node_producer"
+      },
+      "region_silhouettes": {
+        "1": "hound_run",
+        "2": "drill_boss_walk",
+        "3": "octopus_walk",
+        "4": "clockmaker_walk"
+      }
+    }
   }
 }
