@@ -24,6 +24,8 @@ const STAT_OF: Dictionary = {
 	"global_dmg_mult": "global_dmg", "global_loot_mult": "global_loot", "global_bp_mult": "global_bp",
 	"moat_damage": "moat_dps", "moat_slow_add": "moat_slow", "moat_width_add": "moat_width",
 	"ability_dmg_mult": "ability_dmg", "ability_count_add": "ability_count",
+	"tower_armor_pierce": "tower_armor_pierce", "tower_chain_add": "tower_chain", "tower_bounce_add": "tower_bounce",
+	"producer_amount_mult": "producer_amount", "producer_rate_mult": "producer_rate",
 }
 ## Effect types whose value is a flat addition (others are +fraction multipliers).
 const ADD_TYPES: Array[String] = [
@@ -31,10 +33,14 @@ const ADD_TYPES: Array[String] = [
 	"tower_crit_chance_add", "tower_crit_mult_add", "tower_range_add", "tower_multishot_add",
 	"tower_knockback_add", "tower_cluster_add", "tower_crit_chain_add", "tower_tier_add",
 	"lens_radius", "lens_auto_mult", "lens_extra_add", "moat_damage", "moat_slow_add", "moat_width_add",
-	"ability_count_add",
+	"ability_count_add", "tower_armor_pierce", "tower_chain_add", "tower_bounce_add",
 ]
 const LENS_KEY: String = "__lens"
 const ABILITY_PREFIX: String = "__ability:"
+const ZONE_PREFIX: String = "__zone:"
+## Behaviour keys that only change the look or open a map area: shown, but not
+## counted as "something new on screen" (GameCore.novelty_of).
+const COSMETIC_PREFIXES: Array[String] = ["region:", "tier:"]
 
 var add: Dictionary = {}
 var pct: Dictionary = {}
@@ -42,6 +48,7 @@ var mul: Dictionary = {}
 var flags: Dictionary = {}          ## "enemy:<type>", "tower:<type>", "ability:<id>", "lens_seek"
 var regions: Dictionary = {}        ## region id -> true
 var statuses: Dictionary = {}       ## tower type (or LENS_KEY) -> {status id -> {value, duration}}
+var bait: Dictionary = {}           ## enemy type -> bait levels bought (loot sacks on the enemy)
 
 ## --- derived, read by Battle / view ---
 var unlocked_enemies: Array[String] = []
@@ -55,6 +62,12 @@ var moat_slow: float = 0.0
 var moat_width: float = 0.0
 var global_dmg: float = 1.0
 var era: int = 0                    ## bosses defeated: older enemies thin out in packs
+var producers: Dictionary = {}      ## unlocked producer id -> {interval, output {res: amount}, level}
+var scald_shred: bool = false       ## scalded enemies lose impact resistance, frontal armour halved
+var wet_metal: bool = false         ## scalded enemies take combat.wet_metal_mult x spark damage
+var _kb_novel_min: float = 0.0
+var producer_levels: Dictionary = {} ## producer id -> upgrade levels bought (level = 1 + this)
+var ability_puddles: Dictionary = {} ## ability id -> {value, radius, duration, dmg_type}
 
 
 static func compute(data: GameData, state: GameState) -> Mods:
@@ -91,6 +104,8 @@ func apply_effect(ef: Dictionary, level: int) -> void:
 	var target: String = str(ef.get("target", "all"))
 	var v: float = float(ef.get("value", 0.0))
 	var stack_mul: bool = str(ef.get("stack", "")) == "mul"
+	if t in ["producer_amount_mult", "producer_rate_mult", "producer_output_add"]:
+		producer_levels[target] = int(producer_levels.get(target, 0)) + level
 	match t:
 		"unlock_enemy":
 			flags["enemy:" + target] = true
@@ -98,6 +113,22 @@ func apply_effect(ef: Dictionary, level: int) -> void:
 			flags["tower:" + target] = true
 		"unlock_ability":
 			flags["ability:" + target] = true
+		"unlock_producer":
+			flags["producer:" + target] = true
+		"producer_output_add":
+			var pk: String = "producer_out:%s:%s" % [target, str(ef["res"])]
+			add[pk] = float(add.get(pk, 0.0)) + v * level
+		"tower_dig":
+			flags["dig:" + target] = true
+		"lens_dig":
+			flags["lens_dig"] = true
+		"scald_shred", "wet_metal":
+			flags[t] = true
+		"ability_puddle":
+			ability_puddles[target] = {"value": v * level, "radius": float(ef["radius"]),
+				"duration": float(ef["duration"]), "dmg_type": str(ef["dmg_type"])}
+		"tower_zone_status":
+			_add_status(ZONE_PREFIX + target, str(ef["status"]), v * level, float(ef.get("duration", 1.0)))
 		"unlock_region":
 			regions[int(v)] = true
 		"lens_seek":
@@ -119,6 +150,7 @@ func apply_effect(ef: Dictionary, level: int) -> void:
 			var hp: float = float(ef.get("hp", 0.0))
 			if hp != 0.0:
 				_put("enemy_hp", target, hp, level, true)
+				bait[target] = int(bait.get(target, 0)) + level
 		_:
 			var stat: String = str(STAT_OF.get(t, t))
 			if ADD_TYPES.has(t):
@@ -171,6 +203,9 @@ func is_region_unlocked(r: int) -> bool:
 
 
 func _derive(data: GameData) -> void:
+	_kb_novel_min = data.combat_value("knockback_novel_min")
+	scald_shred = flags.has("scald_shred")
+	wet_metal = flags.has("wet_metal")
 	global_dmg = stat("global_dmg", "all", 1.0)
 	var g_loot: float = stat("global_loot", "all", 1.0)
 	var g_bp: float = stat("global_bp", "all", 1.0)
@@ -200,6 +235,12 @@ func _derive(data: GameData) -> void:
 			"resist": d["resist"],
 			"role": role,
 			"burrow": d.get("burrow", {}),
+			"immune": d.get("immune", []),
+			"split": d.get("split", {}),
+			"front_armor": float(d.get("front_armor", 0.0)),
+			"charge": d.get("charge", {}),
+			"shield": d.get("shield", {}),
+			"bait": int(bait.get(e, 0)),
 		}
 	for t: String in data.towers:
 		var d: Dictionary = data.towers[t]
@@ -214,6 +255,10 @@ func _derive(data: GameData) -> void:
 			var cur: Dictionary = sts.get(s, {"value": 0.0, "duration": 0.0})
 			sts[s] = {"value": float(cur["value"]) + float(extra[s]["value"]),
 				"duration": maxf(float(cur["duration"]), float(extra[s]["duration"]))}
+		var zsts: Dictionary = {}
+		var zextra: Dictionary = statuses.get(ZONE_PREFIX + t, {})
+		for zs: String in zextra:
+			zsts[zs] = {"value": float(zextra[zs]["value"]), "duration": float(zextra[zs]["duration"])}
 		tower_stats[t] = {
 			"dmg": stat("tower_dmg", t, float(d["dmg"])) * global_dmg,
 			"dmg_type": str(d["dmg_type"]),
@@ -236,6 +281,15 @@ func _derive(data: GameData) -> void:
 			"puddle": d.get("puddle", {}),
 			"row": int(d["row"]),
 			"statuses": sts,
+			"zone_statuses": zsts,
+			"armor_pierce": clampf(add_value("tower_armor_pierce", t), 0.0, 1.0),
+			"dig": flags.has("dig:" + t),
+			"chain": int(round(float(d.get("chain", 0)) + add_value("tower_chain", t))),
+			"chain_range": float(d.get("chain_range", 0.0)),
+			"chain_decay": float(d.get("chain_decay", 0.0)),
+			"bounces": int(round(float(d.get("bounces", 0)) + add_value("tower_bounce", t))),
+			"bounce_gain": float(d.get("bounce_gain", 0.0)),
+			"bounce_range": float(d.get("bounce_range", 0.0)),
 		}
 	lens = {
 		"radius": data.lens_value("radius") + add_value("lens_radius"),
@@ -247,6 +301,7 @@ func _derive(data: GameData) -> void:
 		"extra": int(round(add_value("lens_extra"))),
 		"statuses": statuses.get(LENS_KEY, {}),
 		"dmg_type": str(data.lens["dmg_type"]),
+		"dig": flags.has("lens_dig"),
 	}
 	for a: String in data.abilities:
 		if flags.has("ability:" + a):
@@ -265,7 +320,28 @@ func _derive(data: GameData) -> void:
 				"dmg_pct_hp": float(ad["dmg_pct_hp"]) * k, "boss_pct_mult": float(ad["boss_pct_mult"]),
 				"dmg_type": str(ad["dmg_type"]), "radius": float(ad["radius"]), "reach_x": float(ad["reach_x"]),
 				"count": 1 + int(round(add_value("ability_count", a))), "statuses": asts,
+				"shape": str(ad["shape"]), "line_width": float(ad.get("line_width", 0.0)),
+				"kill_loot_mult": float(ad["kill_loot_mult"]),
+				"puddle": ability_puddles.get(a, {}),
 			}
+	for pid: String in data.producers:
+		if not flags.has("producer:" + pid):
+			continue
+		var pd: Dictionary = data.producers[pid]
+		var amount_k: float = stat("producer_amount", pid, 1.0)
+		var out: Dictionary = {}
+		var base_out: Dictionary = pd["output"]
+		for r: String in base_out:
+			out[r] = float(base_out[r]) * amount_k
+		for r2: String in data.resource_ids:
+			var extra_out: float = float(add.get("producer_out:%s:%s" % [pid, r2], 0.0))
+			if extra_out > 0.0:
+				out[r2] = float(out.get(r2, 0.0)) + extra_out * amount_k
+		producers[pid] = {
+			"interval": maxf(0.5, float(pd["interval"]) / maxf(0.01, stat("producer_rate", pid, 1.0))),
+			"output": out,
+			"level": 1 + int(producer_levels.get(pid, 0)),
+		}
 	moat_dps = add_value("moat_dps") * global_dmg
 	moat_slow = clampf(add_value("moat_slow"), 0.0, 0.9)
 	moat_width = float(data.waves["curtain_width"]) + add_value("moat_width")
@@ -287,8 +363,14 @@ func behaviours() -> Dictionary:
 			b["splash:" + t] = true
 		if int(ts["multishot"]) > 1:
 			b["multishot:" + t] = true
-		if float(ts["knockback"]) > 0.0:
+		if float(ts["knockback"]) >= _kb_novel_min and float(ts["knockback"]) > 0.0:
 			b["knockback:" + t] = true
+		if float(ts["armor_pierce"]) > 0.0:
+			b["armor_pierce:" + t] = true
+		if bool(ts["dig"]):
+			b["dig:" + t] = true
+		for zs: String in ts["zone_statuses"]:
+			b["zone_status:%s:%s" % [t, zs]] = true
 		if int(ts["cluster"]) > 0:
 			b["cluster:" + t] = true
 		if int(ts["crit_chain"]) > 0:
@@ -303,14 +385,34 @@ func behaviours() -> Dictionary:
 			b["ability_count:%s:%d" % [a, int(abilities[a]["count"])]] = true
 		for s: String in abilities[a]["statuses"]:
 			b["ability_status:%s:%s" % [a, s]] = true
+		if not (abilities[a]["puddle"] as Dictionary).is_empty():
+			b["ability_puddle:" + a] = true
 	if bool(lens["seek"]):
 		b["lens_seek"] = true
 	for s: String in lens["statuses"]:
 		b["lens_status:" + s] = true
 	if int(lens["extra"]) > 0:
 		b["lens_extra:%d" % int(lens["extra"])] = true
+	if bool(lens["dig"]):
+		b["lens_dig"] = true
+	if scald_shred:
+		b["scald_shred"] = true
+	if wet_metal:
+		b["wet_metal"] = true
+	for p: String in producers:
+		b["producer:" + p] = true
+		for r: String in producers[p]["output"]:
+			b["producer_out:%s:%s" % [p, r]] = true
 	if moat_dps > 0.0:
 		b["moat_curtain"] = true
 	if moat_slow > 0.0:
 		b["moat_slow"] = true
 	return b
+
+
+## True for keys that are only a new look / map area (not counted as new behaviour).
+static func is_cosmetic_key(k: String) -> bool:
+	for p in COSMETIC_PREFIXES:
+		if k.begins_with(p):
+			return true
+	return false
