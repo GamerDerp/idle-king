@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://dealcwe6yltfc"
+path="res://.godot/imported/kotel_bold.fnt-50623124dd21104aa5da944c2fb0ba34.fontdata"
+
+[deps]
+
+source_file="res://fonts/kotel_bold.fnt"
+dest_files=["res://.godot/imported/kotel_bold.fnt-50623124dd21104aa5da944c2fb0ba34.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=1

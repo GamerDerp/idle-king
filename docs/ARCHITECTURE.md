@@ -13,7 +13,7 @@
 - Отладочные аргументы игры: `--bot[=real|idle]` (играет бот), `--ff=<сек>` (промотать на старте), `--seed=<n>`.
 - Web-сборка: `tools/export_web.sh` → `build/web/`. Запуск: `python3 -m http.server -d build/web 8000`. Проверка: `tools/check_web.sh` (экспорт + headless Chrome, скриншот `shots/web.png`, код 0 = игра загрузилась).
 - Windows-сборка: `tools/export_windows.sh` → `build/windows/IdleKing.exe` (pck встроен).
-- Арт: `python3 tools/art/gen_art.py` → `assets/sprites/*.png` и `config/palette.json`; затем `--import`.
+- Арт: `python3 tools/art/gen_art.py` → спрайты `assets/sprites/` + `manifest.json`, шрифты `fonts/`, тема `themes/`, `config/palette.json`; затем `--import`. Подробно — `docs/ART.md`.
 - Запуск игры всегда с `--audio-driver Dummy` в контейнере (звука в игре нет).
 
 ## Структура
@@ -21,7 +21,9 @@
 project.godot
 config/          JSON-конфиги баланса (все числа здесь, не в коде)
 i18n/strings.csv тексты интерфейса: keys,ru,en (запятая; значения с запятой — в кавычках)
-assets/sprites/  PNG, сгенерированные tools/art/gen_art.py
+assets/sprites/  PNG + manifest.json, сгенерированные tools/art/gen_art.py
+fonts/           пиксельный шрифт Kotel (BMFont .fnt)
+themes/          main_theme.tres + текстуры 9-slice (генерируются)
 scripts/core/    логика без узлов сцены (RefCounted/Object): состояние, экономика, бой, волны, улучшения, сохранения
 scripts/view/    узлы отображения: поле боя, эффекты, UI
 scripts/autoload/ синглтоны (Config, Fmt, DevTools, Game)

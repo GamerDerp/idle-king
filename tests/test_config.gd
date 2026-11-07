@@ -19,7 +19,8 @@ func test_path_value() -> void:
 func test_palette_colors_valid() -> void:
 	var data: Dictionary = ConfigLoader.load_file("res://config/palette.json")
 	var colors: Dictionary = data["colors"]
-	assert_true(colors.size() >= 24 and colors.size() <= 32, "palette size %d" % colors.size())
+	# 32 base colours (D-014) + the 3-colour "dust" ramp (D-016); keep the palette small
+	assert_true(colors.size() >= 24 and colors.size() <= 36, "palette size %d" % colors.size())
 	for k in colors:
 		assert_true(Color.html_is_valid(str(colors[k])), k)
 

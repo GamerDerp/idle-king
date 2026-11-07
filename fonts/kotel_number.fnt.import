@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://dlme8stwrotuq"
+path="res://.godot/imported/kotel_number.fnt-90b5a57f4b773beda5588dcfc3552c48.fontdata"
+
+[deps]
+
+source_file="res://fonts/kotel_number.fnt"
+dest_files=["res://.godot/imported/kotel_number.fnt-90b5a57f4b773beda5588dcfc3552c48.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=1
