@@ -16,6 +16,9 @@ RAMPS = {
     "ember":     ["#7a1712", "#c8401c", "#f28a2e"],             # embers / fire / damage
     "verdigris": ["#24493b", "#3f7d5f", "#6fb08a"],             # patina accents
     "parchment": ["#8c7451", "#c9b48a", "#ece0bf"],             # UI paper
+    # Added in D-016: mid-value earth tones for the wasteland field (largest area on screen);
+    # the base ramps jump from soot_3 (L~21%) straight to parchment_0 (L~50%).
+    "dust":      ["#4b3f36", "#62513f", "#7b6749"],             # dry ground / road
 }
 
 PALETTE = {f"{ramp}_{i}": hexcol for ramp, cols in RAMPS.items() for i, hexcol in enumerate(cols)}

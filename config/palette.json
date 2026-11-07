@@ -32,7 +32,10 @@
     "verdigris_2": "#6fb08a",
     "parchment_0": "#8c7451",
     "parchment_1": "#c9b48a",
-    "parchment_2": "#ece0bf"
+    "parchment_2": "#ece0bf",
+    "dust_0": "#4b3f36",
+    "dust_1": "#62513f",
+    "dust_2": "#7b6749"
   },
   "ramps": {
     "soot": [
@@ -84,6 +87,11 @@
       "parchment_0",
       "parchment_1",
       "parchment_2"
+    ],
+    "dust": [
+      "dust_0",
+      "dust_1",
+      "dust_2"
     ]
   }
 }
