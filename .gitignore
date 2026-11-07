@@ -1,6 +1,11 @@
-reference/
-*.zsk
-/zsk/
+# Godot
 .godot/
-build/
-export/
+/build/
+/export/
+# Reference material of other games is never committed
+reference/
+/zsk/
+*.win
+# local artifacts
+/shots/
+/sim_out/
