@@ -1,0 +1,6 @@
+reference/
+*.zsk
+/zsk/
+.godot/
+build/
+export/
