@@ -44,6 +44,11 @@ var _shown_ids: Dictionary = {}
 var _purchases_in_frame: int = 0
 var _frame_keys: Dictionary = {}     ## behaviour keys unlocked this frame (toast de-duplication)
 var _mouse_follow: bool = false
+var _tip_mouse: Vector2 = Vector2.ZERO
+var _tip_rest: float = 0.0
+var _follow_t: float = 0.0
+var _tip_uid: int = -1
+var choice: ChoiceOverlay
 var _buy_list: PackedStringArray = []
 var _buy_at: float = 1.0
 
@@ -83,6 +88,11 @@ func _ready() -> void:
 	shop.name = "Shop"
 	add_child(shop)
 	shop.setup(kit)
+	choice = ChoiceOverlay.new()
+	choice.name = "Choice"
+	add_child(choice)
+	choice.setup(kit, shop)
+	shop.compare_requested.connect(choice.open)
 	loot = LootFly.new()
 	loot.name = "LootFly"
 	add_child(loot)
@@ -96,7 +106,8 @@ func _ready() -> void:
 	for pair: String in DevTools.get_arg("give", "").split(",", false):
 		var kv: PackedStringArray = pair.split(":")
 		if kv.size() == 2:
-			core.state.add_res(kv[0], kv[1].to_float())
+			# debug money is not loot: it must not show up as income
+			core.state.resources[kv[0]] = core.state.res(kv[0]) + kv[1].to_float()
 	_buy_list = DevTools.get_arg("buy", "").split(",", false)
 	_buy_at = DevTools.get_arg("buy-at", "1").to_float()
 	_stress = DevTools.has_arg("stress")
@@ -115,17 +126,23 @@ func _process(delta: float) -> void:
 	if core == null:
 		return
 	if _mouse_follow and Game.bot == null:
-		_follow_enemy()
+		_follow_t -= delta
+		if _follow_t <= 0.0:
+			_follow_t = 1.2   # warp, then rest: the tooltip needs a resting mouse
+			_follow_enemy()
 	if Game.bot == null:
 		var mp: Vector2 = get_global_mouse_position()
-		var over: bool = mp.x < _field_w and mp.y > kit.f("bar_height", 40) and core.battle.in_field(mp) \
+		var over: bool = not choice.visible and mp.x < _field_w and mp.y > kit.f("bar_height", 40) and core.battle.in_field(mp) \
 			and get_viewport().get_visible_rect().has_point(get_viewport().get_mouse_position())
 		core.set_cursor(mp, over)
 	if _stress:
 		_stress_fill()
 	if not _buy_list.is_empty() and DevTools.game_time >= _buy_at:
 		for id: String in _buy_list:
-			shop.press(id)
+			if id.begins_with("compare:"):
+				_on_goal_clicked(id.substr(8))   # opens the choice overlay for that node
+			else:
+				shop.press(id)
 		_buy_list = PackedStringArray()
 	_milestone_towers.clear()
 	_shown_ids.clear()
@@ -144,7 +161,7 @@ func _process(delta: float) -> void:
 		_on_event(ev)
 	var t1: int = Time.get_ticks_usec()
 	bv.update_view(delta)
-	_update_tooltip()
+	_update_tooltip(delta)
 	_update_shake(delta)
 	_update_slowmo()
 	var t2: int = Time.get_ticks_usec()
@@ -220,7 +237,8 @@ func _on_event(ev: Dictionary) -> void:
 			fx.cone(ev["from"], ev["dir"], float(ev["length"]), float(ev["angle"]))
 		"shell_exploded":
 			var frag: bool = bool(ev["fragment"])
-			fx.explosion(kit.to_art(ev["pos"]), float(ev["radius"]) / kit.art_scale, bool(ev["crit"]), frag)
+			fx.explosion(kit.to_art(ev["pos"]), float(ev["radius"]) / kit.art_scale, bool(ev["crit"]), frag,
+				str(kit.v("explosion_sprites." + kit.tower_base(str(ev["tower"])), "explosion")))
 			if not frag:
 				shake(kit.f("shake.mortar_crit" if bool(ev["crit"]) else "shake.mortar", 1.2))
 		"bullet_burst":
@@ -242,6 +260,10 @@ func _on_event(ev: Dictionary) -> void:
 			if str(ev["status"]) == "scald":
 				fx.anim("steam_puff", kit.to_art(_head_screen(int(ev["uid"]), ev["pos"])))
 		"enemy_burrow":
+			var bsp: Dictionary = kit.enemy_sprites(str(bv.enemy_view(int(ev["uid"])).type) if bv.enemy_view(int(ev["uid"])) != null else "")
+			var banim: String = str(bsp.get("burrow" if bool(ev["under"]) else "emerge", ""))
+			if banim != "":
+				fx.anim(banim, kit.to_art(ev["pos"]))
 			fx.burst(kit.to_art(ev["pos"]), ["dust_2", "dust_0", "soot_2"], 8, 26.0, 0.4, 80.0, 1.0, 18.0)
 		"purchased":
 			_on_purchased(ev)
@@ -316,12 +338,14 @@ func _on_purchased(ev: Dictionary) -> void:
 				bv.fx.sparkle(tv.feet + Vector2(0, -18), 6)
 				tv.flash_t = 0.06
 			if not tvs.is_empty() and summary != "":
+				# short caption on a backing plate right of the upgraded towers
 				var mid_tv: BattleView.TowerView = tvs[tvs.size() / 2]
-				popups.text(kit.to_screen(mid_tv.feet + Vector2(14, -40)), summary, kit.num_color("good"), 24, 1.6)
+				var at: Vector2 = kit.to_screen(mid_tv.feet + Vector2(0, -24))
+				popups.text(Vector2(at.x + 140.0, at.y), summary, kit.num_color("good"), 24, 1.8, 14.0, true)
 		"node":
-			if core.novelty_of(id).is_empty() and summary != "" and _purchases_in_frame == 1:
-				popups.text(Vector2((_field_w + 290.0) * 0.5, 230.0), tr(kit.name_key(id)) + ": " + summary,
-					kit.num_color("good"), 24, 1.8, 18.0)
+			# numbers-only map node: a toast with the short "было → станет" (novelties toast themselves)
+			if _frame_keys.is_empty() and summary != "":
+				hud.toast(kit.node_icon(id), tr(kit.name_key(id)), summary)
 
 
 func _on_milestone(ev: Dictionary) -> void:
@@ -333,7 +357,8 @@ func _on_milestone(ev: Dictionary) -> void:
 		bv.fx.tier_ring(tv.feet + Vector2(0, -16))
 	if not tvs.is_empty():
 		var mid_tv: BattleView.TowerView = tvs[tvs.size() / 2]
-		popups.text(kit.to_screen(mid_tv.feet + Vector2(16, -46)), tr(name_key) + "!", kit.num_color("label"), 36, 2.0, 30.0)
+		var at2: Vector2 = kit.to_screen(mid_tv.feet + Vector2(0, -30))
+		popups.text(Vector2(at2.x + 170.0, at2.y), tr(name_key) + "!", kit.num_color("label"), 36, 2.0, 24.0, true)
 	hud.toast(kit.tower_sprite(t, core.tower_tier(t)), tr(name_key), tr(name_key + "_DESC"))
 
 
@@ -365,6 +390,14 @@ func _on_shop_bought(_id: String, at: Vector2) -> void:
 
 func _on_goal_clicked(goal_id: String) -> void:
 	if goal_id.begins_with("node:"):
+		var ex: Array = core.data.node_excludes(goal_id.substr(5))
+		if not ex.is_empty():
+			var group: Array = [goal_id]
+			for x: Variant in ex:
+				if core.node_status(str(x)) == "available":
+					group.append("node:" + str(x))
+			choice.open(group)
+			return
 		if core.can_buy(goal_id):
 			if core.buy(goal_id):
 				loot.burst(Vector2(560, 70), ["brass_3", "parchment_2", "brass_2"], 22)
@@ -383,13 +416,31 @@ func _on_boss_call() -> void:
 	hud.refresh()
 
 
-func _update_tooltip() -> void:
+## The cursor is a weapon and is almost always over enemies: the tooltip appears only after the
+## mouse rests (hud.tip.delay) or while Alt is held, and hides as soon as the mouse moves.
+func _update_tooltip(delta: float) -> void:
 	var mp: Vector2 = get_global_mouse_position()
-	if Game.bot != null or mp.x >= _field_w or mp.y < 100.0:
+	if mp.distance_to(_tip_mouse) > kit.f("hud.tip.move_px", 4.0):
+		_tip_mouse = mp
+		_tip_rest = 0.0
+	else:
+		_tip_rest += delta
+	var want: bool = _tip_rest >= kit.f("hud.tip.delay", 0.6) or Input.is_key_pressed(KEY_ALT)
+	if not want:
+		_tip_uid = -1
+	if not want or (Game.bot != null and not _mouse_follow) or mp.x >= _field_w or mp.y < kit.f("bar_height", 40) \
+			or choice.visible:
 		hud.show_enemy_tip(null, mp)
 		return
-	var e: Battle.Enemy = bv.enemy_at(mp)
-	hud.show_enemy_tip(e, mp)
+	# pick the enemy once (generous radius: it keeps walking), then follow it while the mouse rests
+	var e: Battle.Enemy = bv.enemy_by_uid(_tip_uid) if _tip_uid >= 0 else null
+	if e == null:
+		e = bv.enemy_at(mp, kit.f("hud.tip.pick_px", 30.0))
+	_tip_uid = e.uid if e != null else -1
+	if e == null:
+		hud.show_enemy_tip(null, mp)
+		return
+	hud.show_enemy_tip(e, e.pos + Vector2(e.radius, -e.radius * 2.0))
 	hud.refresh_tip_hp(e)
 
 
@@ -428,7 +479,8 @@ func _update_slowmo() -> void:
 func _follow_enemy() -> void:
 	var best: Battle.Enemy = null
 	for e: Battle.Enemy in core.battle.enemies:
-		if e.alive and not e.underground and e.pos.x < 760.0 and (best == null or absf(e.pos.x - 560.0) < absf(best.pos.x - 560.0)):
+		if e.alive and not e.underground and e.pos.x < 760.0 and e.speed < 35.0 \
+				and (best == null or absf(e.pos.x - 560.0) < absf(best.pos.x - 560.0)):
 			best = e
 	if best != null:
 		get_viewport().warp_mouse(best.pos + Vector2(0, -best.radius))

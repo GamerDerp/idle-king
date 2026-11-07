@@ -176,7 +176,7 @@ MS_STEAM_JET_TWIN,Двойное сопло,Twin nozzle
 MS_STEAM_JET_TWIN_DESC,Пароструй бьёт двумя конусами. Латунная отделка.,The steam jet fires two cones. Brass trim.
 MS_BOILER_SHRAPNEL,Котёл с начинкой,Loaded boiler
 MS_BOILER_SHRAPNEL_DESC,Котёл разлетается осколками. Латунная отделка.,The boiler bursts into fragments. Brass trim.
-GOAL_NODE,Следующая цель: %s,Next goal: %s
+GOAL_NODE,Цель: %s,Goal: %s
 GOAL_BOSS_FIGHT,Бой: %s,Fight: %s
 GOAL_BOSS_RETRY,"%s отступил. Вызвать снова, когда будешь готов",%s retreated. Call again when ready
 GOAL_NONE,Все цели достигнуты,All goals reached
@@ -200,7 +200,7 @@ BEH_BOSS,Бой: %s,Fight: %s
 STATUS_SCALD,ошпаривание,scalding
 STATUS_SLOW,замедление,slow
 DIFF_TOWER_COUNT,На стене: %d → %d (из %d),On the wall: %d → %d (of %d)
-DIFF_TOTAL_DPS,Урон/с всех: %s → %s,Total dmg/s: %s → %s
+DIFF_TOTAL_DPS,Урон/с: %s → %s,Dmg/s: %s → %s
 DIFF_DMG,Урон,Damage
 DIFF_RATE,Выстр./с,Shots/s
 DIFF_LIMIT,Мест,Slots
@@ -248,7 +248,7 @@ UI_CALL,Вызвать,Summon
 UI_TAKE,Взять,Take
 UI_CHOOSE,Выбрать,Choose
 UI_CHOICE_TITLE,Выбор: только одно,Choice: only one
-UI_CHOICE_HINT,Возьмёшь одно — другое закроется.,Take one and the other closes.
+UI_CHOICE_HINT,Возьмёшь одно — другое закроется до Переплавки.,Take one and the other closes until the Remelt.
 UI_SHOP_HEADER,Цеха крепости,Fortress workshops
 UI_MAP_HEADER,Карта завоеваний,Map of conquest
 UI_MAP_HINT,Узлы покупаются чертежами с врагов.,Nodes cost blueprints dropped by enemies.
@@ -263,3 +263,14 @@ UI_BOSS_DEFEATED_T,%s повержен!,%s is defeated!
 UI_BOSS_DEFEATED_SUB,"Награда летит в казну, на карте новые земли.","The reward flies to the treasury, new lands on the map."
 UI_REGION_OPEN,Открыт регион: %s,Region opened: %s
 UI_REGION_OPEN_SUB,На карте новые узлы и враги.,New nodes and enemies on the map.
+TRAIT_BURROW_SHORT,роет ходы,burrows
+UI_HELP_TIP,"Подсказки: цвета урона, линза, клавиши","Help: damage colours, lens, keys"
+HELP_TITLE,Подсказки,Help
+HELP_CRIT,Цвет числа — тип урона. «!» и крупные цифры — критический удар.,"Number colour = damage type. ""!"" and big digits = critical hit."
+HELP_LENS,Линза под мышью — ручная (полный урон). Мышь замерла или ушла с поля — авто (слабее); «наводчик» сам летит к толпе.,The lens under the mouse is manual (full damage). Mouse still or off the field: auto (weaker); the spotter flies to the crowd.
+HELP_TIP,"Задержи мышь на враге (или зажми Alt) — подсказка: здоровье, броня, добыча.","Rest the mouse on an enemy (or hold Alt) for a tooltip: health, armour, loot."
+HELP_MOAT,Кто дошёл до рва — падает в кипяток без добычи (счётчик «в рву» внизу).,Whoever reaches the moat falls into boiling water without loot (the moat counter below).
+HELP_KEYS,"Клавиши: 1 — «Цеха», 2 — «Карта», Alt — подсказка врага.","Keys: 1 — Workshops, 2 — Map, Alt — enemy tooltip."
+UI_COMPARE,Сравнить и выбрать,Compare and choose
+UI_CHOICE_WARN,Можно взять только одно: второй вариант закроется до Великой Переплавки.,Only one: the other option closes until the Great Remelt.
+UI_LATER,Позже,Later

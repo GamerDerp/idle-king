@@ -16,6 +16,7 @@ class Anim:
 	var flip: bool = false
 	var mod: Color = Color.WHITE
 	var vel: Vector2 = Vector2.ZERO
+	var rot: float = 0.0
 
 
 class Particle:
@@ -64,6 +65,7 @@ var _info: Dictionary = {}
 var _head: Dictionary = {}      ## enemy type -> sprite height above feet (art px)
 var _time: float = 0.0
 var _c: Dictionary = {}
+var _low_prio: bool = false
 
 
 func setup(view_kit: ViewKit, battle_view: BattleView) -> void:
@@ -88,7 +90,8 @@ func _sprite(sprite_name: String) -> Dictionary:
 
 # --- spawning --------------------------------------------------------------------
 
-func anim(sprite_name: String, pos: Vector2, flip: bool = false, mod: Color = Color.WHITE, vel: Vector2 = Vector2.ZERO) -> void:
+func anim(sprite_name: String, pos: Vector2, flip: bool = false, mod: Color = Color.WHITE, vel: Vector2 = Vector2.ZERO,
+		rot: float = 0.0) -> void:
 	if anims.size() >= MAX_ANIMS:
 		return
 	var s: Dictionary = _sprite(sprite_name)
@@ -100,12 +103,15 @@ func anim(sprite_name: String, pos: Vector2, flip: bool = false, mod: Color = Co
 	a.flip = flip
 	a.mod = mod
 	a.vel = vel
+	a.rot = rot
 	anims.append(a)
 
 
 func particle(pos: Vector2, vel: Vector2, color: Color, life: float, size: float = 1.0, grav: float = 0.0, ground: float = -1.0) -> void:
 	if particles.size() >= MAX_PARTICLES:
 		return
+	if _low_prio and particles.size() >= int(MAX_PARTICLES * kit.f("particles.low_prio_share", 0.6)):
+		return   # hit sparks are the first to go when the field is busy
 	var p := Particle.new()
 	p.pos = pos
 	p.vel = vel
@@ -126,6 +132,12 @@ func burst(pos: Vector2, colors: Array, n: int, speed: float, life: float, grav:
 
 
 func hit_sparks(pos: Vector2, dmg_type: String, crit: bool) -> void:
+	_low_prio = not crit
+	_hit_sparks(pos, dmg_type, crit)
+	_low_prio = false
+
+
+func _hit_sparks(pos: Vector2, dmg_type: String, crit: bool) -> void:
 	var n: int = 5 if crit else 2
 	match dmg_type:
 		"steam":
@@ -140,12 +152,12 @@ func hit_sparks(pos: Vector2, dmg_type: String, crit: bool) -> void:
 		anim("hit_spark", pos)
 
 
-func explosion(pos: Vector2, radius_art: float, crit: bool, fragment: bool) -> void:
+func explosion(pos: Vector2, radius_art: float, crit: bool, fragment: bool, sprite: String = "explosion") -> void:
 	if fragment:
 		anim("hit_spark", pos)
 		burst(pos, ["ember_2", "brass_3", "soot_2"], 4, 22.0, 0.3, 50.0)
 		return
-	anim("explosion", pos + Vector2(0, 4))
+	anim(sprite, pos + Vector2(0, 4))
 	burst(pos, ["ember_2", "brass_3", "ember_1", "soot_2"], 10 if crit else 7, radius_art * 2.2, 0.45, 70.0, 1.0, 10.0)
 	bv.decals.scorch(pos, radius_art)
 
@@ -217,7 +229,8 @@ func cone(from_screen: Vector2, dir: Vector2, length: float, angle: float) -> vo
 	l.angle = angle
 	l.life = 0.22
 	lines.append(l)
-	for i in 5:
+	anim("steam_cone", l.a, false, Color(1, 1, 1, 0.9), Vector2.ZERO, dir.angle())
+	for i in 3:
 		var d: Vector2 = dir.rotated(randf_range(-angle, angle))
 		var dist: float = randf_range(0.25, 0.95) * l.r
 		particle(l.a + d * dist * 0.3, d * dist * 2.2, _c["steam_3"] if i % 2 == 0 else _c["steam_2"], 0.4, 2.0)
@@ -311,8 +324,8 @@ func _draw_body() -> void:
 	for a: Anim in anims:
 		var fi: int = mini(int(a.t * a.fps), a.frames.size() - 1)
 		var tex: Texture2D = a.frames[fi]
-		if a.flip:
-			draw_set_transform(a.pos.round(), 0.0, Vector2(-1, 1))
+		if a.flip or a.rot != 0.0:
+			draw_set_transform(a.pos.round(), a.rot, Vector2(-1, 1) if a.flip else Vector2.ONE)
 			draw_texture(tex, -a.anchor, a.mod)
 			draw_set_transform(Vector2.ZERO)
 		else:
@@ -350,8 +363,10 @@ func _draw_projectiles() -> void:
 				var pos: Vector2 = ground + Vector2(0, -sin(PI * k) * h)
 				if not p.fragment:
 					draw_texture(shadow, (ground - anc_sh).round(), Color(1, 1, 1, 0.5))
-				var fr: int = int(_time * 10.0 + p.uid) % 2
-				draw_texture(SpriteLib.texture("shell", fr), (pos - anc_s).round())
+				var proj: String = str(kit.v("projectile_sprites." + kit.tower_base(p.tower), "shell"))
+				var nfr: int = int(SpriteLib.info(proj).get("frames", 1))
+				var fr: int = int(_time * 12.0 + p.uid) % maxi(1, nfr)
+				draw_texture(SpriteLib.texture(proj, fr), (pos - SpriteLib.anchor(proj)).round())
 			"rivet":
 				var m2: Vector2 = bv.muzzle_for_start(p.start)
 				var d0: float = maxf(1.0, kit.to_art(p.dest).distance_to(start))
@@ -439,8 +454,10 @@ func _draw_enemy_marks() -> void:
 			var frac: float = clampf(e.hp / e.max_hp, 0.0, 1.0)
 			draw_rect(Rect2(x0, top.y, maxf(1.0, roundf(w * frac)), 1), fill if frac > 0.35 else low)
 		if e.scald_t > 0.0 and randf() < 0.12:
+			_low_prio = true
 			particle(ev.art_pos + Vector2(randf_range(-4.0, 4.0), -head * randf_range(0.3, 0.9)),
 				Vector2(randf_range(-2.0, 2.0), -12.0), _c["steam_3"], 0.45, 1.0)
+			_low_prio = false
 		if ev.new_t > 0.0:
 			var bob: float = roundf(sin(_time * 6.0))
 			draw_string(kit.FONT_NUMBER, Vector2(roundf(top.x - 30), roundf(top.y - 3 + bob)), tr("UI_NEW"),

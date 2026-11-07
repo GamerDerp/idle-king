@@ -84,10 +84,21 @@ func tower_sprite(tower_type: String, tier: int) -> String:
 	return "%s_t%d" % [tower_base(tower_type), clampi(tier - 1, 0, 2)]
 
 
-func muzzle(tower_type: String) -> Vector2:
+## Muzzle relative to the tower's feet (art px): manifest `muzzle` − anchor; config fallback.
+func muzzle(tower_type: String, tier: int = 1) -> Vector2:
+	var sp: String = tower_sprite(tower_type, tier)
+	var info: Dictionary = SpriteLib.info(sp)
+	if info.has("muzzle"):
+		var mz: Array = info["muzzle"]
+		return Vector2(float(mz[0]), float(mz[1])) - SpriteLib.anchor(sp)
 	var m: Dictionary = v("muzzle", {})
 	var a: Array = m.get(tower_base(tower_type), m.get("_default", [12, -20]))
 	return Vector2(float(a[0]), float(a[1]))
+
+
+## Value as shown on screen: whole numbers from 10 up (no "504.5" noise), one decimal below.
+static func shown(x: float) -> float:
+	return floorf(x) if x >= 10.0 else x
 
 
 # --- coordinates ---------------------------------------------------------------
@@ -319,7 +330,9 @@ func diff_lines(id: String, after: Mods = null, before: Mods = null) -> Array:
 			continue
 		var icon_name: String = dmg_icon(str(a["dmg_type"]))
 		if owned_b != owned_a:
-			out.append({"text": tr("DIFF_TOTAL_DPS") % [Fmt.num(tower_dps(a) * owned_a), Fmt.num(tower_dps(b) * owned_b)],
+			var da: float = tower_dps(a) * owned_a
+			var db: float = tower_dps(b) * owned_b
+			out.append({"text": tr("DIFF_TOTAL_DPS") % [Fmt.num(roundf(da) if da >= 10.0 else da), Fmt.num(roundf(db) if db >= 10.0 else db)],
 				"good": true, "icon": icon_name})
 			continue
 		var pre: String = "" if p[0] == "upg" or p[1] == t else tower_name(t) + ": "
@@ -333,6 +346,12 @@ func diff_lines(id: String, after: Mods = null, before: Mods = null) -> Array:
 		_cmp(out, pre + tr("DIFF_KNOCKBACK"), float(a["knockback"]), float(b["knockback"]), icon_name)
 		_cmp(out, pre + tr("DIFF_CLUSTER"), float(a["cluster"]), float(b["cluster"]), icon_name)
 		_cmp(out, pre + tr("DIFF_RANGE"), float(a["range_max"]), float(b["range_max"]), icon_name)
+		var sa: Dictionary = a["statuses"]
+		var sb: Dictionary = b["statuses"]
+		for st: String in sb:
+			var va: float = float((sa.get(st, {}) as Dictionary).get("value", 0.0))
+			var vb: float = float((sb[st] as Dictionary).get("value", 0.0))
+			_cmp(out, pre + status_name(st).capitalize(), va * 100.0, vb * 100.0, "dmg_steam", "%")
 	# lens
 	var la: Dictionary = before.lens
 	var lb: Dictionary = after.lens
@@ -379,7 +398,9 @@ func diff_lines(id: String, after: Mods = null, before: Mods = null) -> Array:
 func _cmp(out: Array, what: String, a: float, b: float, icon_name: String, suffix: String = "", up_is_good: bool = true) -> void:
 	if absf(a - b) <= maxf(1e-6, absf(a) * 1e-4):
 		return
-	out.append({"text": "%s %s%s → %s%s" % [what, Fmt.num(a), suffix, Fmt.num(b), suffix],
+	var ra: float = roundf(a) if absf(a) >= 100.0 else a
+	var rb: float = roundf(b) if absf(b) >= 100.0 else b
+	out.append({"text": "%s %s%s → %s%s" % [what, Fmt.num(ra), suffix, Fmt.num(rb), suffix],
 		"good": (b > a) == up_is_good, "icon": icon_name})
 
 
@@ -421,3 +442,32 @@ func novelty_lines(id: String) -> PackedStringArray:
 			continue
 		out.append(behaviour_text(ks))
 	return out
+
+
+## Icon of a purchase that tells options apart: the tower / enemy it affects, the lens, the moat,
+## the King's kettle; else the node kind icon (game_view.node_kind_icons).
+func node_icon(id: String) -> String:
+	var p: PackedStringArray = GameCore.split_id(id)
+	if p[0] == "tower":
+		return tower_sprite(p[1], core.tower_tier(p[1]))
+	if p[0] == "upg":
+		var t: String = str(core.data.upgrades[p[1]]["tower"])
+		return tower_sprite(t, core.tower_tier(t))
+	var kind: String = str(core.data.nodes[p[1]].get("kind", ""))
+	for ef: Dictionary in core.data.node_effects(p[1]):
+		var ty: String = str(ef["type"])
+		var tgt: String = str(ef.get("target", ""))
+		if core.data.towers.has(tgt):
+			return tower_sprite(tgt, core.tower_tier(tgt))
+		if core.data.enemies.has(tgt):
+			return str(enemy_sprites(tgt).get("walk", "scavenger_walk"))
+		if ty.begins_with("lens"):
+			return "steam_lens"
+		if ty.begins_with("moat"):
+			return "steam_push"
+		if ty.begins_with("ability"):
+			return "king_tea"
+		if ty == "call_boss" and core.data.bosses.has(tgt):
+			return str(enemy_sprites(str(core.data.bosses[tgt]["enemy"])).get("walk", "boss_walk"))
+	var icon_name: String = str(v("node_kind_icons." + kind, "res_blueprints"))
+	return icon_name if icon_name != "enemy" and icon_name != "tower" else "res_blueprints"

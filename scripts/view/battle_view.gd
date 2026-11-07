@@ -29,9 +29,9 @@ class TowerView:
 	var feet: Vector2 = Vector2.ZERO
 	var core_pos: Vector2 = Vector2.ZERO
 	var fire_t: float = 0.0
-	var recoil_t: float = 0.0
 	var drop_t: float = 0.0
 	var flash_t: float = 0.0
+	var smoke_at: float = -9.0
 	var stamp: int = 0
 
 var kit: ViewKit
@@ -58,6 +58,11 @@ var _slot_used: Dictionary = {}
 var _ready_done: bool = false
 var _curtain_t: float = 0.0
 var _bank_x: float = 138.0
+var _bg: Sprite2D
+var _bg_name: String = ""
+var _curtain: AnimatedSprite2D
+var _furnaces: Array[AnimatedSprite2D] = []
+var _region_t: float = 0.0
 
 
 func setup(view_kit: ViewKit) -> void:
@@ -82,10 +87,12 @@ func _arr2(key: String) -> Vector2:
 
 
 func _build_scenery() -> void:
-	var bg := Sprite2D.new()
-	bg.texture = SpriteLib.texture("battlefield_bg")
-	bg.centered = false
-	add_child(bg)
+	# layer order (docs/ART.md): bg → water → pipes → furnaces → wall (towers, King) → steam curtain
+	# → decals → units → fx → wisps
+	_bg = Sprite2D.new()
+	_bg.centered = false
+	add_child(_bg)
+	_update_region()
 	var moat_x: Array = lay.get("moat_x", [108, 137])
 	var size: Array = lay.get("size", [450, 340])
 	var tile_h: int = SpriteLib.frame_size("moat_water").y
@@ -93,10 +100,6 @@ func _build_scenery() -> void:
 		var w := SpriteLib.make("moat_water", (y / tile_h) % 4)
 		w.position = Vector2(float(moat_x[0]), float(y))
 		add_child(w)
-	decals = DecalLayer.new()
-	decals.name = "Decals"
-	add_child(decals)
-	decals.setup(kit, self)
 	var vents: Array = lay.get("steam_vents_y", [])
 	var pipe_x: float = float(lay.get("pipe_x", 101))
 	var gate_y: float = float(lay.get("gate_y", 196))
@@ -107,6 +110,13 @@ func _build_scenery() -> void:
 		var pipe := SpriteLib.make("steam_pipe_valve" if i % 4 == 1 else "steam_pipe")
 		pipe.position = Vector2(pipe_x, vy)
 		add_child(pipe)
+	var face: Array = lay.get("face_x", [96, 107])
+	for fy: Variant in lay.get("furnace_y", []):
+		var fu := SpriteLib.make("moat_furnace_off")
+		fu.position = Vector2(float(face[0]), float(fy))
+		fu.visible = false
+		add_child(fu)
+		_furnaces.append(fu)
 	_wall = Node2D.new()
 	_wall.name = "Wall"
 	_wall.y_sort_enabled = true
@@ -115,19 +125,20 @@ func _build_scenery() -> void:
 	king.position = _arr2("king_pos")
 	_wall.add_child(king)
 	king.animation_finished.connect(_on_king_anim_done)
-	for i in range(vents.size()):
-		var vy: float = float(vents[i])
-		if absf(vy - gate_y) < 30.0:
-			continue
-		var st := SpriteLib.make("steam_sheet", (i * 7) % 6)
-		st.position = Vector2(pipe_x + 13.0, vy)
-		add_child(st)
 	var k: int = 0
 	for p: Array in lay.get("smoke_points", []):
 		var sm := SpriteLib.make("chimney_smoke", k % 4)
 		sm.position = Vector2(float(p[0]), float(p[1]))
 		add_child(sm)
 		k += 1
+	# the whole steam curtain (plumes + shadow on the water) is one sprite
+	_curtain = SpriteLib.make("steam_curtain")
+	_curtain.position = Vector2(float(lay.get("steam_curtain_x", 112)), 0.0)
+	add_child(_curtain)
+	decals = DecalLayer.new()
+	decals.name = "Decals"
+	add_child(decals)
+	decals.setup(kit, self)
 	_units = Node2D.new()
 	_units.name = "Units"
 	_units.y_sort_enabled = true
@@ -136,6 +147,34 @@ func _build_scenery() -> void:
 	fx.name = "Fx"
 	add_child(fx)
 	fx.setup(kit, self)
+	# loose wisps drifting over the east bank, above everything on the field
+	var n_wisps: int = int(kit.f("moat.wisps", 7))
+	for i in range(n_wisps):
+		var wsp := SpriteLib.make("steam_wisps", (i * 3) % 8)
+		wsp.position = Vector2(_bank_x - 8.0, 30.0 + i * (float(size[1]) - 40.0) / n_wisps + float((i * 13) % 17))
+		add_child(wsp)
+
+
+## Battlefield background of the newest unlocked region (manifest.regions), furnace doors.
+func _update_region() -> void:
+	var regs: Dictionary = SpriteLib.manifest().get("regions", {})
+	var best: int = -1
+	for r: int in core.mods.regions:
+		if regs.has(str(r)) and r > best:
+			best = r
+	var bg_name: String = str((regs.get(str(best), {}) as Dictionary).get("bg", "battlefield_bg")) if best >= 0 else "battlefield_bg"
+	if bg_name != _bg_name:
+		_bg_name = bg_name
+		_bg.texture = SpriteLib.texture(bg_name)
+	var base_w: float = float(core.data.waves["curtain_width"])
+	var state: String = ""
+	if core.mods.is_region_unlocked(2):
+		state = "moat_furnace_hot" if core.mods.moat_width > base_w else "moat_furnace_off"
+	for fu: AnimatedSprite2D in _furnaces:
+		fu.visible = state != ""
+		if state != "" and fu.sprite_frames != SpriteLib.sprite_frames(state):
+			fu.sprite_frames = SpriteLib.sprite_frames(state)
+			fu.play(&"default")
 
 
 # --- towers ----------------------------------------------------------------------
@@ -204,9 +243,9 @@ func _free_visual_slot(tw: Battle.Tower) -> Vector2:
 	var col_name: String = str((kit.v("wall.row_column", {}) as Dictionary).get(str(row), "front"))
 	var cols: Dictionary = kit.v("wall.columns", {})
 	var order: Array[String] = [col_name]
-	for c: String in ["front", "back", "yard"]:
-		if not order.has(c):
-			order.append(c)
+	for c: Variant in kit.v("wall.order", ["front", "mid", "back"]):
+		if not order.has(str(c)):
+			order.append(str(c))
 	for c: String in order:
 		var cd: Dictionary = cols.get(c, {})
 		for y: Variant in cd.get("ys", []):
@@ -222,7 +261,7 @@ func tower_view(tower_type: String, index: int) -> TowerView:
 
 
 func muzzle_of(tv: TowerView) -> Vector2:
-	return tv.feet + kit.muzzle(tv.type)
+	return tv.feet + kit.muzzle(tv.type, tv.tier)
 
 
 ## Visual muzzle (art) for a projectile that started at core position `start`.
@@ -237,10 +276,12 @@ func on_tower_fired(tower_type: String, index: int) -> void:
 	var tv: TowerView = tower_view(tower_type, index)
 	if tv == null:
 		return
-	tv.fire_t = 0.1
-	tv.recoil_t = 0.08
+	tv.fire_t = kit.f("tower_fire.fire", 0.07) + kit.f("tower_fire.recover", 0.1)
 	tv.node.frame = 1
-	fx.muzzle_smoke(muzzle_of(tv))
+	# muzzle smoke at most every smoke_every s per tower (fast guns would fill the anim budget)
+	if _time - tv.smoke_at >= kit.f("tower_fire.smoke_every", 0.3):
+		tv.smoke_at = _time
+		fx.anim("muzzle_smoke", muzzle_of(tv))
 
 
 func towers_of(tower_type: String) -> Array[TowerView]:
@@ -267,13 +308,14 @@ func _update_towers(delta: float) -> void:
 				fx.steam_burst(tv.feet + Vector2(0, -4), 5)
 				if shake_cb.is_valid():
 					shake_cb.call(kit.f("shake.tower_drop", 2.5))
-		if tv.recoil_t > 0.0:
-			tv.recoil_t -= delta
-			pos.x -= 1.0
 		if tv.fire_t > 0.0:
+			# frame 1 (shot, recoil) → frame 2 (recover, smoke) → frame 0
 			tv.fire_t -= delta
+			var frames: int = tv.node.sprite_frames.get_frame_count(&"default")
 			if tv.fire_t <= 0.0:
 				tv.node.frame = 0
+			elif tv.fire_t < kit.f("tower_fire.recover", 0.1) and frames > 2:
+				tv.node.frame = 2
 		if tv.flash_t > 0.0:
 			tv.flash_t -= delta
 			tv.node.material = kit.flash_mat
@@ -371,13 +413,16 @@ func flash_enemy(uid: int, crit: bool) -> void:
 	var ev: EnemyView = enemies.get(uid, null)
 	if ev == null:
 		return
-	ev.wobble_t = kit.f("wobble.time", 0.08)
-	if _time - ev.last_flash < kit.f("flash.min_interval", 0.1) and not crit:
+	var is_boss: bool = core.battle.boss_enemy != null and core.battle.boss_enemy.uid == uid
+	if not is_boss:
+		ev.wobble_t = kit.f("wobble.time", 0.08)
+	# bosses get hit by everything: a rare short white blink instead of a permanent orange blob
+	var gap: float = kit.f("flash.boss_interval", 0.6) if is_boss else kit.f("flash.min_interval", 0.1)
+	if _time - ev.last_flash < gap and not (crit and not is_boss):
 		return
 	ev.last_flash = _time
-	ev.flash_t = kit.f("flash.time", 0.07)
-	var is_boss: bool = core.battle.boss_enemy != null and core.battle.boss_enemy.uid == uid
-	ev.node.material = kit.crit_flash_mat if crit or is_boss else kit.flash_mat
+	ev.flash_t = kit.f("flash.boss_time", 0.05) if is_boss else kit.f("flash.time", 0.07)
+	ev.node.material = kit.crit_flash_mat if crit and not is_boss else kit.flash_mat
 
 
 func enemy_view(uid: int) -> EnemyView:
@@ -385,7 +430,7 @@ func enemy_view(uid: int) -> EnemyView:
 
 
 ## Enemy under a screen point (for tooltips), or null.
-func enemy_at(screen_pos: Vector2) -> Battle.Enemy:
+func enemy_at(screen_pos: Vector2, pad: float = 8.0) -> Battle.Enemy:
 	var best: Battle.Enemy = null
 	var best_d: float = INF
 	for e: Battle.Enemy in core.battle.enemies:
@@ -393,7 +438,7 @@ func enemy_at(screen_pos: Vector2) -> Battle.Enemy:
 			continue
 		var c: Vector2 = e.pos + Vector2(0, -e.radius)   # sprites stand on their feet
 		var d: float = c.distance_squared_to(screen_pos)
-		var r: float = e.radius + 8.0
+		var r: float = e.radius + pad
 		if d <= r * r and d < best_d:
 			best_d = d
 			best = e
@@ -455,5 +500,16 @@ func update_view(delta: float) -> void:
 	_update_enemies(delta)
 	_update_king(delta)
 	_update_curtain(delta)
+	_region_t -= delta
+	if _region_t <= 0.0:
+		_region_t = 0.5
+		_update_region()
 	fx.queue_redraw()
 	decals.queue_redraw()
+
+
+func enemy_by_uid(uid: int) -> Battle.Enemy:
+	for e: Battle.Enemy in core.battle.enemies:
+		if e.uid == uid and e.alive:
+			return e
+	return null

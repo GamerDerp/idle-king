@@ -89,13 +89,11 @@ func _draw_body() -> void:
 			var ph: float = fmod(_time * 1.7 + j * 0.37 + z.uid * 0.13, 1.0)
 			var bp: Vector2 = c + Vector2(sin(j * 2.1 + z.uid) * r * 0.5, cos(j * 1.7) * r * 0.2 - ph * 3.0)
 			draw_rect(Rect2(bp.round(), Vector2(1, 1)), Color(steam, fade * (1.0 - ph)))
-	var dust0: Color = kit.col("dust_0")
-	var dust2: Color = kit.col("dust_2")
 	for e: Battle.Enemy in core.battle.enemies:
 		if not e.alive or not e.underground:
 			continue
-		var m: Vector2 = kit.to_art(e.pos).round()
-		_blob(m + Vector2(1, 0), 6.0, 3.0, dust0)
-		_blob(m + Vector2(0, -1), 5.0, 2.5, dust2)
-		var wig: float = roundf(sin(_time * 14.0 + e.uid) * 1.0)
-		draw_rect(Rect2(m + Vector2(-2 + wig, -3), Vector2(2, 1)), dust2)
+		# burrowed: a dirt mound crawls along (the enemy's own `mound` sprite)
+		var mound: String = str(kit.enemy_sprites(e.type).get("mound", "mole_mound"))
+		var nfr: int = int(SpriteLib.info(mound).get("frames", 1))
+		var fr: int = int(_time * float(SpriteLib.info(mound).get("fps", 8.0)) + e.uid) % maxi(1, nfr)
+		draw_texture(SpriteLib.texture(mound, fr), (kit.to_art(e.pos) - SpriteLib.anchor(mound)).round())

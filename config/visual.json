@@ -82,7 +82,10 @@
           "parchment_0",
           "brass_2",
           "soot_2"
-        ]
+        ],
+        "burrow": "mole_burrow",
+        "emerge": "mole_emerge",
+        "mound": "mole_mound"
       },
       "wasteland_chief": {
         "walk": "boss_walk",
@@ -137,53 +140,64 @@
       ]
     },
     "wall": {
-      "_comment": "Visual wall slots (art px, tower feet). Core rows map to columns; towers take the first free slot of their column in this order, then the other column, then the yard.",
+      "_comment": "Visual wall slots (art px, tower feet). Three columns on the gallery 16 px apart; within a column towers are 30 px apart and the middle column sits in the gaps (y-sorted), so every tower shows its head. Core row -> column; first free slot of its column in list order, then the other columns. Gatehouse with the King: y 160-230.",
       "row_column": {
         "0": "front",
-        "1": "back",
+        "1": "mid",
         "2": "back"
       },
+      "order": [
+        "front",
+        "mid",
+        "back"
+      ],
       "columns": {
         "front": {
-          "x": 88,
+          "x": 90,
           "ys": [
-            148,
-            246,
-            128,
-            266,
-            108,
-            286,
-            88,
-            306,
-            68,
-            326,
-            50
+            150,
+            250,
+            120,
+            280,
+            90,
+            310,
+            60,
+            135,
+            265,
+            105,
+            295
+          ]
+        },
+        "mid": {
+          "x": 74,
+          "ys": [
+            135,
+            265,
+            105,
+            295,
+            75,
+            325,
+            150,
+            250,
+            120,
+            280,
+            90
           ]
         },
         "back": {
-          "x": 68,
+          "x": 58,
           "ys": [
-            138,
-            256,
-            118,
-            276,
-            98,
-            296,
-            78,
-            316,
-            58,
-            154,
-            238
-          ]
-        },
-        "yard": {
-          "x": 40,
-          "ys": [
-            104,
             150,
-            196,
-            300,
-            330
+            250,
+            120,
+            280,
+            90,
+            310,
+            60,
+            135,
+            265,
+            105,
+            295
           ]
         }
       }
@@ -236,18 +250,22 @@
       "crit_pop_time": 0.08,
       "life": 0.85,
       "crit_life": 1.1,
-      "fade": 0.3,
+      "fade": 0.12,
       "rise": 22,
       "rise_time": 0.6,
       "merge_window": 0.4,
-      "max": 24,
+      "max": 20,
       "stack_dx": 26,
       "stack_dy": 20,
       "min_gap_x": 34,
       "min_gap_y": 22,
       "lens_every": 0.6,
       "dot_every": 1.0,
-      "max_big_crits": 5
+      "max_big_crits": 5,
+      "crowd": 0.5,
+      "crowd_merge_k": 2.0,
+      "crowd_merge_px": 110,
+      "crowd_min_amount": 2.0
     },
     "loot": {
       "fly_time": [
@@ -265,7 +283,9 @@
       "time": 0.07,
       "min_interval": 0.1,
       "color": "steam_3",
-      "crit_color": "ember_2"
+      "crit_color": "ember_2",
+      "boss_interval": 0.6,
+      "boss_time": 0.05
     },
     "wobble": {
       "time": 0.08,
@@ -306,7 +326,8 @@
     },
     "moat": {
       "bubble_ring_time": 0.6,
-      "curtain_puff_every": 0.35
+      "curtain_puff_every": 0.35,
+      "wisps": 7
     },
     "king_tea_every": [
       6.0,
@@ -315,11 +336,6 @@
     "boss_slowmo": {
       "scale": 0.35,
       "time": 0.9
-    },
-    "toast": {
-      "time": 3.2,
-      "max": 3,
-      "slide": 0.25
     },
     "banner": {
       "time": 2.6
@@ -334,6 +350,71 @@
       "_comment": "enemy tooltip labels: speed thresholds for 'fast' / 'slow' (display only)",
       "fast_speed": 45,
       "slow_speed": 18
+    },
+    "tower_fire": {
+      "fire": 0.07,
+      "recover": 0.1,
+      "smoke_every": 0.3
+    },
+    "hud": {
+      "_comment": "HUD layout in screen px. The goal lives in the resource bar; the boss strip is a thin bar above the enemy band (enemies walk y >= 130).",
+      "plate_value_w": 64,
+      "plate_income_w": 88,
+      "goal_gauge_w": 110,
+      "boss_bar": {
+        "x": 296,
+        "y": 44,
+        "w": 596
+      },
+      "falls": {
+        "x": 296,
+        "y": 684
+      },
+      "toast": {
+        "right": 892,
+        "bottom": 676,
+        "text_w": 300,
+        "time": 3.0,
+        "slide": 0.2,
+        "max": 1
+      },
+      "banner": {
+        "x": 590,
+        "y": 250
+      },
+      "tip": {
+        "delay": 0.6,
+        "move_px": 4,
+        "offset": [
+          22,
+          14
+        ],
+        "margin": 4,
+        "min_y": 44
+      },
+      "glossary": {
+        "right": 892,
+        "y": 44,
+        "w": 420
+      },
+      "field_top": 40,
+      "plus_min": 2.0,
+      "plus_income_k": 2.5
+    },
+    "choice": {
+      "width": 760,
+      "dim_alpha": 0.6
+    },
+    "particles": {
+      "low_prio_share": 0.6
+    },
+    "projectile_sprites": {
+      "mortar": "shell",
+      "boiler": "boiler_bomb"
+    },
+    "explosion_sprites": {
+      "mortar": "explosion",
+      "boiler": "boiler_explosion"
     }
   }
 }
