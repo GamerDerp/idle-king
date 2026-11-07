@@ -27,6 +27,7 @@ import palette as pal  # noqa: E402
 import sprites_fx as FX  # noqa: E402
 import sprites_towers as TW  # noqa: E402
 import sprites_units as UN  # noqa: E402
+import sprites_r2 as R2  # noqa: E402
 import sprites_world as WO  # noqa: E402
 import ui_gen  # noqa: E402
 from pixel import Canvas, contrast, main_color, strip, upscale  # noqa: E402
@@ -193,7 +194,10 @@ def build_units(m: Manifest) -> None:
             ("scavenger", UN.scavenger_frames, 7, (7, 19), "Бродяга"),
             ("junk_cart", UN.junk_cart_frames, 5, (15, 19), "Старьёвщик с тележкой"),
             ("hound", UN.hound_frames, 12, (9, 12), "Ржавый пёс"),
-            ("boss", UN.boss_frames, 5, (14, 29), "Вожак пустошей")):
+            ("boss", UN.boss_frames, 5, (14, 29), "Вожак пустошей"),
+            ("knight", R2.knight_frames, 6, (7, 21), "Жестяной латник"),
+            ("guard", R2.guard_frames, 7, (7, 19), "Подручный вожака"),
+            ("mole", R2.mole_frames, 8, (9, 14), "Крот-шахтёр")):
         frames = fn()
         check_enemy_contrast(key, frames[0])
         m.add("enemies", f"{key}_{'run' if key == 'hound' else 'walk'}", frames, fps=fps, anchor=anchor, note=note)
@@ -206,8 +210,11 @@ def build_units(m: Manifest) -> None:
 
 
 def build_towers(m: Manifest) -> None:
-    names = {"rifle": "Паровой стрелок", "riveter": "Клепальщик", "mortar": "Мортира"}
-    for key, frames in TW.all_towers().items():
+    names = {"rifle": "Паровой стрелок", "riveter": "Клепальщик", "mortar": "Мортира",
+             "steam_jet": "Пароструй", "boiler": "Котлобой"}
+    towers = TW.all_towers()
+    towers.update(R2.r2_towers())
+    for key, frames in towers.items():
         base, tier = key.rsplit("_t", 1)
         m.add("towers", key, frames, fps=0, anchor=(TW.AX, TW.AY), loop=False,
               note=f"{names[base]}, tier {tier} ({['iron', 'brass', 'gilded'][int(tier)]}); frame 0 idle, 1 fire")

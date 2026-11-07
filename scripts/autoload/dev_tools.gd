@@ -5,6 +5,7 @@ extends Node
 ##   --timescale=<k>      Engine.time_scale = k (speeds up game time)
 ##   --quit-after=<sec>   quit after this much REAL time (safety timeout)
 ##   --lang=<ru|en>       override locale
+##   --shot-burst=<n>     save n frames (<path>_0.png ... ) every --shot-interval s of game time (default 0.1)
 ## With --shot and no --quit-after, the game quits right after saving the shot.
 ## Any other `--key=value` / `--flag` is kept and readable via get_arg().
 
@@ -15,6 +16,9 @@ var quit_after: float = -1.0
 var game_time: float = 0.0
 
 var _shot_done: bool = false
+var _burst_left: int = 0
+var _burst_i: int = 0
+var _burst_next: float = 0.0
 var _start_msec: int = 0
 
 
@@ -63,15 +67,27 @@ func _process(delta: float) -> void:
 	game_time += delta  # delta is already multiplied by Engine.time_scale
 	if shot_path != "" and not _shot_done and game_time >= shot_time:
 		_shot_done = true
-		_take_shot()
+		_burst_left = maxi(0, get_arg("shot-burst", "0").to_int())
+		if _burst_left > 0:
+			_burst_next = game_time
+		else:
+			_take_shot()
+	if _burst_left > 0 and game_time >= _burst_next:
+		_burst_left -= 1
+		_burst_next = game_time + get_arg("shot-interval", "0.1").to_float()
+		_save_frame(shot_path.get_basename() + "_%d.png" % _burst_i, _burst_left == 0)
+		_burst_i += 1
 	if quit_after >= 0.0 and (Time.get_ticks_msec() - _start_msec) / 1000.0 >= quit_after:
 		print("DevTools: quit-after reached")
 		get_tree().quit(0)
 
 
 func _take_shot() -> void:
+	_save_frame(shot_path, true)
+
+
+func _save_frame(path: String, quit_when_done: bool) -> void:
 	await RenderingServer.frame_post_draw
-	var path := shot_path
 	if DisplayServer.get_name() == "headless":
 		print("DevTools: headless display, screenshot skipped (%s)" % path)
 	else:
@@ -83,5 +99,5 @@ func _take_shot() -> void:
 			print("DevTools: screenshot saved %s (%dx%d, game time %.2fs)" % [abs_path, img.get_width(), img.get_height(), game_time])
 		else:
 			push_error("DevTools: failed to save screenshot %s: %s" % [abs_path, error_string(err)])
-	if quit_after < 0.0:
+	if quit_after < 0.0 and quit_when_done:
 		get_tree().quit(0)

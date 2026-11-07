@@ -10,7 +10,10 @@
 - Аргументы игры после `--` (автолоад `DevTools`): `--shot=<path>`, `--shot-time=<сек игрового времени>`, `--timescale=<k>`, `--quit-after=<сек реального времени>`, `--lang=ru|en`; прочие `--key=value` читаются через `DevTools.get_arg()`.
 - Симуляция баланса: `tools/simulate.sh [минут=20] [--active|--real|--idle] [--seed=N]` → headless-бот (`SimBot`, три режима игрока) играет по ядру логики, пишет `sim_out/report.md` (проверки темпа) и `sim_out/timeline*.csv`.
 - API ядра (состояние, события, покупки, курсор-линза, конфиги эффектов): `docs/CORE.md`.
-- Отладочные аргументы игры: `--bot[=real|idle]` (играет бот), `--ff=<сек>` (промотать на старте), `--seed=<n>`.
+- Отладочные аргументы игры: `--bot[=real|idle]` (играет бот), `--ff=<сек>` (промотать на старте), `--seed=<n>`;
+  экран игры: `--debug-view`, `--mouse=enemy`, `--give=…`, `--buy=… --buy-at=…`, `--stress`, `--perf=<сек>`,
+  серия кадров `--shot-burst=<n> --shot-interval=<с>` — см. `docs/VIEW.md`.
+- Экран игры (слои, отклик на события, как добавить врага/башню): `docs/VIEW.md`. Главная сцена — `scenes/main_game.tscn`.
 - Web-сборка: `tools/export_web.sh` → `build/web/`. Запуск: `python3 -m http.server -d build/web 8000`. Проверка: `tools/check_web.sh` (экспорт + headless Chrome, скриншот `shots/web.png`, код 0 = игра загрузилась).
 - Windows-сборка: `tools/export_windows.sh` → `build/windows/IdleKing.exe` (pck встроен).
 - Арт: `python3 tools/art/gen_art.py` → спрайты `assets/sprites/` + `manifest.json`, шрифты `fonts/`, тема `themes/`, `config/palette.json`; затем `--import`. Подробно — `docs/ART.md`.
@@ -25,7 +28,7 @@ assets/sprites/  PNG + manifest.json, сгенерированные tools/art/g
 fonts/           пиксельный шрифт Kotel (BMFont .fnt)
 themes/          main_theme.tres + текстуры 9-slice (генерируются)
 scripts/core/    логика без узлов сцены (RefCounted/Object): состояние, экономика, бой, волны, улучшения, сохранения
-scripts/view/    узлы отображения: поле боя, эффекты, UI
+scripts/view/    узлы отображения: поле боя, эффекты, UI (docs/VIEW.md)
 scripts/autoload/ синглтоны (Config, Fmt, DevTools, Game)
 scenes/          .tscn
 tests/           тесты (run_tests.gd + test_*.gd)

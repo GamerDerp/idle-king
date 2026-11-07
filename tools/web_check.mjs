@@ -1,6 +1,6 @@
 // Boots the web build in headless Chrome and verifies the game starts.
 // Usage: node tools/web_check.mjs [url] [out.png] [timeout_sec]
-// Exit 0 when the console shows "Main scene ready" (printed by scenes/main), 1 otherwise.
+// Exit 0 when the console shows "Main scene ready" (printed by the main scene), 1 otherwise.
 // Requires Node >= 22 (built-in WebSocket) and google-chrome. No npm packages.
 import { spawn } from "node:child_process";
 import { writeFileSync, mkdtempSync } from "node:fs";

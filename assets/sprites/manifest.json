@@ -226,6 +226,51 @@
    ],
    "loop": true
   },
+  "boiler_t0": {
+   "file": "res://assets/sprites/towers/boiler_t0.png",
+   "frame_size": [
+    32,
+    40
+   ],
+   "frames": 2,
+   "fps": 0,
+   "anchor": [
+    16,
+    37
+   ],
+   "loop": false,
+   "note": "Котлобой, tier 0 (iron); frame 0 idle, 1 fire"
+  },
+  "boiler_t1": {
+   "file": "res://assets/sprites/towers/boiler_t1.png",
+   "frame_size": [
+    32,
+    40
+   ],
+   "frames": 2,
+   "fps": 0,
+   "anchor": [
+    16,
+    37
+   ],
+   "loop": false,
+   "note": "Котлобой, tier 1 (brass); frame 0 idle, 1 fire"
+  },
+  "boiler_t2": {
+   "file": "res://assets/sprites/towers/boiler_t2.png",
+   "frame_size": [
+    32,
+    40
+   ],
+   "frames": 2,
+   "fps": 0,
+   "anchor": [
+    16,
+    37
+   ],
+   "loop": false,
+   "note": "Котлобой, tier 2 (gilded); frame 0 idle, 1 fire"
+  },
   "boss_fall": {
    "file": "res://assets/sprites/enemies/boss_fall.png",
    "frame_size": [
@@ -455,6 +500,36 @@
    "loop": true,
    "note": "6 variants of 16x16 seamless ground"
   },
+  "guard_fall": {
+   "file": "res://assets/sprites/enemies/guard_fall.png",
+   "frame_size": [
+    22,
+    24
+   ],
+   "frames": 3,
+   "fps": 8,
+   "anchor": [
+    11,
+    21
+   ],
+   "loop": false,
+   "note": "Подручный вожака: falls into the moat; anchor = waterline under the feet; free after the last frame"
+  },
+  "guard_walk": {
+   "file": "res://assets/sprites/enemies/guard_walk.png",
+   "frame_size": [
+    16,
+    20
+   ],
+   "frames": 4,
+   "fps": 7,
+   "anchor": [
+    7,
+    19
+   ],
+   "loop": true,
+   "note": "Подручный вожака"
+  },
   "hit_spark": {
    "file": "res://assets/sprites/fx/hit_spark.png",
    "frame_size": [
@@ -559,6 +634,36 @@
    "loop": false,
    "note": "one sip, then back to idle"
   },
+  "knight_fall": {
+   "file": "res://assets/sprites/enemies/knight_fall.png",
+   "frame_size": [
+    22,
+    26
+   ],
+   "frames": 3,
+   "fps": 8,
+   "anchor": [
+    11,
+    23
+   ],
+   "loop": false,
+   "note": "Жестяной латник: falls into the moat; anchor = waterline under the feet; free after the last frame"
+  },
+  "knight_walk": {
+   "file": "res://assets/sprites/enemies/knight_walk.png",
+   "frame_size": [
+    16,
+    22
+   ],
+   "frames": 4,
+   "fps": 6,
+   "anchor": [
+    7,
+    21
+   ],
+   "loop": true,
+   "note": "Жестяной латник"
+  },
   "moat_water": {
    "file": "res://assets/sprites/world/moat_water.png",
    "frame_size": [
@@ -573,6 +678,36 @@
    ],
    "loop": true,
    "note": "tile vertically over moat_x from y=0 every 64 px; share the frame index"
+  },
+  "mole_fall": {
+   "file": "res://assets/sprites/enemies/mole_fall.png",
+   "frame_size": [
+    26,
+    19
+   ],
+   "frames": 3,
+   "fps": 8,
+   "anchor": [
+    13,
+    16
+   ],
+   "loop": false,
+   "note": "Крот-шахтёр: falls into the moat; anchor = waterline under the feet; free after the last frame"
+  },
+  "mole_walk": {
+   "file": "res://assets/sprites/enemies/mole_walk.png",
+   "frame_size": [
+    20,
+    15
+   ],
+   "frames": 4,
+   "fps": 8,
+   "anchor": [
+    9,
+    14
+   ],
+   "loop": true,
+   "note": "Крот-шахтёр"
   },
   "mortar_t0": {
    "file": "res://assets/sprites/towers/mortar_t0.png",
@@ -1053,6 +1188,51 @@
     24
    ],
    "loop": false
+  },
+  "steam_jet_t0": {
+   "file": "res://assets/sprites/towers/steam_jet_t0.png",
+   "frame_size": [
+    32,
+    40
+   ],
+   "frames": 2,
+   "fps": 0,
+   "anchor": [
+    16,
+    37
+   ],
+   "loop": false,
+   "note": "Пароструй, tier 0 (iron); frame 0 idle, 1 fire"
+  },
+  "steam_jet_t1": {
+   "file": "res://assets/sprites/towers/steam_jet_t1.png",
+   "frame_size": [
+    32,
+    40
+   ],
+   "frames": 2,
+   "fps": 0,
+   "anchor": [
+    16,
+    37
+   ],
+   "loop": false,
+   "note": "Пароструй, tier 1 (brass); frame 0 idle, 1 fire"
+  },
+  "steam_jet_t2": {
+   "file": "res://assets/sprites/towers/steam_jet_t2.png",
+   "frame_size": [
+    32,
+    40
+   ],
+   "frames": 2,
+   "fps": 0,
+   "anchor": [
+    16,
+    37
+   ],
+   "loop": false,
+   "note": "Пароструй, tier 2 (gilded); frame 0 idle, 1 fire"
   },
   "steam_lens": {
    "file": "res://assets/sprites/cursor/steam_lens.png",

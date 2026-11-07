@@ -181,3 +181,85 @@ GOAL_BOSS_FIGHT,Бой: %s,Fight: %s
 GOAL_BOSS_RETRY,"%s отступил. Вызвать снова, когда будешь готов",%s retreated. Call again when ready
 GOAL_NONE,Все цели достигнуты,All goals reached
 UI_CHOICE,(выбор),(choice)
+NEW_ENEMY,Новый враг: %s,New enemy: %s
+NEW_TOWER,Новая башня: %s,New tower: %s
+NEW_TIER,%s: новый вид,%s: new look
+NEW_REGION,Открыт регион: %s,Region opened: %s
+NEW_MECHANISM,Механизм: %s,Mechanism: %s
+BEH_PIERCE,пробивает насквозь,pierces through
+BEH_SPLASH,взрыв по площади,area blast
+BEH_MULTISHOT,залп по нескольким целям,volley at several targets
+BEH_KNOCKBACK,отбрасывает врагов,knocks enemies back
+BEH_CLUSTER,разлетается осколками,splits into fragments
+BEH_CRIT_CHAIN,крит перескакивает искрой,crits jump as a spark
+BEH_LENS_SEEK,Линза: наводчик — сама летит к толпе,Lens: spotter — flies to the crowd itself
+BEH_LENS_EXTRA,Ещё одна паровая линза,One more steam lens
+BEH_MOAT_CURTAIN,Паровая завеса жжёт врагов у рва,The steam curtain scalds enemies at the moat
+BEH_MOAT_SLOW,Цепи у рва замедляют врагов,Chains at the moat slow enemies
+BEH_BOSS,Бой: %s,Fight: %s
+STATUS_SCALD,ошпаривание,scalding
+STATUS_SLOW,замедление,slow
+DIFF_TOWER_COUNT,На стене: %d → %d (из %d),On the wall: %d → %d (of %d)
+DIFF_TOTAL_DPS,Урон/с всех: %s → %s,Total dmg/s: %s → %s
+DIFF_DMG,Урон,Damage
+DIFF_RATE,Выстр./с,Shots/s
+DIFF_LIMIT,Мест,Slots
+DIFF_PIERCE,Пробитие,Pierce
+DIFF_SPLASH,Взрыв,Blast
+DIFF_MULTISHOT,Залп,Volley
+DIFF_CRIT,Крит,Crit
+DIFF_KNOCKBACK,Отброс,Knockback
+DIFF_CLUSTER,Осколки,Fragments
+DIFF_RANGE,Дальность,Range
+DIFF_LENS_DPS,"Линза, урон/с",Lens dmg/s
+DIFF_LENS_RADIUS,"Линза, радиус",Lens radius
+DIFF_LENS_AUTO,Линза в авто,Lens in auto
+DIFF_MOAT_DPS,"Завеса, урон/с",Curtain dmg/s
+DIFF_MOAT_SLOW,"Цепи, замедл.","Chains, slow"
+DIFF_MOAT_WIDTH,"Завеса, ширина",Curtain width
+DIFF_GLOBAL_DMG,Всё оружие,All weapons
+DIFF_COUNT,Брызг,Splashes
+DIFF_PACK,в пачке,per pack
+DIFF_LOOT,"добыча, %s","loot, %s"
+DIFF_HP,здоровье,health
+SUM_TOWER,Урон %s (%s) · %s/с · дальн. %s,Dmg %s (%s) · %s/s · range %s
+SUM_ENEMY,Здоровье %s · скор. %s · %s,Health %s · speed %s · %s
+UI_NEW,новый!,new!
+UI_NEW_TITLE,Новое!,New!
+UI_FALLS_TIP,Сорвались в кипящий ров (без добычи),Fell into the boiling moat (no loot)
+UI_FALLS_N,в рву: %d,in the moat: %d
+UI_INCOME_TIP,Доход: +%s/%s,Income: +%s/%s
+UI_GOAL_TIP,"Ближайшая цель. Клик — купить, если хватает, или показать на «Карте».","Next goal. Click to buy when affordable, or to show it on the Map tab."
+UI_BOSS_CALL,Вызвать: %s,Summon: %s
+TIP_HP,Здоровье: %s / %s,Health: %s / %s
+TRAIT_FAST,быстрый,fast
+TRAIT_SLOW,медленный,slow
+TRAIT_BURROW,роет ходы (под землёй неуязвим),burrows (untouchable underground)
+TRAIT_BOSS,хозяин региона,region boss
+TIP_RESIST,Броня от «%s»: −%s%%,Armour vs %s: −%s%%
+TIP_WEAK,Слабость к «%s»: +%s%%,Weak to %s: +%s%%
+TIP_LOOT,Добыча: %s,Loot: %s
+TIP_LEGEND,Цвет чисел урона:,Damage number colours:
+UI_TAB_SHOP,Цеха,Workshops
+UI_TAB_MAP,Карта,Map
+UI_BUY,Купить,Buy
+UI_UPGRADE,Улучшить,Upgrade
+UI_CALL,Вызвать,Summon
+UI_TAKE,Взять,Take
+UI_CHOOSE,Выбрать,Choose
+UI_CHOICE_TITLE,Выбор: только одно,Choice: only one
+UI_CHOICE_HINT,Возьмёшь одно — другое закроется.,Take one and the other closes.
+UI_SHOP_HEADER,Цеха крепости,Fortress workshops
+UI_MAP_HEADER,Карта завоеваний,Map of conquest
+UI_MAP_HINT,Узлы покупаются чертежами с врагов.,Nodes cost blueprints dropped by enemies.
+UI_MAP_EMPTY,Пока нечего открыть — копи чертежи.,Nothing to open yet — collect blueprints.
+UI_LIMIT,предел,limit
+UI_ON_WALL,На стене: %d / %d,On the wall: %d / %d
+UI_NEXT_MILESTONE,ур. %d: %s,lv. %d: %s
+UI_BLUB,буль!,blub!
+UI_BOSS_COMING,%s идёт!,%s is coming!
+UI_BOSS_COMING_SUB,Дойдёт до рва — отступит и вернётся позже.,If he reaches the moat he retreats and comes back later.
+UI_BOSS_DEFEATED_T,%s повержен!,%s is defeated!
+UI_BOSS_DEFEATED_SUB,"Награда летит в казну, на карте новые земли.","The reward flies to the treasury, new lands on the map."
+UI_REGION_OPEN,Открыт регион: %s,Region opened: %s
+UI_REGION_OPEN_SUB,На карте новые узлы и враги.,New nodes and enemies on the map.

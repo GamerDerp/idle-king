@@ -14,6 +14,7 @@ signal started
 var core: GameCore = null
 var bot: SimBot = null
 var running: bool = false
+var last_tick_ms: float = 0.0   ## real time of the last frame's bot + core.tick (perf readout)
 
 
 func _ready() -> void:
@@ -56,6 +57,8 @@ func fast_forward(seconds: float, dt: float = 0.05) -> void:
 func _process(delta: float) -> void:
 	if not running or core == null:
 		return
+	var t0: int = Time.get_ticks_usec()
 	if bot != null:
 		bot.step(delta)
 	core.tick(delta)
+	last_tick_ms = (Time.get_ticks_usec() - t0) / 1000.0

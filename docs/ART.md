@@ -20,6 +20,7 @@ godot --headless --path . --import    # импорт новых PNG/.fnt
 | `sprites_world.py` | земля, дорога, ров, пар, стена, надвратная башня, бастион, трубы, фон поля |
 | `sprites_units.py` | враги региона 1 и Король (ASCII-карты) |
 | `sprites_towers.py` | башни × 3 уровня |
+| `sprites_r2.py` | латник, подручный вожака, крот-шахтёр; башни Пароструй и Котлобой (C2) |
 | `sprites_fx.py` | снаряды, эффекты, монета, иконки, Паровая линза, тени |
 | `font_glyphs.py`, `font_gen.py` | пиксельный шрифт «Kotel» (глифы вручную) → BMFont |
 | `ui_gen.py` | текстуры 9-slice и `themes/main_theme.tres` |
@@ -70,8 +71,9 @@ godot --headless --path . --import    # импорт новых PNG/.fnt
 опоры в пикселях кадра (ноги персонажа, низ основания башни, центр линзы).
 
 Категории: `world` (фон, тайлы земли/дороги, ров, пар, дым, стена, башни крепости, трубы, пропсы),
-`enemies` (`scavenger_walk` Бродяга, `junk_cart_walk` Старьёвщик, `hound_run` Ржавый пёс, `boss_walk` Вожак),
-`characters` (`king_idle`, `king_tea`), `towers` (`rifle|riveter|mortar` × `_t0` железо / `_t1` латунь /
+`enemies` (`scavenger_walk` Бродяга, `junk_cart_walk` Старьёвщик, `hound_run` Ржавый пёс, `boss_walk` Вожак,
+`knight_walk` Жестяной латник, `guard_walk` Подручный вожака, `mole_walk` Крот-шахтёр),
+`characters` (`king_idle`, `king_tea`), `towers` (`rifle|riveter|mortar|steam_jet|boiler` × `_t0` железо / `_t1` латунь /
 `_t2` золочёная с трубами и вымпелом; кадр 0 — покой, 1 — выстрел), `projectiles` (`bullet`, `rivet`, `shell`),
 `fx` (`hit_spark`, `explosion`, `steam_puff`, `splash`, `scrap_burst` — обломки при убийстве, `shadow_s|m|l`),
 `enemies/*_fall` (3 кадра: враг уходит под воду, якорь — линия воды), `pickups` (`gear_coin` — выпавшая
@@ -127,7 +129,7 @@ create_tween().tween_method(func(v: float) -> void: mat.set_shader_parameter("fl
 | `fonts/kotel_title.fnt` | 16 | **32** (×2) | заголовки (прописные 11 px) |
 | `fonts/kotel_number.fnt` | 12 | 12 в мире / 24 в UI | всплывающие числа: bold + чёрный контур |
 
-Формат — BMFont (текстовый `.fnt` + PNG-атлас), импортёр Godot `font_data_bmfont`, в `.fnt.import`
+Формат — BMFont (текстовый `.fnt` + PNG-атлас; у PNG в `.import` — `importer="skip"`, D-038), импортёр Godot `font_data_bmfont`, в `.fnt.import`
 `scaling_mode=1` (только целочисленное масштабирование). Размер шрифта всегда кратен `size`
 (12/24/36, 16/32/48), иначе Godot масштабирует не целочисленно и буквы «плывут». Внутри узла мира
 (scale 2) — `font_size = 12` (bold) для всплывающих чисел. Тень текста — смещение 2 px (1 арт-пиксель).
