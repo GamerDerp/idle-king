@@ -273,38 +273,46 @@ def steam_sheet_frames(n: int = 6) -> list:
 
 
 CURTAIN_X = L.PIPE_X + 11      # left edge of the curtain sprite (nozzle mouths are at x = CURTAIN_X + 2)
-CURTAIN_W = 52
+CURTAIN_W = 64
 
 
 def steam_curtain_frames(n: int = 6) -> list:
-    """The whole steam curtain as ONE sprite (52 x field height, anchor (0, 0) at (CURTAIN_X, 0)), 6-frame loop.
+    """The whole steam curtain as ONE sprite (64 x field height, anchor (0, 0) at (CURTAIN_X, 0)), 6-frame loop.
 
-    One plume per nozzle (layout.STEAM_VENTS_Y, none at the gate): it leaves the nozzle as a jet, rises
-    and is bent east by the moat's draft, so the torn tops drift over the east bank - the screen-right
-    extent is the curtain's HEIGHT. Plumes are merged before shading, so the lit rim (top-left) and the
-    shaded rim (bottom-right) follow the curtain's outer silhouette instead of every overlap; inside
-    there are only a few soft folds. Steam alpha falls with height. Under the steam, its SHADOW lies on
-    the water (semi-transparent soot, offset down-right), visible between plumes and through the steam.
-    The foam churn at each nozzle is opaque and crisp."""
+    One plume per nozzle (layout.STEAM_VENTS_Y, none at the gate). Every plume has its own length, lean,
+    width and pulse phase (seeded), so there is no regular rhythm: it leaves the nozzle as a jet, rises,
+    and the moat's draft bends it east; the thin, torn tops drift over the east bank and the field edge -
+    that horizontal reach is the curtain's HEIGHT in the 3/4 view. Plumes are merged before shading
+    (lit rim top-left, shaded rim bottom-right on the outer silhouette only; no inner rib lines).
+    The steam gets more transparent toward the top. Its SHADOW lies on the water (soot, offset
+    down-right, clearly visible between plumes). The foam churn at each nozzle is opaque and crisp."""
     H = L.H
     P = 12.0
     vents = [vy for vy in L.STEAM_VENTS_Y if abs(vy - L.GATE_Y) >= 30]
     water_x1 = L.MOAT_X1 - CURTAIN_X            # last water column inside the sprite
+    rr = rng(404)
+    params = []
+    for vi, vy in enumerate(vents):
+        params.append({"len": rr.uniform(30, 56), "lean": rr.uniform(26, 54), "wide": rr.uniform(0.75, 1.3),
+                       "rise": rr.uniform(0.75, 1.05), "ph": rr.uniform(0, 1), "dy": rr.randint(-2, 2),
+                       "tear": rr.uniform(0.68, 0.88)})
     frames = []
     for f in range(n):
         off = f * P / n
         discs = []      # (x, y, r, k, vent_index)
         for vi, vy in enumerate(vents):
-            L_ = 44.0
+            p = params[vi]
+            pulse = 0.88 + 0.12 * math.sin(math.tau * (f / n + p["ph"]))
+            L_ = p["len"] * pulse
             for si in range(0, int(L_) + 1):
                 s_ = float(si)
                 k = s_ / L_
                 ph = ((s_ - off + vi * 5) / P) % 1.0
-                x = 2.0 + 4.0 * k + 26.0 * k ** 1.8 + 0.8 * math.sin((s_ - off) / 5.0 + vi)
-                y = vy - 1 - s_ * 0.95
-                r = (1.6 + 4.2 * k ** 0.75) * (0.85 + 0.25 * math.sin(math.tau * ph))
-                if k > 0.7 and math.sin(math.tau * (s_ - off + vi * 7) / 16.0) > 0.45:
-                    continue        # torn top
+                x = 2.0 + 3.0 * k + p["lean"] * k ** 1.7 + 0.9 * math.sin((s_ - off) / 5.0 + vi * 1.7)
+                y = vy + p["dy"] - 1 - s_ * p["rise"]
+                r = (1.5 + 4.3 * k ** 0.75) * p["wide"] * (0.82 + 0.28 * math.sin(math.tau * ph))
+                if k > p["tear"] and math.sin(math.tau * (s_ - off + vi * 7) / 13.0) > 0.45:
+                    continue        # torn top: separate tufts
                 discs.append((x, y, r, k, vi))
         grid = {}
         for (x, y, r, k, vi) in discs:
@@ -315,27 +323,27 @@ def steam_curtain_frames(n: int = 6) -> list:
                         if old is None or k < old[0]:
                             grid[(px, py)] = (k, vi)
         c = Canvas(CURTAIN_W, H)
-        # shadow on the water first: the steam mask shifted down-right, clipped to the water/bank edge
+        # shadow on the water first: the low part of the steam shifted down-right, clipped to the water
         for (px, py), (k, vi) in grid.items():
-            sx, sy = px + 3, py + 6
-            if sx <= water_x1 + 1 and sy < H and (sx, sy) not in grid and k < 0.75:
-                c.set(sx, sy, "soot_0", 60)
+            for (ox, oy, a) in ((4, 7, 105), (5, 9, 70)):
+                sx, sy = px + ox, py + oy
+                if sx <= water_x1 and sy < H and (sx, sy) not in grid and k < 0.6 and not c.opaque(sx, sy):
+                    c.set(sx, sy, "soot_0", a)
         for (px, py), (k, vi) in grid.items():
-            a = int(200 - 115 * k)
+            a = int(215 - 130 * k)
             up, left = grid.get((px, py - 1)), grid.get((px - 1, py))
             down, right = grid.get((px, py + 1)), grid.get((px + 1, py))
             if up is None or left is None:
-                name = "steam_3"
+                name = "steam_3" if k < 0.8 else "steam_2"
             elif down is None or right is None:
                 name = "steam_1"
-            elif up[1] != vi and up[0] > k + 0.25:
-                name = "steam_1"            # soft fold where a lower plume overlaps a higher one
             else:
                 name = "steam_2"
             c.set(px, py, name, a)
-        for vy in vents:      # opaque jets + foam churn at the nozzles
+        for vi, vy in enumerate(vents):      # opaque jets + foam churn at the nozzles
+            jl = 5 + int(params[vi]["wide"] * 3)
             for y in range(vy - 3, vy + 1):
-                for x in range(1, 8 - (vy - y)):
+                for x in range(1, jl - (vy - y)):
                     c.set(x, y, "steam_3" if y >= vy - 1 else "steam_2", 230)
             for i, (dx, dy) in enumerate([(2, 1), (4, 1), (6, 1), (8, 1), (10, 1), (3, 2), (7, 2), (5, 0), (9, 0)]):
                 if (i + f + vy) % 3:
@@ -881,13 +889,63 @@ def bush(seed: int, tone: str = None) -> Canvas:
                 if dx * dx + dy * dy <= rad * rad:
                     lit = -(dx * 0.6 + dy * 0.8) / rad
                     c.set(x, y, d2 if lit > 0.35 else d1 if lit > -0.5 else dark)
-    for k in range(r.randint(1, 4)):   # twigs and lit leaf tips
+    # break the rounded silhouette: notches bitten out of the lower edge, twigs poking out of the top
+    for x in range(w + 3):
+        col = [y for y in range(hh + 1) if c.opaque(x, y)]
+        if not col:
+            continue
+        top, bot = col[0], col[-1]
+        if r.random() < 0.3 and bot - top > 2:
+            c.set(x, bot, None)
+        if r.random() < 0.35:
+            ln = r.randint(1, 3)
+            lean = r.choice((-1, 0, 0, 1))
+            for k in range(1, ln + 1):
+                xx, yy = x + (lean if k > 1 else 0), top - k
+                if 0 <= yy:
+                    c.set(xx, yy, d1 if k < ln else tip)
+    for k in range(r.randint(2, 5)):   # lit leaf tips inside the crown
         x = r.randrange(1, w + 1)
         for y in range(hh):
             if c.opaque(x, y):
-                c.set(x, y - 1, tip)
-                if r.random() < 0.4:
-                    c.set(x + r.choice((-1, 1)), y - 2, d1)
+                c.set(x, y + 1, tip)
                 break
     c.outline("soot_1")
+    return c
+
+
+def fence_remnant(seed: int) -> Canvas:
+    """Three or four leaning fence posts with a sagging wire - a farm long gone."""
+    r = rng(seed)
+    n = r.randint(3, 4)
+    c = Canvas(n * 7 + 2, 12)
+    tops = []
+    for i in range(n):
+        x = 1 + i * 7 + r.randint(0, 1)
+        h = r.randint(6, 9)
+        lean = r.choice((-1, 0, 1))
+        for k in range(h):
+            xx = x + (lean if k > h // 2 else 0)
+            c.set(xx, 11 - k, "copper_2" if k < h - 1 else "copper_3")
+            c.set(xx + 1, 11 - k, "copper_0")
+        tops.append((x + lean, 11 - h + 2))
+    for (a, b) in zip(tops, tops[1:]):
+        mx = (a[0] + b[0]) // 2
+        c.line(a[0] + 1, a[1], mx, max(a[1], b[1]) + 2, "iron_1")
+        c.line(mx, max(a[1], b[1]) + 2, b[0], b[1], "iron_1")
+    c.outline("soot_1")
+    return c
+
+
+def stone_scatter(seed: int) -> Canvas:
+    """A loose group of 4-7 small stones of different sizes (for empty flats)."""
+    r = rng(seed)
+    c = Canvas(22, 10)
+    for _ in range(r.randint(4, 7)):
+        x, y = r.randint(2, 18), r.randint(3, 8)
+        rad = r.choice((0.8, 1.2, 1.6, 2.2))
+        c.ellipse(x, y, rad + 0.4, rad * 0.75, "dust_2")
+        c.set(x - 1, y - 1, "parchment_0")
+        c.set(x + 1, y + 1, "dust_0")
+    c.outline("soot_3")
     return c

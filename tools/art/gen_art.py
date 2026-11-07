@@ -28,6 +28,7 @@ import sprites_field as FLD  # noqa: E402
 import sprites_fx as FX  # noqa: E402
 import sprites_r2 as R2  # noqa: E402
 import sprites_r3 as R3  # noqa: E402
+import sprites_r4 as R4  # noqa: E402
 import sprites_towers as TW  # noqa: E402
 import sprites_units as UN  # noqa: E402
 import sprites_world as WO  # noqa: E402
@@ -158,6 +159,9 @@ def build_world(m: Manifest) -> None:
     bg3, _ = FLD.compose_bg(3)
     m.add("world", "battlefield_bg_r3", bg3, anchor=(0, 0),
           note="region 3 «Медные болота»: same fortress, marsh field, pools, boardwalk road, reeds")
+    bg4, _ = FLD.compose_bg(4)
+    m.add("world", "battlefield_bg_r4", bg4, anchor=(0, 0),
+          note="region 4 «Часовой лес»: same fortress, dark forest floor, copper leaf drifts, brass trees")
     L.SMOKE_POINTS[:] = smoke
     gate = WO.gatehouse()
     bastion = WO.bastion()
@@ -283,7 +287,7 @@ def build_r2(m: Manifest) -> None:
 
 
 def build_r3(m: Manifest) -> None:
-    add_enemy(m, "toad", R3.toad_frames(), 8, (10, 26),
+    add_enemy(m, "toad", R3.toad_frames(), 8, (12, 28),
               "Механожаба (R3): frames sit, crouch, leap, airborne (not a ground target), land", 3, "hop")
     for key, fn, name in (("tesla", R3.tesla, "Тесла-катушка"), ("ricochet", R3.ricochet, "Рикошетная пушка")):
         for tier in range(3):
@@ -292,6 +296,32 @@ def build_r3(m: Manifest) -> None:
                   note=f"{name}, tier {tier}; frame 0 idle, 1 " + ("charge, 2 fire (bolt)" if key == "tesla" else
                                                                     "fire, 2 recover"),
                   extra={"muzzle": list(TW.MUZZLE[k])})
+    add_enemy(m, "apothecary", R3.apothecary_frames(), 7, (8, 23), "Аптекарь (R3): heals neighbours", 3)
+    m.add("fx", "heal_pulse", R3.heal_pulse_frames(), fps=10, anchor=(20, 16), loop=False,
+          note="Аптекарь heals (every 3 s): play at his feet, under the units")
+    add_enemy(m, "diver", R3.diver_frames(True), 6, (8, 23), "Водолаз (R3): helmet = shield (steam/spark only)", 3)
+    add_enemy(m, "diver_bare", R3.diver_frames(False), 7, (8, 23), "Водолаз without the helmet (shield broken)", 3)
+    m.add("fx", "diver_helmet_break", R3.helmet_break_frames(), fps=12, anchor=(14, 22), loop=False,
+          note="Водолаз shield breaks: play at his feet and switch diver_walk -> diver_bare_walk")
+    octo = R3.octopus_frames()
+    add_enemy(m, "octopus", octo["cut0"], 5, (34, 44), "Медный Спрут (R3 boss), all 3 escort tentacles", 3)
+    for k in (1, 2, 3):
+        m.add("enemies", f"octopus_walk_cut{k}", octo[f"cut{k}"], fps=5, anchor=(34, 44),
+              note=f"Медный Спрут with {k} tentacle(s) severed (stumps drip oil)",
+              extra={"roots": [list(r) for r in R3.OCTO_ROOTS]})
+    m.sprites["octopus_walk"]["roots"] = [list(r) for r in R3.OCTO_ROOTS]
+    m.add("enemies", "tentacle_segment", R3.tentacle_segment_frames(), fps=8, anchor=(0, 5),
+          note="escort tentacle body: chain segments (14 px step) from an octopus root to its tip, rotate")
+    m.add("enemies", "tentacle_tip", R3.tentacle_tip_frames(), fps=8, anchor=(16, 7),
+          note="escort tentacle tip gripping the road ahead of the boss (the severable target)")
+    m.add("fx", "tentacle_sever", R3.tentacle_sever_frames(), fps=12, anchor=(14, 14), loop=False,
+          note="a tentacle is cut: at the cut point; then switch the boss to octopus_walk_cutN")
+    m.add("world", "building_smelter", R3.smelter_frames(), fps=6, anchor=(25, 59),
+          note="«Медеплавильня» producer; place at a manifest yard_slot")
+    m.add("characters", "automaton_run", R3.automaton_frames(), fps=12, anchor=(6, 15),
+          note="«Заряжающий автоматон»: runs along the wall walkway (faces right; flip_h for the other way)")
+    m.add("fx", "wet_metal", R3.wet_metal_frames(), fps=12, anchor=(8, 10), loop=False,
+          note="«Мокрый металл»: spark hits a scalded enemy (×2 damage)")
     m.add("fx", "tesla_arc", R3.tesla_arc_frames(), fps=14, anchor=(8, 8),
           note="crackle on a tesla hit / on the sphere while charging (loop or play 3 frames)")
     m.add("fx", "chain_lightning", R3.chain_lightning_frames(), fps=16, anchor=(0, 4),
@@ -299,6 +329,51 @@ def build_r3(m: Manifest) -> None:
     m.add("projectiles", "ricochet_ball", R3.ricochet_ball_frames(), fps=14, anchor=(4, 4))
     m.add("fx", "bounce_spark", R3.bounce_spark_frames(), fps=14, anchor=(8, 8), loop=False,
           note="ricochet ball bounces off an enemy (+15% per bounce)")
+
+
+def build_r4(m: Manifest) -> None:
+    add_enemy(m, "beetle", R4.beetle_frames(), 14, (7, 10), "Часовой жук (R4 swarm)", 4)
+    stag = R4.stag_frames()
+    add_enemy(m, "stag", stag["walk"], 8, (13, 27), "Заводной олень (R4)", 4)
+    m.add("enemies", "stag_dash", stag["dash"], fps=14, anchor=(15, 27), loop=False,
+          note="Заводной олень lunges (every 2 s): play during the burst, then back to stag_walk")
+    cu = R4.cuckoo_frames()
+    check_enemy_contrast("cuckoo", cu[0], 4)
+    m.add("enemies", "cuckoo_fly", cu, fps=10, anchor=(11, 38),
+          note=f"Механокукушка FLIES {R4.CUCKOO_ALT} px above its anchor (= ground point). Draw cuckoo_shadow "
+               "at the anchor (under units); only lens/tesla/mortar hit it")
+    m.add("enemies", "cuckoo_shadow", R4.cuckoo_shadow_frames(), fps=10, anchor=(11, 3),
+          note="ground shadow of the flying cuckoo; same frame index as cuckoo_fly")
+    m.add("enemies", "cuckoo_down", R4.cuckoo_down_frames(), fps=10, anchor=(13, 38), loop=False,
+          note="cuckoo shot down / reaches the moat: tumbles and smashes (use instead of a moat fall)")
+    add_enemy(m, "clockmaker", R4.clockmaker_frames(), 5, (22, 50), "Часовщик (R4 boss)", 4)
+    m.add("enemies", "spring_pylon", R4.pylon_frames(False), fps=8, anchor=(7, 27),
+          note="one of 3 spring-shield pylons that walk with the Часовщик (shield while any stands)")
+    m.add("enemies", "spring_pylon_broken", R4.pylon_frames(True), fps=6, anchor=(7, 27),
+          note="pylon after it breaks (stays as a wreck a few seconds)")
+    m.add("fx", "pylon_break", R4.pylon_break_frames(), fps=12, anchor=(14, 26), loop=False,
+          note="a pylon breaks")
+    m.add("fx", "shield_dome", R4.shield_dome_frames(), fps=8, anchor=(32, 36),
+          note="Часовщик's shield while any pylon stands: centre on the boss feet, above the boss")
+    for key, fn, name in (("saw", R4.saw_thrower, "Пилометатель"),):
+        for tier in range(3):
+            k = f"{key}_t{tier}"
+            m.add("towers", k, [fn(tier, p) for p in range(3)], anchor=(TW.AX, TW.AY), loop=False,
+                  note=f"{name}, tier {tier}; frame 0 loaded, 1 thrown, 2 reload", extra={"muzzle": list(TW.MUZZLE[k])})
+    for tier in range(3):
+        k = f"golem_t{tier}"
+        m.add("towers", k, [R4.golem_tower(tier, p) for p in range(4)], anchor=(12, 41), loop=False,
+              note="Заводной голем on a platform over the moat: place at (face_x1 + 1, y). Frames 0 idle, "
+                   "1 wind-up, 2 punch (fist out to the right), 3 recover", extra={"muzzle": list(TW.MUZZLE[k])})
+    m.add("projectiles", "saw_disc", R4.saw_disc_frames(), fps=16, anchor=(6, 6),
+          note="Пилометатель disc, pierces a line of enemies")
+    m.add("fx", "punch_impact", R4.punch_impact_frames(), fps=14, anchor=(10, 10), loop=False,
+          note="Заводной голем hit: at the golem's 'muzzle' (fist) on frame 2")
+    ct = R4.clock_tower_frames()
+    m.add("world", "clock_tower", ct["idle"], fps=4, anchor=(23, 59),
+          note="«Часовая башня» mechanism in a yard_slot: ticking loop (hand steps, pendulum swings)")
+    m.add("world", "clock_tower_volley", ct["volley"], fps=10, anchor=(23, 59), loop=False,
+          note="«тик-так» volley: play once over clock_tower when the tower fires a volley, then back")
 
 
 def build_towers(m: Manifest) -> None:
@@ -334,7 +409,7 @@ def build_fx(m: Manifest) -> None:
           note="5-frame small coin flying to the counter")
     m.add("pickups", "blueprint", FX.icon_blueprint(), anchor=(8, 8))
     for key, fn in (("gears", FX.icon_gears), ("blueprints", FX.icon_blueprint), ("coal", FX.icon_coal),
-                    ("copper", R3.icon_copper), ("springs", FX.icon_springs), ("ether", FX.icon_ether),
+                    ("copper", R3.icon_copper), ("springs", R4.icon_springs), ("ether", FX.icon_ether),
                     ("seal", FX.icon_seal)):
         m.add("icons", f"res_{key}", fn(), anchor=(8, 8))
     for key, fn in (("impact", FX.icon_dmg_impact), ("steam", FX.icon_dmg_steam), ("spark", FX.icon_dmg_spark),
@@ -408,6 +483,7 @@ def main() -> None:
     build_fx(m)
     build_r2(m)
     build_r3(m)
+    build_r4(m)
     m.write()
 
     variants = {n: font_gen.build_font(n, FONTS) for n in ("regular", "bold", "title", "number")}
