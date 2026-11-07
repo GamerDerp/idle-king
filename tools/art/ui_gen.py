@@ -293,6 +293,7 @@ TEXTURES = {
     "separator": (separator, (4, 1, 4, 1), 1),
     "inset": (inset, (3, 3, 3, 3), 0),
     "badge": (badge, (3, 3, 3, 3), 0),
+    "map_card": (lambda: __import__("sprites_map").map_card(), (5, 5, 5, 5), 0),
 }
 
 
@@ -354,7 +355,8 @@ def write_theme(root: str, save, check) -> list:
     for var, tex, cm in (("CardPanel", "card", (14, 12, 14, 12)), ("CardAffordable", "card_affordable", (14, 12, 14, 12)),
                          ("PlainPanel", "panel_plain", (16, 14, 16, 14)), ("TopBar", "top_bar", (12, 6, 12, 10)),
                          ("ResourcePlate", "resource_plate", (8, 4, 12, 6)), ("InsetPanel", "inset", (8, 8, 8, 8)),
-                         ("Badge", "badge", (6, 2, 6, 2)), ("TooltipLikePanel", "tooltip", (12, 10, 12, 10))):
+                         ("Badge", "badge", (6, 2, 6, 2)), ("TooltipLikePanel", "tooltip", (12, 10, 12, 10)),
+                         ("MapCard", "map_card", (16, 12, 16, 14))):
         P(f'{var}/base_type = &"PanelContainer"')
         P(f"{var}/styles/panel = {sb_tex('pc_' + var, tex, cm)}")
 

@@ -25,6 +25,7 @@
 [ext_resource type="Texture2D" path="res://themes/ui/separator.png" id="t_separator"]
 [ext_resource type="Texture2D" path="res://themes/ui/inset.png" id="t_inset"]
 [ext_resource type="Texture2D" path="res://themes/ui/badge.png" id="t_badge"]
+[ext_resource type="Texture2D" path="res://themes/ui/map_card.png" id="t_map_card"]
 [ext_resource type="FontFile" path="res://fonts/kotel_regular.fnt" id="f_regular"]
 [ext_resource type="FontFile" path="res://fonts/kotel_bold.fnt" id="f_bold"]
 [ext_resource type="FontFile" path="res://fonts/kotel_title.fnt" id="f_title"]
@@ -128,6 +129,17 @@ texture_margin_left = 8.0
 texture_margin_top = 8.0
 texture_margin_right = 8.0
 texture_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxTexture" id="pc_MapCard"]
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 14.0
+texture = ExtResource("t_map_card")
+texture_margin_left = 10.0
+texture_margin_top = 10.0
+texture_margin_right = 10.0
+texture_margin_bottom = 10.0
 
 [sub_resource type="StyleBoxTexture" id="btn_n"]
 content_margin_left = 14.0
@@ -356,6 +368,8 @@ Badge/base_type = &"PanelContainer"
 Badge/styles/panel = SubResource("pc_Badge")
 TooltipLikePanel/base_type = &"PanelContainer"
 TooltipLikePanel/styles/panel = SubResource("pc_TooltipLikePanel")
+MapCard/base_type = &"PanelContainer"
+MapCard/styles/panel = SubResource("pc_MapCard")
 Button/styles/normal = SubResource("btn_n")
 Button/styles/hover = SubResource("btn_h")
 Button/styles/pressed = SubResource("btn_p")

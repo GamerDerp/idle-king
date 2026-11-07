@@ -500,7 +500,7 @@ def drill_boss(frame: int, mode: str = "walk") -> Canvas:
         # nose-up tilt while reversing: front columns lifted up to 3 px (reads at a glance vs walk)
         tilted = Canvas(c.w, c.h)
         for x in range(c.w):
-            dy = -max(0, round((44 - x) / 9))
+            dy = -max(0, round((54 - x) / 6.5))
             for y in range(c.h):
                 p = c.get(x, y)
                 if p[3] and 0 <= y + dy < c.h:

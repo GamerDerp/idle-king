@@ -336,46 +336,71 @@ def icon_copper() -> Canvas:
 # ------------------------------------------------------------------ Аптекарь (apothecary), 18x24
 
 APOTH = """
-.......000........
-......01110.......
-......01110.......
-.....0000000......
-.....0hyhNNM0.....
-..000ooohNMML0....
-.0pooooo0NMMML0...
-..00nnn0NNMMML0...
-....0NNNMMMMMLL0..
-...0NNMMMMMMLLL00.
-..0wx0MMMMMMLLL0e0
-..0xy0MMMMMMLLL0f0
-..0ww0NMMMMMLLL0e0
-...00NNMMMMMLLLL0.
-....0NNMMMMMMLLL0.
-....0NNMMMMMMLLL0.
-....0NNNMMMMLLL0..
-.....000000000....
+........000.......
+.......01110......
+.......01110......
+......0000000.....
+......0cLMcbb0....
+.0000MMMNcbbb0....
+0NMMMMMLLccbb0....
+.0000LLL0ccbb0....
+.......0cccbb0....
+......0dccccbb0...
+...000dccccccb0...
+.0wxdd0ccccccb0e..
+.0xy00dcccccbb0f..
+.0ww0.dcccccbb0e..
+..00..dccccbbb0...
+......dcccccbbb0..
+......0dccccbbb0..
+.......000000000..
 """
 APOTH_LEGS = [
-    ["......0b0.0b0.....", ".....0b0...0b0....", "....011....0110...", "....000....0000..."],
-    ["......0bb0b0......", "......0b0b0.......", ".....0110110......", ".....00000000....."],
-    ["......0b0.0b0.....", "......0b0..0b0....", ".....0110...011...", ".....0000...000..."],
-    ["......0bbb0.......", "......0bb0........", ".....01100........", ".....00000........"],
+    ["........0a0.0a0...", ".......0a0...0a0..", "......011....0110.", "......000....0000."],
+    ["........0aa0a0....", "........0a0a0.....", ".......0110110....", ".......00000000..."],
+    ["........0a0.0a0...", "........0a0..0a0..", ".......0110...011.", ".......0000...000."],
+    ["........0aaa0.....", "........0aa0......", ".......01100......", ".......00000......"],
 ]
 
 
 def apothecary_frames() -> list:
-    """Аптекарь: top hat, beaked copper mask with a brass goggle, a long parchment coat, a brass alembic
-    on his back, and a glowing teal flask in his front hand (he heals neighbours). 4-frame walk, faces left."""
+    """Аптекарь: a tall dark-grey frock coat (iron), a top hat, a LONG bone-coloured beak mask with a teal
+    lens, a brass alembic flask on his back, and the front arm held out with a glowing teal flask (he
+    heals neighbours). 4-frame walk, faces left."""
     out = []
     for i, legs in enumerate(APOTH_LEGS):
         c = Canvas(18, 24)
         for k, row in enumerate(legs):
             c.ascii(0, 20 + k, row)
         c.paste_over(from_ascii(APOTH), 0, 3 + (1 if i % 2 else 0))
+        bob = 1 if i % 2 else 0
+        c.set(9, 7 + bob, "teal_2")    # mask lens
+        c.set(10, 7 + bob, "teal_1")
         if i % 2 == 0:                 # flask bubbles
-            c.set(3, 11, "steam_3")
+            c.set(2, 12 + bob, "steam_3")
+            c.set(3, 13 + bob, "teal_2")
         c.outline("soot_0")
         rim_light(c)
+        out.append(c)
+    return out
+
+
+def heal_plus_frames() -> list:
+    """9x14 «+» that rises over each HEALED neighbour (5 frames, once), anchor (4, 13) = its head top."""
+    out = []
+    for f in range(5):
+        c = Canvas(9, 14)
+        y = 9 - f * 2
+        big = f < 3
+        name = "parchment_2" if f in (1, 2) else "verdigris_2"
+        arm = 2 if big else 1
+        for k in range(-arm, arm + 1):
+            c.set(4 + k, y, name)
+            c.set(4, y + k, name)
+        c.outline("verdigris_0")
+        if f < 4:
+            c.set(1, y + 3, "verdigris_2")
+            c.set(7, y + 4, "teal_2")
         out.append(c)
     return out
 
@@ -386,14 +411,18 @@ def heal_pulse_frames() -> list:
     out = []
     for f in range(5):
         c = Canvas(40, 24)
-        rx, ry = 4 + f * 4, 1.6 + f * 1.4
+        rx, ry = 4 + f * 4, 1.8 + f * 1.4
         for y in range(24):
             for x in range(40):
                 d = ((x + 0.5 - 20) / rx) ** 2 + ((y + 0.5 - 16) / ry) ** 2
-                if 0.7 < d <= 1.0:
+                if 0.45 < d <= 1.0:                       # a thick 2-3 px band
+                    inner = d < 0.7
                     near = y < 16
-                    c.set(x, y, ("verdigris_2" if near else "teal_2") if f < 3 else "verdigris_1",
-                          255 if f < 3 else 170)
+                    if f < 3:
+                        name = "parchment_2" if inner and near else "verdigris_2" if near else "teal_2"
+                    else:
+                        name = "verdigris_2" if near else "verdigris_1"
+                    c.set(x, y, name, 255 if f < 4 else 180)
         for k, (dx, dy) in enumerate([(-8, -2), (7, -4), (0, -7), (-4, -10), (9, -11)]):
             if k > f + 1:
                 continue
@@ -697,23 +726,26 @@ def smelter_frames(n: int = 6) -> list:
             c.hline(8, 15, y, "iron_1")
         c.hline(7, 16, 3, "iron_2")
         cloud(c, 12 + f % 3, 1, 2.2, seed=190 + f, alpha=200, dark="soot_2", mid="soot_3", light="iron_0", tail=False)
-        # gantry + crucible (tilting)
-        c.vline(28, 18, 50, "iron_1")
-        c.vline(29, 18, 50, "iron_0")
-        c.hline(26, 42, 18, "iron_2")
-        c.hline(26, 42, 19, "iron_0")
+        # crucible on trunnions between two short iron posts (no gantry), tilting toward the mould
+        for px_ in (29, 44):
+            c.rect(px_, 22, px_ + 1, 46, "iron_1")
+            c.vline(px_, 22, 46, "iron_2")
+            c.disc(px_ + 0.5, 27, 1.6, "brass_2")
+        c.hline(29, 45, 46, "iron_0")
         tilt = (0, 1, 2, 2, 1, 0)[f]
-        cx, cy = 37, 26
-        for y in range(cy - 4, cy + 4):
-            for x in range(cx - 4, cx + 5):
-                if ((x - cx) / 4.5) ** 2 + ((y - cy) / 4) ** 2 <= 1:
-                    c.set(x - (y - cy) * tilt // 4, y, "iron_2" if x < cx else "iron_1")
-        c.hline(cx - 4, cx + 3, cy - 4, "ember_2")
-        c.line(cx, 19, cx, cy - 4, "iron_0")
+        cx, cy = 37, 27
+        for y in range(cy - 5, cy + 5):
+            for x in range(cx - 5, cx + 6):
+                if ((x - cx) / 5.2) ** 2 + ((y - cy) / 4.6) ** 2 <= 1:
+                    xx = x - (y - cy) * tilt // 3
+                    c.set(xx, y, "iron_2" if x < cx - 1 else "iron_1" if x < cx + 3 else "iron_0")
+        c.hline(cx - 5 - tilt, cx + 4 - tilt, cy - 5, "ember_2")       # molten surface
+        c.hline(cx - 4 - tilt, cx + 3 - tilt, cy - 4, "ember_1")
+        c.hline(30, 43, cy, "brass_1")                                  # trunnion axle
         # pour stream into the mould
         if tilt:
-            for y in range(cy - 2, 47):
-                c.set(cx - 5 - tilt + (y % 2 if f % 2 else 0), y, "ember_2" if y % 3 else "parchment_2")
+            for y in range(cy - 3, 47):
+                c.set(cx - 6 - tilt + (y % 2 if f % 2 else 0), y, "ember_2" if y % 3 else "parchment_2")
         # moulds and stacked ingots
         c.rect(30, 47, 46, 50, "iron_0")
         c.hline(30, 46, 47, "iron_1")
