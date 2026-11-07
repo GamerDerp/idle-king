@@ -210,9 +210,58 @@
   "3": {
    "bg": "battlefield_bg_r3",
    "ground": "verdigris_0"
+  },
+  "4": {
+   "bg": "battlefield_bg_r4",
+   "ground": "soot_3"
   }
  },
  "sprites": {
+  "apothecary_fall": {
+   "file": "res://assets/sprites/enemies/apothecary_fall.png",
+   "frame_size": [
+    24,
+    28
+   ],
+   "frames": 3,
+   "fps": 8,
+   "anchor": [
+    12,
+    25
+   ],
+   "loop": false,
+   "note": "Аптекарь (R3): heals neighbours: falls into the moat; anchor = waterline under the feet; free after the last frame"
+  },
+  "apothecary_walk": {
+   "file": "res://assets/sprites/enemies/apothecary_walk.png",
+   "frame_size": [
+    18,
+    24
+   ],
+   "frames": 4,
+   "fps": 7,
+   "anchor": [
+    8,
+    23
+   ],
+   "loop": true,
+   "note": "Аптекарь (R3): heals neighbours"
+  },
+  "automaton_run": {
+   "file": "res://assets/sprites/characters/automaton_run.png",
+   "frame_size": [
+    12,
+    16
+   ],
+   "frames": 6,
+   "fps": 12,
+   "anchor": [
+    6,
+    15
+   ],
+   "loop": true,
+   "note": "«Заряжающий автоматон»: runs along the wall walkway (faces right; flip_h for the other way)"
+  },
   "bastion": {
    "file": "res://assets/sprites/world/bastion.png",
    "frame_size": [
@@ -271,6 +320,51 @@
    ],
    "loop": true,
    "note": "region 3 «Медные болота»: same fortress, marsh field, pools, boardwalk road, reeds"
+  },
+  "battlefield_bg_r4": {
+   "file": "res://assets/sprites/world/battlefield_bg_r4.png",
+   "frame_size": [
+    450,
+    340
+   ],
+   "frames": 1,
+   "fps": 0,
+   "anchor": [
+    0,
+    0
+   ],
+   "loop": true,
+   "note": "region 4 «Часовой лес»: same fortress, dark forest floor, copper leaf drifts, brass trees"
+  },
+  "beetle_fall": {
+   "file": "res://assets/sprites/enemies/beetle_fall.png",
+   "frame_size": [
+    20,
+    15
+   ],
+   "frames": 3,
+   "fps": 8,
+   "anchor": [
+    10,
+    12
+   ],
+   "loop": false,
+   "note": "Часовой жук (R4 swarm): falls into the moat; anchor = waterline under the feet; free after the last frame"
+  },
+  "beetle_walk": {
+   "file": "res://assets/sprites/enemies/beetle_walk.png",
+   "frame_size": [
+    14,
+    11
+   ],
+   "frames": 4,
+   "fps": 14,
+   "anchor": [
+    7,
+    10
+   ],
+   "loop": true,
+   "note": "Часовой жук (R4 swarm)"
   },
   "blueprint": {
    "file": "res://assets/sprites/pickups/blueprint.png",
@@ -331,8 +425,8 @@
    "loop": false,
    "note": "Котлобой, tier 0; frame 0 idle, 1 fire, 2 recover",
    "muzzle": [
-    19,
-    6
+    22,
+    0
    ]
   },
   "boiler_t1": {
@@ -350,8 +444,8 @@
    "loop": false,
    "note": "Котлобой, tier 1; frame 0 idle, 1 fire, 2 recover",
    "muzzle": [
-    19,
-    6
+    22,
+    0
    ]
   },
   "boiler_t2": {
@@ -369,8 +463,8 @@
    "loop": false,
    "note": "Котлобой, tier 2; frame 0 idle, 1 fire, 2 recover",
    "muzzle": [
-    19,
-    6
+    22,
+    0
    ]
   },
   "boss_fall": {
@@ -432,6 +526,21 @@
    ],
    "loop": true,
    "note": "«Угольная шахта» producer; place at a manifest yard_slot; wheel turns, cart runs"
+  },
+  "building_smelter": {
+   "file": "res://assets/sprites/world/building_smelter.png",
+   "frame_size": [
+    50,
+    60
+   ],
+   "frames": 6,
+   "fps": 6,
+   "anchor": [
+    25,
+    59
+   ],
+   "loop": true,
+   "note": "«Медеплавильня» producer; place at a manifest yard_slot"
   },
   "bullet": {
    "file": "res://assets/sprites/projectiles/bullet.png",
@@ -505,6 +614,66 @@
    ],
    "loop": true
   },
+  "clock_tower": {
+   "file": "res://assets/sprites/world/clock_tower.png",
+   "frame_size": [
+    46,
+    60
+   ],
+   "frames": 8,
+   "fps": 4,
+   "anchor": [
+    23,
+    59
+   ],
+   "loop": true,
+   "note": "«Часовая башня» mechanism in a yard_slot: ticking loop (hand steps, pendulum swings)"
+  },
+  "clock_tower_volley": {
+   "file": "res://assets/sprites/world/clock_tower_volley.png",
+   "frame_size": [
+    46,
+    60
+   ],
+   "frames": 4,
+   "fps": 10,
+   "anchor": [
+    23,
+    59
+   ],
+   "loop": false,
+   "note": "«тик-так» volley: play once over clock_tower when the tower fires a volley, then back"
+  },
+  "clockmaker_fall": {
+   "file": "res://assets/sprites/enemies/clockmaker_fall.png",
+   "frame_size": [
+    50,
+    56
+   ],
+   "frames": 3,
+   "fps": 8,
+   "anchor": [
+    25,
+    53
+   ],
+   "loop": false,
+   "note": "Часовщик (R4 boss): falls into the moat; anchor = waterline under the feet; free after the last frame"
+  },
+  "clockmaker_walk": {
+   "file": "res://assets/sprites/enemies/clockmaker_walk.png",
+   "frame_size": [
+    44,
+    52
+   ],
+   "frames": 4,
+   "fps": 5,
+   "anchor": [
+    22,
+    50
+   ],
+   "loop": true,
+   "note": "Часовщик (R4 boss)"
+  },
   "coal_chunk_fly": {
    "file": "res://assets/sprites/pickups/coal_chunk_fly.png",
    "frame_size": [
@@ -519,6 +688,51 @@
    ],
    "loop": true,
    "note": "coal loot flying to the coal counter (like gear_coin_fly)"
+  },
+  "cuckoo_down": {
+   "file": "res://assets/sprites/enemies/cuckoo_down.png",
+   "frame_size": [
+    26,
+    40
+   ],
+   "frames": 5,
+   "fps": 10,
+   "anchor": [
+    13,
+    38
+   ],
+   "loop": false,
+   "note": "cuckoo shot down / reaches the moat: tumbles and smashes (use instead of a moat fall)"
+  },
+  "cuckoo_fly": {
+   "file": "res://assets/sprites/enemies/cuckoo_fly.png",
+   "frame_size": [
+    22,
+    40
+   ],
+   "frames": 4,
+   "fps": 10,
+   "anchor": [
+    11,
+    38
+   ],
+   "loop": true,
+   "note": "Механокукушка FLIES 20 px above its anchor (= ground point). Draw cuckoo_shadow at the anchor (under units); only lens/tesla/mortar hit it"
+  },
+  "cuckoo_shadow": {
+   "file": "res://assets/sprites/enemies/cuckoo_shadow.png",
+   "frame_size": [
+    22,
+    6
+   ],
+   "frames": 4,
+   "fps": 10,
+   "anchor": [
+    11,
+    3
+   ],
+   "loop": true,
+   "note": "ground shadow of the flying cuckoo; same frame index as cuckoo_fly"
   },
   "decal_grass": {
    "file": "res://assets/sprites/world/decal_grass.png",
@@ -547,6 +761,81 @@
     8
    ],
    "loop": true
+  },
+  "diver_bare_fall": {
+   "file": "res://assets/sprites/enemies/diver_bare_fall.png",
+   "frame_size": [
+    24,
+    28
+   ],
+   "frames": 3,
+   "fps": 8,
+   "anchor": [
+    12,
+    25
+   ],
+   "loop": false,
+   "note": "Водолаз without the helmet (shield broken): falls into the moat; anchor = waterline under the feet; free after the last frame"
+  },
+  "diver_bare_walk": {
+   "file": "res://assets/sprites/enemies/diver_bare_walk.png",
+   "frame_size": [
+    18,
+    24
+   ],
+   "frames": 4,
+   "fps": 7,
+   "anchor": [
+    8,
+    23
+   ],
+   "loop": true,
+   "note": "Водолаз without the helmet (shield broken)"
+  },
+  "diver_fall": {
+   "file": "res://assets/sprites/enemies/diver_fall.png",
+   "frame_size": [
+    24,
+    28
+   ],
+   "frames": 3,
+   "fps": 8,
+   "anchor": [
+    12,
+    25
+   ],
+   "loop": false,
+   "note": "Водолаз (R3): helmet = shield (steam/spark only): falls into the moat; anchor = waterline under the feet; free after the last frame"
+  },
+  "diver_helmet_break": {
+   "file": "res://assets/sprites/fx/diver_helmet_break.png",
+   "frame_size": [
+    28,
+    26
+   ],
+   "frames": 6,
+   "fps": 12,
+   "anchor": [
+    14,
+    22
+   ],
+   "loop": false,
+   "note": "Водолаз shield breaks: play at his feet and switch diver_walk -> diver_bare_walk"
+  },
+  "diver_walk": {
+   "file": "res://assets/sprites/enemies/diver_walk.png",
+   "frame_size": [
+    18,
+    24
+   ],
+   "frames": 4,
+   "fps": 6,
+   "anchor": [
+    8,
+    23
+   ],
+   "loop": true,
+   "note": "Водолаз (R3): helmet = shield (steam/spark only)"
   },
   "dmg_blast": {
    "file": "res://assets/sprites/icons/dmg_blast.png",
@@ -767,6 +1056,63 @@
    "loop": false,
    "note": "golem death: shatters; spawn two ugolek_walk at frame 4 at x-6 / x+6"
   },
+  "golem_t0": {
+   "file": "res://assets/sprites/towers/golem_t0.png",
+   "frame_size": [
+    50,
+    44
+   ],
+   "frames": 4,
+   "fps": 0,
+   "anchor": [
+    12,
+    41
+   ],
+   "loop": false,
+   "note": "Заводной голем on a platform over the moat: place at (face_x1 + 1, y). Frames 0 idle, 1 wind-up, 2 punch (fist out to the right), 3 recover",
+   "muzzle": [
+    46,
+    22
+   ]
+  },
+  "golem_t1": {
+   "file": "res://assets/sprites/towers/golem_t1.png",
+   "frame_size": [
+    50,
+    44
+   ],
+   "frames": 4,
+   "fps": 0,
+   "anchor": [
+    12,
+    41
+   ],
+   "loop": false,
+   "note": "Заводной голем on a platform over the moat: place at (face_x1 + 1, y). Frames 0 idle, 1 wind-up, 2 punch (fist out to the right), 3 recover",
+   "muzzle": [
+    47,
+    22
+   ]
+  },
+  "golem_t2": {
+   "file": "res://assets/sprites/towers/golem_t2.png",
+   "frame_size": [
+    50,
+    44
+   ],
+   "frames": 4,
+   "fps": 0,
+   "anchor": [
+    12,
+    41
+   ],
+   "loop": false,
+   "note": "Заводной голем on a platform over the moat: place at (face_x1 + 1, y). Frames 0 idle, 1 wind-up, 2 punch (fist out to the right), 3 recover",
+   "muzzle": [
+    47,
+    22
+   ]
+  },
   "golem_walk": {
    "file": "res://assets/sprites/enemies/golem_walk.png",
    "frame_size": [
@@ -826,6 +1172,21 @@
    ],
    "loop": true,
    "note": "Подручный вожака"
+  },
+  "heal_pulse": {
+   "file": "res://assets/sprites/fx/heal_pulse.png",
+   "frame_size": [
+    40,
+    24
+   ],
+   "frames": 5,
+   "fps": 10,
+   "anchor": [
+    20,
+    16
+   ],
+   "loop": false,
+   "note": "Аптекарь heals (every 3 s): play at his feet, under the units"
   },
   "hit_spark": {
    "file": "res://assets/sprites/fx/hit_spark.png",
@@ -1168,6 +1529,137 @@
    "loop": false,
    "note": "shot smoke: spawn at tower position - tower anchor + manifest 'muzzle' when a tower fires"
   },
+  "octopus_fall": {
+   "file": "res://assets/sprites/enemies/octopus_fall.png",
+   "frame_size": [
+    70,
+    52
+   ],
+   "frames": 3,
+   "fps": 8,
+   "anchor": [
+    35,
+    49
+   ],
+   "loop": false,
+   "note": "Медный Спрут (R3 boss), all 3 escort tentacles: falls into the moat; anchor = waterline under the feet; free after the last frame"
+  },
+  "octopus_walk": {
+   "file": "res://assets/sprites/enemies/octopus_walk.png",
+   "frame_size": [
+    64,
+    48
+   ],
+   "frames": 4,
+   "fps": 5,
+   "anchor": [
+    34,
+    44
+   ],
+   "loop": true,
+   "note": "Медный Спрут (R3 boss), all 3 escort tentacles",
+   "roots": [
+    [
+     6,
+     33
+    ],
+    [
+     9,
+     39
+    ],
+    [
+     15,
+     44
+    ]
+   ]
+  },
+  "octopus_walk_cut1": {
+   "file": "res://assets/sprites/enemies/octopus_walk_cut1.png",
+   "frame_size": [
+    64,
+    48
+   ],
+   "frames": 4,
+   "fps": 5,
+   "anchor": [
+    34,
+    44
+   ],
+   "loop": true,
+   "note": "Медный Спрут with 1 tentacle(s) severed (stumps drip oil)",
+   "roots": [
+    [
+     6,
+     33
+    ],
+    [
+     9,
+     39
+    ],
+    [
+     15,
+     44
+    ]
+   ]
+  },
+  "octopus_walk_cut2": {
+   "file": "res://assets/sprites/enemies/octopus_walk_cut2.png",
+   "frame_size": [
+    64,
+    48
+   ],
+   "frames": 4,
+   "fps": 5,
+   "anchor": [
+    34,
+    44
+   ],
+   "loop": true,
+   "note": "Медный Спрут with 2 tentacle(s) severed (stumps drip oil)",
+   "roots": [
+    [
+     6,
+     33
+    ],
+    [
+     9,
+     39
+    ],
+    [
+     15,
+     44
+    ]
+   ]
+  },
+  "octopus_walk_cut3": {
+   "file": "res://assets/sprites/enemies/octopus_walk_cut3.png",
+   "frame_size": [
+    64,
+    48
+   ],
+   "frames": 4,
+   "fps": 5,
+   "anchor": [
+    34,
+    44
+   ],
+   "loop": true,
+   "note": "Медный Спрут with 3 tentacle(s) severed (stumps drip oil)",
+   "roots": [
+    [
+     6,
+     33
+    ],
+    [
+     9,
+     39
+    ],
+    [
+     15,
+     44
+    ]
+   ]
+  },
   "pipe_h": {
    "file": "res://assets/sprites/world/pipe_h.png",
    "frame_size": [
@@ -1268,6 +1760,36 @@
    ],
    "loop": true
   },
+  "punch_impact": {
+   "file": "res://assets/sprites/fx/punch_impact.png",
+   "frame_size": [
+    20,
+    20
+   ],
+   "frames": 4,
+   "fps": 14,
+   "anchor": [
+    10,
+    10
+   ],
+   "loop": false,
+   "note": "Заводной голем hit: at the golem's 'muzzle' (fist) on frame 2"
+  },
+  "pylon_break": {
+   "file": "res://assets/sprites/fx/pylon_break.png",
+   "frame_size": [
+    28,
+    28
+   ],
+   "frames": 5,
+   "fps": 12,
+   "anchor": [
+    14,
+    26
+   ],
+   "loop": false,
+   "note": "a pylon breaks"
+  },
   "res_blueprints": {
    "file": "res://assets/sprites/icons/res_blueprints.png",
    "frame_size": [
@@ -1299,7 +1821,7 @@
   "res_copper": {
    "file": "res://assets/sprites/icons/res_copper.png",
    "frame_size": [
-    17,
+    16,
     16
    ],
    "frames": 1,
@@ -1396,7 +1918,7 @@
    "note": "Рикошетная пушка, tier 0; frame 0 idle, 1 fire, 2 recover",
    "muzzle": [
     29,
-    19
+    15
    ]
   },
   "ricochet_t1": {
@@ -1415,7 +1937,7 @@
    "note": "Рикошетная пушка, tier 1; frame 0 idle, 1 fire, 2 recover",
    "muzzle": [
     29,
-    19
+    15
    ]
   },
   "ricochet_t2": {
@@ -1434,7 +1956,7 @@
    "note": "Рикошетная пушка, tier 2; frame 0 idle, 1 fire, 2 recover",
    "muzzle": [
     29,
-    19
+    15
    ]
   },
   "rifle_t0": {
@@ -1580,6 +2102,78 @@
    "loop": true,
    "note": "3 variants, ruts run horizontally"
   },
+  "saw_disc": {
+   "file": "res://assets/sprites/projectiles/saw_disc.png",
+   "frame_size": [
+    12,
+    12
+   ],
+   "frames": 4,
+   "fps": 16,
+   "anchor": [
+    6,
+    6
+   ],
+   "loop": true,
+   "note": "Пилометатель disc, pierces a line of enemies"
+  },
+  "saw_t0": {
+   "file": "res://assets/sprites/towers/saw_t0.png",
+   "frame_size": [
+    32,
+    40
+   ],
+   "frames": 3,
+   "fps": 0,
+   "anchor": [
+    16,
+    37
+   ],
+   "loop": false,
+   "note": "Пилометатель, tier 0; frame 0 loaded, 1 thrown, 2 reload",
+   "muzzle": [
+    28,
+    15
+   ]
+  },
+  "saw_t1": {
+   "file": "res://assets/sprites/towers/saw_t1.png",
+   "frame_size": [
+    32,
+    40
+   ],
+   "frames": 3,
+   "fps": 0,
+   "anchor": [
+    16,
+    37
+   ],
+   "loop": false,
+   "note": "Пилометатель, tier 1; frame 0 loaded, 1 thrown, 2 reload",
+   "muzzle": [
+    28,
+    15
+   ]
+  },
+  "saw_t2": {
+   "file": "res://assets/sprites/towers/saw_t2.png",
+   "frame_size": [
+    32,
+    40
+   ],
+   "frames": 3,
+   "fps": 0,
+   "anchor": [
+    16,
+    37
+   ],
+   "loop": false,
+   "note": "Пилометатель, tier 2; frame 0 loaded, 1 thrown, 2 reload",
+   "muzzle": [
+    28,
+    15
+   ]
+  },
   "scavenger_fall": {
    "file": "res://assets/sprites/enemies/scavenger_fall.png",
    "frame_size": [
@@ -1684,6 +2278,21 @@
    ],
    "loop": true
   },
+  "shield_dome": {
+   "file": "res://assets/sprites/fx/shield_dome.png",
+   "frame_size": [
+    64,
+    40
+   ],
+   "frames": 4,
+   "fps": 8,
+   "anchor": [
+    32,
+    36
+   ],
+   "loop": true,
+   "note": "Часовщик's shield while any pylon stands: centre on the boss feet, above the boss"
+  },
   "splash": {
    "file": "res://assets/sprites/fx/splash.png",
    "frame_size": [
@@ -1697,6 +2306,81 @@
     24
    ],
    "loop": false
+  },
+  "spring_pylon": {
+   "file": "res://assets/sprites/enemies/spring_pylon.png",
+   "frame_size": [
+    14,
+    28
+   ],
+   "frames": 4,
+   "fps": 8,
+   "anchor": [
+    7,
+    27
+   ],
+   "loop": true,
+   "note": "one of 3 spring-shield pylons that walk with the Часовщик (shield while any stands)"
+  },
+  "spring_pylon_broken": {
+   "file": "res://assets/sprites/enemies/spring_pylon_broken.png",
+   "frame_size": [
+    14,
+    28
+   ],
+   "frames": 2,
+   "fps": 6,
+   "anchor": [
+    7,
+    27
+   ],
+   "loop": true,
+   "note": "pylon after it breaks (stays as a wreck a few seconds)"
+  },
+  "stag_dash": {
+   "file": "res://assets/sprites/enemies/stag_dash.png",
+   "frame_size": [
+    30,
+    28
+   ],
+   "frames": 3,
+   "fps": 14,
+   "anchor": [
+    15,
+    27
+   ],
+   "loop": false,
+   "note": "Заводной олень lunges (every 2 s): play during the burst, then back to stag_walk"
+  },
+  "stag_fall": {
+   "file": "res://assets/sprites/enemies/stag_fall.png",
+   "frame_size": [
+    34,
+    32
+   ],
+   "frames": 3,
+   "fps": 8,
+   "anchor": [
+    17,
+    29
+   ],
+   "loop": false,
+   "note": "Заводной олень (R4): falls into the moat; anchor = waterline under the feet; free after the last frame"
+  },
+  "stag_walk": {
+   "file": "res://assets/sprites/enemies/stag_walk.png",
+   "frame_size": [
+    28,
+    28
+   ],
+   "frames": 4,
+   "fps": 8,
+   "anchor": [
+    13,
+    27
+   ],
+   "loop": true,
+   "note": "Заводной олень (R4)"
   },
   "steam_cone": {
    "file": "res://assets/sprites/fx/steam_cone.png",
@@ -1716,7 +2400,7 @@
   "steam_curtain": {
    "file": "res://assets/sprites/world/steam_curtain.png",
    "frame_size": [
-    52,
+    64,
     340
    ],
    "frames": 6,
@@ -1903,6 +2587,51 @@
    "loop": true,
    "note": "loose wisps drifting east over the bank; place 3-6 at (bank_x0-6, y), above enemies, random start"
   },
+  "tentacle_segment": {
+   "file": "res://assets/sprites/enemies/tentacle_segment.png",
+   "frame_size": [
+    16,
+    10
+   ],
+   "frames": 4,
+   "fps": 8,
+   "anchor": [
+    0,
+    5
+   ],
+   "loop": true,
+   "note": "escort tentacle body: chain segments (14 px step) from an octopus root to its tip, rotate"
+  },
+  "tentacle_sever": {
+   "file": "res://assets/sprites/fx/tentacle_sever.png",
+   "frame_size": [
+    28,
+    22
+   ],
+   "frames": 5,
+   "fps": 12,
+   "anchor": [
+    14,
+    14
+   ],
+   "loop": false,
+   "note": "a tentacle is cut: at the cut point; then switch the boss to octopus_walk_cutN"
+  },
+  "tentacle_tip": {
+   "file": "res://assets/sprites/enemies/tentacle_tip.png",
+   "frame_size": [
+    18,
+    14
+   ],
+   "frames": 4,
+   "fps": 8,
+   "anchor": [
+    16,
+    7
+   ],
+   "loop": true,
+   "note": "escort tentacle tip gripping the road ahead of the boss (the severable target)"
+  },
   "tesla_arc": {
    "file": "res://assets/sprites/fx/tesla_arc.png",
    "frame_size": [
@@ -1978,14 +2707,14 @@
   "toad_fall": {
    "file": "res://assets/sprites/enemies/toad_fall.png",
    "frame_size": [
-    26,
-    32
+    32,
+    34
    ],
    "frames": 3,
    "fps": 8,
    "anchor": [
-    13,
-    29
+    16,
+    31
    ],
    "loop": false,
    "note": "Механожаба (R3): frames sit, crouch, leap, airborne (not a ground target), land: falls into the moat; anchor = waterline under the feet; free after the last frame"
@@ -1993,14 +2722,14 @@
   "toad_hop": {
    "file": "res://assets/sprites/enemies/toad_hop.png",
    "frame_size": [
-    20,
-    28
+    26,
+    30
    ],
    "frames": 5,
    "fps": 8,
    "anchor": [
-    10,
-    26
+    12,
+    28
    ],
    "loop": true,
    "note": "Механожаба (R3): frames sit, crouch, leap, airborne (not a ground target), land"
@@ -2093,6 +2822,21 @@
    ],
    "loop": true,
    "note": "tiles vertically, x=0 is walk_x0"
+  },
+  "wet_metal": {
+   "file": "res://assets/sprites/fx/wet_metal.png",
+   "frame_size": [
+    16,
+    16
+   ],
+   "frames": 5,
+   "fps": 12,
+   "anchor": [
+    8,
+    10
+   ],
+   "loop": false,
+   "note": "«Мокрый металл»: spark hits a scalded enemy (×2 damage)"
   }
  }
 }

@@ -265,8 +265,79 @@
         "button": "Улучшить"
       }
     ],
-    "tooltip_title": "Механожаба",
-    "tooltip_body": "Прыгает: в прыжке не цель.\nДобыча: 30 шестерён, 1 медь.",
+    "tooltip_title": "Водолаз",
+    "tooltip_body": "Медный шлем: щит снимают\nтолько пар и искра.",
     "boss_button": "Вызвать Медного Спрута"
+  },
+  "region4": {
+    "goal": "Цель: Часовой лес — Часовщик",
+    "res": [
+      [
+        "res_gears",
+        "88M",
+        "+1.4M/с"
+      ],
+      [
+        "res_blueprints",
+        "210K",
+        "+900/с"
+      ],
+      [
+        "res_copper",
+        "3.1K",
+        "+20/с"
+      ],
+      [
+        "res_springs",
+        "45",
+        "+0.6/с"
+      ]
+    ],
+    "header": "Заводные цеха",
+    "cards": [
+      {
+        "tower": "saw_t1",
+        "name": "Пилометатель",
+        "level": "Ур. 2 · 1/2 на стене",
+        "dmg": "dmg_impact",
+        "effect": "Пила режет 3 → 4",
+        "price": "14M",
+        "affordable": true,
+        "button": "Купить"
+      },
+      {
+        "tower": "tesla_t2",
+        "name": "Тесла-катушка",
+        "level": "Ур. 9 · 2/2 на стене",
+        "dmg": "dmg_spark",
+        "effect": "Цепь 5 → 6 целей",
+        "price": "31M",
+        "affordable": false,
+        "button": "Купить"
+      },
+      {
+        "tower": "mortar_t2",
+        "name": "Мортира",
+        "level": "Ур. 30 · 2/2 на стене",
+        "dmg": "dmg_blast",
+        "effect": "Взрыв +20%",
+        "price": "60M",
+        "affordable": false,
+        "button": "Купить"
+      },
+      {
+        "tower": "",
+        "name": "Часовая башня",
+        "level": "Механизм · залп раз в 12 с",
+        "dmg": "dmg_impact",
+        "effect": "Залп ×8 → ×10",
+        "price": "40",
+        "affordable": true,
+        "button": "Улучшить"
+      }
+    ],
+    "tooltip_title": "Механокукушка",
+    "tooltip_body": "Летит: бьют только линза,\nтесла и мортира.",
+    "boss_button": "Вызвать Часовщика"
   }
 }

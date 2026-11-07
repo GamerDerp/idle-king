@@ -308,12 +308,12 @@ KING_HEAD = """
 .......h..h..h....
 .......hg.hgThg...
 ......fgRgggggRf..
-......eeeeeeeeee..
 .....cnhhhnnnhhhn.
 ....ccnhyxhnhyxxh.
-....cdphhhpophhho.
+....cdnhhhnpnhhhn.
+....cdppppppppppp.
 ....cdpdddppdddpp.
-....cdpp0pppp0pp..
+....cdpv0ppppv0p..
 .....cppppppooop..
 .....cdddddoodddd.
 ....dc.ccddddcc.dd
@@ -378,9 +378,10 @@ def _king_canvas(head_dy: int = 0, body_dy: int = 0, cup=(25, 15), sip: bool = F
     c.ascii(10, 25, KING_FEET.strip("\n").split("\n"))
     c.paste_over(body, 10, 13 + body_dy)
     c.paste_over(head, 10, 1 + head_dy + body_dy)
-    if sip:  # the goggled eyes squint while sipping
-        c.set(15, 8 + head_dy + body_dy, "brass_1")
-        c.set(20, 8 + head_dy + body_dy, "brass_1")
+    if sip:  # eyes close while sipping (goggles stay up on the forehead)
+        for ex in (17, 23):
+            c.set(ex, 9 + head_dy + body_dy, "copper_2")
+            c.set(ex + 1, 9 + head_dy + body_dy, "copper_1")
     cx, cy = cup
     arm = from_ascii(KING_ARM)
     c.paste_over(arm, cx - 4, cy - 1 + (1 if cy < 13 else 0))

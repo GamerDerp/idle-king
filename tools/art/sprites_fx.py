@@ -327,21 +327,23 @@ def icon_blueprint() -> Canvas:
 
 
 def icon_coal() -> Canvas:
+    """16x16 coal: two faceted anthracite lumps. Thin bright blue-grey facets on the lit (top-left) side,
+    black body, and an ember glowing in the crack between the lumps - readable on a dark plate."""
     return from_ascii("""
 ................
 ................
 ......000.......
-.....0c210......
-....0cc2210.....
-...00c22210000..
-..0bc0221100c10.
-.0cc221110c2210.
-.0c22211102221Q0
-.0b2221110211RT0
-..0211100211110.
-...01110021110..
-....00000000.0..
-................
+.....0vd10......
+....0dcc110.....
+...0dccb1100000.
+..0dccbb110dcd10
+..0ccbb1110cbb10
+.0dcbb11110cb110
+.0cbb11110Qcb110
+.0cb111110RTb110
+.0b1111100TR1110
+..011110.0R1110.
+...00000.000000.
 ................
 ................
 """)

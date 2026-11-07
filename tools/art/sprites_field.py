@@ -19,6 +19,8 @@ REGIONS = {
         "ridge": "soot_2", "ridge_dark": "soot_1", "ridge_lit": "soot_3"},
     3: {"ground": "verdigris_0", "dark": "teal_0", "light": "verdigris_1", "lit": "verdigris_2", "shade": "soot_2",
         "ridge": "teal_0", "ridge_dark": "soot_2", "ridge_lit": "verdigris_0"},
+    4: {"ground": "soot_3", "dark": "soot_2", "light": "dust_0", "lit": "dust_1", "shade": "soot_1",
+        "ridge": "soot_2", "ridge_dark": "soot_1", "ridge_lit": "soot_3"},
 }
 
 
@@ -42,14 +44,15 @@ def rgbset(*names) -> set:
 
 # ------------------------------------------------------------------ shared ground painters
 
-def scatter_details(c: Canvas, R: dict, seed: int, r: float = 6.5, keep=None, on=None, blades: bool = False) -> None:
+def scatter_details(c: Canvas, R: dict, seed: int, r: float = 6.5, keep=None, on=None, blades: bool = False,
+                    clump: float = 0.0) -> None:
     """Blue-noise micro detail: pebbles, specks, hairline cracks. Density varies with low-frequency noise
     so details cluster softly instead of covering the field evenly."""
     dens = WO.value_noise(L.W, L.H, 48, seed + 5)
     rr = rng(seed)
     allowed = on or rgbset(R["ground"], R["light"], R["dark"])
     for (x, y) in poisson(L.FIELD_X0 + 2, 0, L.W, L.H, r, seed):
-        if dens[y][x] < 0.38 or rr.random() > dens[y][x] * 1.25:
+        if dens[y][x] < 0.38 + clump * 0.12 or rr.random() > (dens[y][x] - clump * 0.25) * (1.25 + clump):
             continue
         if keep and not keep(x, y):
             continue
@@ -103,6 +106,18 @@ def rim_shade(c: Canvas, pixels: list, inner: str, rim: str) -> None:
         if (x, y + 1) not in s or (x + 1, y) not in s:
             if (x, y - 1) in s and (x - 1, y) in s:
                 c.set(x, y, rim)
+
+
+def edge_shade(c: Canvas, pixels: list, near: str, far: str) -> None:
+    """Two-tone patch edge: the top/left boundary gets `near`, the bottom/right boundary gets `far`.
+    Raised patches (moss): near = lit, far = dark. Hollows (mud, damp): near = dark (the rim's shadow
+    falls in), far = lit (the far bank catches the light)."""
+    s = set(pixels)
+    for (x, y) in pixels:
+        if (x, y - 1) not in s or (x - 1, y) not in s:
+            c.set(x, y, near)
+        elif (x, y + 1) not in s or (x + 1, y) not in s:
+            c.set(x, y, far)
 
 
 def ridges(c: Canvas, R: dict, seed: int) -> None:
@@ -226,7 +241,20 @@ def field_r1(c: Canvas) -> None:
          (178, 286, WO.decal_grass(8)), (214, 268, WO.decal_grass(9))],
         [(398, 92, WO.crater(9, 5)), (420, 102, WO.boulder(12, 8, 13)), (386, 104, WO.decal_rocks(10)),
          (412, 88, WO.decal_scrap(4))],
+        # small things for the big flats, so they are not empty
+        [(296, 52, WO.fence_remnant(3)), (330, 58, WO.decal_grass(14))],
+        [(318, 240, WO.stone_scatter(5)), (346, 222, WO.decal_scrap(5)), (300, 228, WO.bush(77, "sage"))],
+        [(200, 128, WO.stone_scatter(8)), (244, 140, WO.signpost())],
+        [(414, 152, WO.decal_scrap(7)), (430, 160, WO.decal_grass(15))],
+        [(250, 286, WO.fence_remnant(9)), (178, 240, WO.stone_scatter(11))],
+        [(160, 150, WO.bush(91, "rust")), (172, 156, WO.decal_rocks(12))],
     ]
+    # a faint old cart track across the southern flat (paired rut dots, broken)
+    for x in range(290, 380):
+        y = int(250 + (x - 290) * 0.12)
+        if (x * 7) % 5 < 3 and c.get(x, y)[:3] == C(R["light"])[:3]:
+            c.set(x, y, R["ground"])
+            c.set(x, y + 4, R["ground"])
     for cl in clusters:
         for (x, y, dd) in cl:
             stamps.append((y + dd.h, x, y, dd))
@@ -300,18 +328,56 @@ def mine_cart(full: bool = True, w: int = 20, seed: int = 1) -> Canvas:
     return c
 
 
-def mine_cart_wreck() -> Canvas:
-    """A cart tipped onto its side with coal spilled to the right."""
-    cart = mine_cart(False, 18)
-    c = Canvas(30, 17)
-    from PIL import Image as _I
-    img = cart.img.transpose(_I.FLIP_TOP_BOTTOM)     # overturned: wheels up
-    c.img.alpha_composite(img, (1, 0))
-    c.px = c.img.load()
-    for (x, y) in poisson(13, 9, 30, 17, 1.5, 4):
-        if not c.opaque(x, y) and y > 10 + abs(x - 20) * 0.35:
-            c.set(x, y, "soot_1" if (x + y) % 3 else "iron_0")
+def rust_cart(seed: int, tipped: bool = False) -> Canvas:
+    """Abandoned mine-cart bucket: rusted through (copper ramp, no iron sheen, no brass), dented rim,
+    holes, NO wheels, half sunk in the ground; may hold a little old coal. Must never read as the
+    `wagon_roll` enemy (iron + brass rim + wheels + headlamps)."""
+    rr = rng(seed)
+    w, h = 18, 14
+    c = Canvas(w + 3, h)
+    top, bot = 4, 10
+    for y in range(top, bot + 1):
+        inset = (y - top) // 2
+        for x in range(1 + inset, w - inset):
+            c.set(x, y, "copper_1")
+        c.set(1 + inset, y, "copper_2")
+        c.set(w - 1 - inset, y, "copper_0")
+    for x in range(1, w):            # dented rim
+        c.set(x, top + (1 if x in (5, 6, 12) else 0), "copper_2")
+    c.set(2, top, "copper_3")
+    for (x, y) in poisson(3, top + 2, w - 3, bot, 3.0, seed):      # rust holes and flakes
+        r = rr.random()
+        if r < 0.3:
+            c.set(x, y, "soot_0")
+            c.set(x + 1, y, "soot_1")
+        elif r < 0.6:
+            c.set(x, y, "copper_0")
+        else:
+            c.set(x, y, "dust_1")
+    c.vline(w // 2, top + 2, bot - 1, "copper_0")
+    if rr.random() < 0.6:
+        for x in range(4, w - 4):
+            if rr.random() < 0.7:
+                c.set(x, top - 1, "soot_1" if x % 3 else "soot_0")
+    # sunk: the ground covers the bottom, a dark lip where it meets the ground
+    for x in range(0, w + 3):
+        c.set(x, bot + 1, "soot_3")
+        c.set(x, bot + 2, "dust_0" if x % 4 else "dust_1")
     c.outline("soot_0")
+    if tipped:
+        from PIL import Image as _I
+        c.img = c.img.transpose(_I.FLIP_TOP_BOTTOM)
+        c.px = c.img.load()
+    return c
+
+
+def mine_cart_wreck() -> Canvas:
+    """An overturned, wheel-less rusty bucket with spilled coal to the right."""
+    c = Canvas(30, 17)
+    c.paste_over(rust_cart(11, tipped=True), 1, 0)
+    for (x, y) in poisson(14, 8, 30, 17, 1.5, 4):
+        if not c.opaque(x, y) and y > 9 + abs(x - 21) * 0.35:
+            c.set(x, y, "soot_1" if (x + y) % 3 else "iron_0")
     return c
 
 
@@ -511,11 +577,11 @@ def field_r2(c: Canvas) -> None:
     c.rect(245, ay + 58, 258, ay + 60, "copper_1")
     c.hline(245, 258, ay + 58, "copper_3")
     c.hline(245, 258, ay + 61, "soot_1")
-    stamps.append((ay + 52, 241, ay + 38, mine_cart(True, 20, 3)))
+    stamps.append((ay + 52, 242, ay + 40, rust_cart(3)))
     clusters = [
         [(206, 92, slag_heap(30, 20, 3)), (236, 104, slag_heap(16, 10, 4, coal=True)), (196, 108, WO.decal_rocks(5))],
         [(362, 264, mine_cart_wreck()), (390, 280, slag_heap(14, 9, 6, coal=True)), (346, 286, timber_pile())],
-        [(160, 140, mine_cart(True, 18, 7)), (180, 146, WO.decal_rocks(3))],
+        [(160, 142, rust_cart(7)), (180, 146, WO.decal_rocks(3))],
         [(176, 252, timber_trestle()), (200, 270, slag_heap(18, 12, 8, coal=True)), (164, 278, WO.crater(6, 3))],
         [(404, 84, slag_heap(26, 18, 9)), (430, 100, lantern_post()), (388, 102, pick_in_rock())],
         [(300, 128, lantern_post()), (318, 262, lantern_post())],
@@ -642,14 +708,20 @@ def field_r3(c: Canvas) -> None:
     for i, (x, y, rx, ry) in enumerate([(200, 130, 30, 12), (350, 230, 36, 12), (420, 160, 22, 9),
                                         (290, 66, 26, 8), (250, 250, 18, 6)]):
         px = blob_patch(c, x, y, rx, ry, 760 + i, "soot_3", only=G, rough=0.4, satellites=3)   # dark mud flats
-        rim_shade(c, px, "soot_3", "dust_0")
+        edge_shade(c, px, "soot_2", "dust_0")
+        rr_ = rng(770 + i)
+        for _ in range(len(px) // 40):          # wet glints in the mud
+            gx, gy = rr_.choice(px)
+            if c.get(gx, gy)[:3] == C("soot_3")[:3]:
+                c.set(gx, gy, "teal_0")
     for i, (x, y, rx, ry) in enumerate([(380, 110, 22, 8), (230, 230, 26, 9), (420, 270, 16, 6), (170, 200, 12, 5)]):
-        blob_patch(c, x, y, rx, ry, 780 + i, "teal_0", only=G, rough=0.38, satellites=2)       # damp hollows
+        px = blob_patch(c, x, y, rx, ry, 780 + i, "teal_0", only=G, rough=0.38, satellites=2)  # damp hollows
+        edge_shade(c, px, "soot_2", "verdigris_0")
     for i, (x, y, rx, ry) in enumerate([(220, 150, 10, 4), (330, 260, 12, 4), (412, 128, 9, 4),
                                         (176, 90, 8, 3), (300, 100, 9, 3), (390, 214, 7, 3), (270, 236, 6, 3)]):
         px = blob_patch(c, x, y, rx, ry, 700 + i, R["light"], only=rgbset(R["ground"]), rough=0.45,
                         satellites=2)
-        rim_shade(c, px, R["light"], R["ground"])
+        edge_shade(c, px, R["lit"], "teal_0")       # moss cushions: lit top-left, shadow bottom-right
     ridges(c, R, 13)
     pools = [(232, 98, 22, 8), (392, 272, 26, 9), (186, 268, 16, 7), (412, 96, 16, 6), (302, 132, 12, 5),
              (268, 290, 12, 4), (440, 220, 10, 5), (170, 160, 8, 4)]
@@ -665,7 +737,7 @@ def field_r3(c: Canvas) -> None:
             elif v < 1.6:
                 c.set(x, y, "soot_2")
     scatter_details(c, R, 35, r=5.5, keep=lambda x, y: ridge_top(x) + 2 < y < ridge_bot(x) - 1,
-                    on=rgbset(R["ground"], R["light"]), blades=True)
+                    on=rgbset(R["ground"], R["light"]), blades=True, clump=1.0)
     sw = wobble(14, 2)
     rr0 = rng(15)
     x = L.FIELD_X0 + 1
@@ -692,7 +764,7 @@ def field_r3(c: Canvas) -> None:
     rr = rng(13)
     stamps = []
     for i, x in enumerate(uneven_line(81, L.FIELD_X0 + 4, L.W - 6, gap=(4, 26))):
-        b = reeds(i + 1) if rr.random() < 0.75 else marsh_tree()
+        b = reeds(i + 1)
         top = ridge_top(x)
         stamps.append((top, x, top - b.h + rr.randint(1, 5), b))
     for i, x in enumerate(uneven_line(83, L.FIELD_X0 + 2, L.W - 6, gap=(4, 24))):
@@ -704,10 +776,17 @@ def field_r3(c: Canvas) -> None:
         if 0.5 < dd < 6 and rr.random() < 0.4:
             g = reeds(x * 3 + y)
             stamps.append((y, x - g.w // 2, y - g.h + 2, g))
+    # dead trees scattered at different depths (never a row): one leaning over a pool, one on the far
+    # ridge, two in the open, one near the bank
+    for (x, y, flip) in [(364, 36, False), (282, 112, True), (430, 196, False), (214, 300, True), (158, 92, False)]:
+        t = marsh_tree()
+        if flip:
+            t = t.flip_h()
+        stamps.append((y, x, y - t.h, t))
     clusters = [
         [(222, 92, sunk_helmet()), (246, 96, lily(1)), (226, 104, lily(2)), (212, 96, reeds(5))],
         [(380, 262, copper_pipe_stub()), (400, 274, lily(3)), (410, 266, reeds(7)), (366, 276, reeds(8))],
-        [(176, 248, marsh_tree()), (194, 270, lily(4)), (168, 272, reeds(9))],
+        [(194, 270, lily(4)), (168, 272, reeds(9))],
         [(404, 90, lily(5)), (420, 84, reeds(10)), (296, 128, lily(6))],
     ]
     for cl in clusters:
@@ -927,7 +1006,69 @@ def fortress(c: Canvas, R: dict) -> list:
     return smoke
 
 
-FIELDS = {1: field_r1, 2: field_r2, 3: field_r3}
+def field_r4(c: Canvas) -> None:
+    """«Часовой лес»: dark forest floor, copper leaf litter in drifts, mossy patches, a path of packed
+    earth with inlaid brass cog-stones; brass trees with copper crowns frame the field in uneven
+    clumps (dense on the ridges, a few standing in the field), fallen gears and springs."""
+    import sprites_r4 as R4
+    R = REGIONS[4]
+    G = rgbset(R["ground"])
+    for i, (x, y, rx, ry) in enumerate([(214, 118, 36, 14), (334, 236, 42, 13), (414, 150, 26, 11),
+                                        (300, 70, 30, 9), (180, 246, 22, 9)]):
+        px = blob_patch(c, x, y, rx, ry, 800 + i, "dust_0", only=G, rough=0.4, satellites=3)   # leaf drifts
+        edge_shade(c, px, "dust_1", "soot_2")
+        rr_ = rng(810 + i)
+        for (lx, ly) in px:                                  # dense copper leaves inside the drift
+            v = rr_.random()
+            if v < 0.16:
+                c.set(lx, ly, "copper_1")
+            elif v < 0.24:
+                c.set(lx, ly, "copper_2")
+            elif v < 0.27:
+                c.set(lx, ly, "brass_1")
+    for i, (x, y, rx, ry) in enumerate([(262, 156, 12, 5), (420, 236, 10, 4), (176, 96, 10, 4), (366, 114, 9, 4),
+                                        (250, 290, 12, 4)]):
+        px = blob_patch(c, x, y, rx, ry, 820 + i, "verdigris_0", only=G, rough=0.4, satellites=2)  # moss
+        edge_shade(c, px, "verdigris_1", "soot_2")
+    ridges(c, R, 14)
+    d = road_mask(7)
+    for x in range(L.FIELD_X0 - 2, L.W):
+        for y in range(L.H):
+            v = d(x, y)
+            if v < 0:
+                c.set(x, y, "dust_0")
+            elif v < 1.6:
+                c.set(x, y, "soot_2")
+    scatter_details(c, R, 37, r=6.5, keep=lambda x, y: ridge_top(x) + 2 < y < ridge_bot(x) - 1, clump=0.6)
+    R4.leaf_litter(c, L.FIELD_X0 + 2, 0, L.W, L.H, 39,
+                   lambda x, y: ridge_top(x) + 2 < y < ridge_bot(x) - 1 and c.get(x, y)[:3] in rgbset("soot_3", "copper_0", "dust_0"))
+    # inlaid cog-stones along the path, irregular spacing
+    rr = rng(41)
+    x = L.FIELD_X0 + 10
+    while x < L.W - 6:
+        cy = L.road_center(x) + rr.randint(-8, 8)
+        c.paste_over(R4.fallen_gear(x), x, int(cy) - 3)
+        x += rr.randint(22, 48)
+    stamps = []
+    for i, x in enumerate(uneven_line(91, L.FIELD_X0 - 2, L.W - 10, gap=(0, 14), cluster=(1, 3))):
+        t = R4.brass_tree(300 + i, rr.randint(24, 34))
+        top = ridge_top(x)
+        stamps.append((top, x - t.w // 2, top - t.h + rr.randint(2, 8), t))
+    for i, x in enumerate(uneven_line(93, L.FIELD_X0 - 2, L.W - 10, gap=(2, 18), cluster=(1, 3))):
+        t = R4.brass_tree(400 + i, rr.randint(22, 30))
+        bot = ridge_bot(x)
+        stamps.append((bot + 20, x - t.w // 2, bot - t.h // 2 + rr.randint(0, 10), t))
+    for (x, y, s_, h) in [(196, 92, 1, 30), (372, 112, 2, 28), (428, 252, 3, 32), (238, 276, 4, 26)]:
+        t = R4.brass_tree(500 + s_, h)
+        stamps.append((y, x - t.w // 2, y - t.h, t))
+    for (x, y, s_) in [(222, 112, 1), (388, 124, 2), (318, 256, 3), (180, 156, 4), (430, 168, 5), (290, 104, 6)]:
+        g = R4.fallen_gear(s_ * 7)
+        stamps.append((y, x, y - g.h, g))
+    stamps.append((240, 330, 234, WO.decal_scrap(2)))
+    stamp_all(c, stamps)
+
+
+FIELDS = {1: field_r1, 2: field_r2, 3: field_r3, 4: field_r4}
 
 
 def compose_bg(region: int = 1):

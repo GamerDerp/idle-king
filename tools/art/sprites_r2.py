@@ -497,9 +497,22 @@ def drill_boss(frame: int, mode: str = "walk") -> Canvas:
             for (dx, dy) in [(-1, 0), (0, -1), (0, 1), (-2, -2), (-2, 2), (-3, 0)]:
                 c.set(sx + dx * (1 + frame), sy + dy * (1 + frame), "ember_2" if r0 < 3 else "ember_1")
     if mode == "retreat":
-        for (dx, dy) in [(53, 24), (55, 28), (54, 20)]:
-            if (dx + frame) % 2:
-                c.set(dx, Y + dy, "steam_2")
+        # nose-up tilt while reversing: front columns lifted up to 3 px (reads at a glance vs walk)
+        tilted = Canvas(c.w, c.h)
+        for x in range(c.w):
+            dy = -max(0, round((44 - x) / 9))
+            for y in range(c.h):
+                p = c.get(x, y)
+                if p[3] and 0 <= y + dy < c.h:
+                    tilted.px[x, y + dy] = p
+        c = tilted
+        # dust thrown up in front of the tracks (they spin backwards), drifting forward-left
+        for k in range(3):
+            t = ((frame + k) % 4) / 4
+            cloud(c, 6 + k * 9 - t * 6, Y + 38 - t * 5 - k, 2.6 + t * 2.6, seed=160 + k,
+                  alpha=int(235 * (1 - t * 0.6)), dark="dust_1", mid="dust_2", light="parchment_0", tail=False)
+        for (dx, dy) in [(4, 30), (12, 28), (2, 26)]:
+            c.set(dx - frame, Y + dy - frame % 2, "dust_2")
     return c
 
 
@@ -590,54 +603,58 @@ def _boiler(c: Canvas, x: float, y: float, r: float, fuse: bool = True) -> None:
 
 
 def boilerbomb(tier: int, phase: int) -> Canvas:
-    """Котлобой: a spring launcher. A riveted housing holds a big coil spring under a tilted cup; the cup
-    carries a small copper boiler with a lit fuse. 0 loaded, 1 thrown (spring extended, cup empty, steam
-    blow), 2 reloading (spring half down, the next boiler rolls up a loader ramp). Tier 2 is gilded,
-    with a bigger boiler, a gauge and a pennant."""
+    """Котлобой: a side-view CATAPULT on the turret base. A-frame trestle, a throwing arm on a torsion
+    spring drum, a bucket at the arm's end carrying a small riveted boiler with a lit fuse.
+    0 cocked + loaded (arm down-back), 1 thrown (arm swung up-forward, bucket empty, steam blow),
+    2 returning (arm halfway, the next boiler waits on the deck). Tier 0 timber, 1 iron with brass drum,
+    2 gilded, bigger boiler, pennant."""
     t = TW.TIERS[tier]
     c = Canvas(TW.W, TW.H)
     TW.base(c, tier)
     TW.side_pipes(c, tier)
     m, tr = t["metal"], t["trim"]
-    TW.stack(c, tier, 4, phase == 1)
-    # housing
-    c.rect(9, 20, 23, 26, m[1])
-    c.hline(9, 23, 20, m[3])
-    c.vline(9, 20, 26, m[2])
-    c.vline(23, 21, 26, m[0])
-    for x in (11, 21):
-        c.set(x, 22, t["rivet"])
-        c.set(x, 25, t["rivet"])
-    top = {0: 14, 1: 9, 2: 12}[phase]
-    # coil spring from the housing up to the cup
-    for k, y in enumerate(range(top + 2, 21)):
-        xa, xb = (13, 19) if k % 2 else (14, 18)
-        c.hline(xa, xb, y, tr[3] if k % 2 else tr[1])
-    c.vline(16, top + 2, 20, m[0])
-    # tilted cup (bowl) facing up-right
-    for x in range(10, 23):
-        u = (x - 10) / 12
-        y0 = top + 1 - int(u * 2)
-        c.vline(x, y0, y0 + 2 - (1 if x in (10, 22) else 0), tr[1])
-        c.set(x, y0, tr[3] if u < 0.5 else tr[2])
-    c.set(10, top - 1, tr[2])
-    c.set(22, top - 3, tr[2])
+    TW.stack(c, tier, 3, phase == 1)
+    wood = ("copper_0", "copper_1", "copper_2", "copper_3")
+    beam = wood if tier == 0 else m
+    px, py = 16, 13                     # pivot
+    # A-frame trestle (two legs + cross beam), lit left side
+    for (x0, y0) in ((9, 26), (23, 26)):
+        c.line(x0, y0, px, py + 1, beam[2])
+        c.line(x0 + 1, y0, px + 1, py + 1, beam[1])
+    c.hline(11, 21, 21, beam[1])
+    c.hline(11, 21, 20, beam[3])
+    c.rect(8, 25, 24, 26, beam[0])
+    c.hline(8, 24, 25, beam[2])
+    # throwing arm
+    ang = {0: 200, 1: 300, 2: 250}[phase]
+    a = math.radians(ang)
+    ln = 13
+    ex, ey = px + math.cos(a) * ln, py + math.sin(a) * ln * 0.9
+    bx, by = px - math.cos(a) * 4, py - math.sin(a) * 4     # short back end
+    c.line(round(bx), round(by), round(ex), round(ey), beam[3] if tier == 0 else tr[2])
+    c.line(round(bx), round(by) + 1, round(ex), round(ey) + 1, beam[1] if tier == 0 else tr[0])
+    # bucket at the end (always opens upward)
+    cx, cy = round(ex), round(ey)
+    for x in range(cx - 3, cx + 4):
+        c.set(x, cy + 1, beam[1])
+        c.set(x, cy + 2, beam[0])
+    c.set(cx - 3, cy, beam[2])
+    c.set(cx + 3, cy, beam[1])
+    # torsion spring drum at the pivot (rope coil at tier 0)
+    c.disc(px, py, 2.6, "parchment_0" if tier == 0 else tr[1])
+    c.set(px - 1, py - 1, "parchment_1" if tier == 0 else tr[3])
+    c.set(px, py, "soot_1")
     big = tier == 2
     if phase == 0:
-        _boiler(c, 16.5, top - 3, 4.6 if big else 3.8)
-    if phase == 2:   # loader ramp and the next boiler
-        c.line(3, 27, 9, 21, m[2])
-        c.line(3, 28, 9, 22, m[0])
-        _boiler(c, 6, 21, 2.8, fuse=False)
+        _boiler(c, cx, cy - 2, 4.0 if big else 3.4)
+    elif phase == 2:
+        _boiler(c, 5, 22, 2.8, fuse=False)
     if tier == 2:
-        TW.gauge(c, 20, 22)
-        TW.pennant(c, 25, 6, 1 if phase == 1 else 0)
+        TW.pennant(c, 26, 6, 1 if phase == 1 else 0)
     c.outline("soot_0")
-    TW.MUZZLE[f"boiler_t{tier}"] = (19, top - 6)
+    TW.MUZZLE[f"boiler_t{tier}"] = (round(px + math.cos(math.radians(300)) * ln), round(py + math.sin(math.radians(300)) * ln * 0.9) - 3)
     if phase == 1:
-        cloud(c, 17, top - 2, 3.0, seed=150, alpha=255)
-        c.set(21, top - 6, "steam_3")
-        c.set(23, top - 7, "steam_2")
+        cloud(c, cx + 2, cy - 2, 2.6, seed=150, alpha=255)
     return c
 
 
@@ -865,11 +882,17 @@ def coal_mine_frames(n: int = 6) -> list:
         c.hline(4, 26, 30, "copper_3")
         for y in range(33, 42, 3):
             c.hline(5, 26, y, "copper_0")
-        c.rect(4, 42, 26, 55, "soot_3")
-        for y in range(43, 56):
-            for x in range(4, 27):
-                if (x // 4 + y // 3) % 2 == 0:
-                    c.set(x, y, "copper_0")
+        # masonry front: stone courses 3 px high, staggered joints, lit top edge of each stone
+        c.rect(4, 42, 26, 55, "iron_0")
+        for row, y0 in enumerate(range(43, 56, 3)):
+            off = (row * 3) % 6
+            for y in range(y0, min(56, y0 + 3)):
+                c.hline(4, 26, y, "iron_1" if (row % 2) else "iron_0")
+            c.hline(4, 26, y0, "iron_2" if row % 2 else "iron_1")
+            if y0 + 2 < 56:
+                c.hline(4, 26, y0 + 2, "soot_2")
+            for x in range(4 + off, 27, 6):
+                c.vline(x, y0, min(55, y0 + 2), "soot_2")
         c.hline(4, 26, 42, "copper_2")
         c.rect(11, 46, 18, 55, "soot_0")            # shaft door, dark
         c.rect(12, 47, 17, 55, "soot_1")
