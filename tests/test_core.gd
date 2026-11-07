@@ -427,7 +427,12 @@ func test_dt_sizes_are_close() -> void:
 func test_real_config_valid_and_translated() -> void:
 	var d := GameData.from_dir()
 	assert_eq(d.errors.size(), 0, str(d.errors))
-	assert_true(d.nodes.size() >= 25 and d.nodes.size() <= 40, "%d nodes" % d.nodes.size())
+	var per_region: Dictionary = {}
+	for id: String in d.nodes:
+		var rg: int = int(d.nodes[id]["region"])
+		per_region[rg] = int(per_region.get(rg, 0)) + 1
+	assert_true(int(per_region.get(2, 0)) >= 28 and int(per_region.get(2, 0)) <= 40, "R2: %d nodes" % int(per_region.get(2, 0)))
+	assert_true(d.nodes.size() >= 50, "%d nodes" % d.nodes.size())
 	TranslationServer.set_locale("ru")
 	var keys: Array[String] = []
 	for id: String in d.nodes:
@@ -444,6 +449,12 @@ func test_real_config_valid_and_translated() -> void:
 			keys.append(str(ms["name"]) + "_DESC")
 	for a: String in d.abilities:
 		keys.append(str(d.abilities[a]["name"]))
+	for pid: String in d.producers:
+		keys.append(str(d.producers[pid]["name"]))
+	for b: String in d.bosses:
+		keys.append(str(d.bosses[b]["name"]))
+	for rg: Dictionary in d.regions:
+		keys.append(str(rg["name"]))
 	for k in ["GOAL_NODE", "GOAL_BOSS_FIGHT", "GOAL_BOSS_RETRY", "GOAL_NONE"]:
 		keys.append(k)
 	for e: String in d.enemies:

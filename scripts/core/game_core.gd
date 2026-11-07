@@ -305,11 +305,23 @@ func preview_mods(id: String) -> Mods:
 
 
 ## What new on-screen behaviour the next level of `id` brings: keys of
-## Mods.behaviours() it adds (new enemy, tower, tier, pierce/splash from 0,
-## status, mechanism...), plus "boss:<id>" for a boss call. Empty = numbers only.
+## Mods.behaviours() it adds (new enemy, tower, pierce/splash from 0, status,
+## mechanism, producer...), plus "boss:<id>" for a boss call. Empty = numbers only.
+## Honest: a new look (tier:*) or an opened map region (region:*) alone is not new
+## behaviour — those keys are only in changes_of().
 func novelty_of(id: String) -> Array:
 	if _novelty_cache.has(id):
 		return _novelty_cache[id]
+	var out: Array = []
+	for k: String in changes_of(id):
+		if not Mods.is_cosmetic_key(k):
+			out.append(k)
+	_novelty_cache[id] = out
+	return out
+
+
+## Every behaviour key the next level of `id` adds, including cosmetic ones (tier:*, region:*).
+func changes_of(id: String) -> Array:
 	var out: Array = []
 	var now: Dictionary = mods.behaviours()
 	var after: Dictionary = preview_mods(id).behaviours()
@@ -321,8 +333,40 @@ func novelty_of(id: String) -> Array:
 		for ef: Dictionary in data.node_effects(p[1]):
 			if str(ef["type"]) == "call_boss":
 				out.append("boss:" + str(ef["target"]))
-	_novelty_cache[id] = out
 	return out
+
+
+## Next behaviour milestone of a shop upgrade (for shop cards: "at level 6: Разрывные пули"):
+## {level, levels_left, name, desc, novelty: [behaviour keys it adds]} or {} if none left.
+func next_milestone(upgrade_id: String) -> Dictionary:
+	var ud: Dictionary = data.upgrades.get(upgrade_id, {})
+	var lvl: int = state.upgrade_level(upgrade_id)
+	var best: Dictionary = {}
+	for ms: Dictionary in ud.get("milestones", []):
+		var at: int = int(ms["level"])
+		if at > lvl and at <= int(ud["max"]) and (best.is_empty() or at < int(best["level"])):
+			best = ms
+	if best.is_empty():
+		return {}
+	var at_lvl: int = int(best["level"])
+	var st := GameState.new()
+	st.nodes = state.nodes.duplicate()
+	st.upgrades = state.upgrades.duplicate()
+	st.towers = state.towers.duplicate()
+	st.bosses = state.bosses
+	st.upgrades[upgrade_id] = at_lvl
+	var nov: Array = []
+	var now: Dictionary = mods.behaviours()
+	for k: String in Mods.compute(data, st).behaviours():
+		if not now.has(k) and not Mods.is_cosmetic_key(k):
+			nov.append(k)
+	return {"level": at_lvl, "levels_left": at_lvl - lvl, "name": str(best["name"]),
+		"desc": str(best["name"]) + "_DESC", "novelty": nov}
+
+
+## Producer cycle progress 0..1 (Угольная шахта: the view fills a wheel/cart with it).
+func producer_progress(pid: String) -> float:
+	return battle.producer_progress(pid)
 
 
 ## "novel" (something new on screen), "tower" (one more tower of an owned type), "numeric".
@@ -401,6 +445,8 @@ func _on_node_effect(ef: Dictionary) -> void:
 			_emit({"type": "unlocked", "what": "enemy", "id": str(ef["target"])})
 		"unlock_tower":
 			_emit({"type": "unlocked", "what": "tower", "id": str(ef["target"])})
+		"unlock_producer":
+			_emit({"type": "unlocked", "what": "producer", "id": str(ef["target"])})
 		"unlock_region":
 			_emit({"type": "unlocked", "what": "region", "id": str(int(float(ef["value"])))})
 		"call_boss":

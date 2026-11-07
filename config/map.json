@@ -24,6 +24,14 @@
         860,
         540
       ]
+    },
+    {
+      "id": 3,
+      "name": "REGION_3",
+      "center": [
+        580,
+        610
+      ]
     }
   ],
   "nodes": [
@@ -35,12 +43,12 @@
         500,
         380
       ],
-      "kind": "bait",
+      "kind": "spine",
       "cost": {
         "blueprints": 3
       },
       "growth": 0.9,
-      "max": 2,
+      "max": 1,
       "effects": [
         {
           "type": "enemy_spawn_add",
@@ -87,15 +95,15 @@
         "blueprints": 6
       },
       "growth": 0.8,
-      "max": 2,
+      "max": 1,
       "effects": [
         {
           "type": "lens_dmg",
-          "value": 0.6
+          "value": 0.5
         },
         {
           "type": "lens_radius",
-          "value": 8
+          "value": 12
         }
       ]
     },
@@ -163,7 +171,7 @@
         "blueprints": 8
       },
       "growth": 0.8,
-      "max": 2,
+      "max": 1,
       "effects": [
         {
           "type": "enemy_bait",
@@ -205,7 +213,7 @@
       ]
     },
     {
-      "id": "r0_road",
+      "id": "r1_dogs",
       "region": 0,
       "parents": [
         "r0_loopholes",
@@ -213,12 +221,12 @@
         "r0_kettle"
       ],
       "pos": [
-        590,
-        350
+        640,
+        310
       ],
-      "kind": "region",
+      "kind": "spine",
       "cost": {
-        "blueprints": 20
+        "blueprints": 45
       },
       "growth": 0,
       "max": 1,
@@ -228,31 +236,12 @@
           "value": 1
         },
         {
-          "type": "global_loot_mult",
-          "value": 0.1
-        }
-      ]
-    },
-    {
-      "id": "r1_dogs",
-      "region": 1,
-      "parents": [
-        "r0_road"
-      ],
-      "pos": [
-        640,
-        310
-      ],
-      "kind": "spine",
-      "cost": {
-        "blueprints": 30
-      },
-      "growth": 0,
-      "max": 1,
-      "effects": [
-        {
           "type": "unlock_enemy",
           "target": "rust_dog"
+        },
+        {
+          "type": "global_loot_mult",
+          "value": 0.1
         }
       ]
     },
@@ -271,13 +260,16 @@
         "blueprints": 45
       },
       "growth": 0.9,
-      "max": 2,
+      "max": 1,
       "effects": [
         {
           "type": "enemy_spawn_add",
           "target": "rust_dog",
-          "value": 1
+          "value": 2
         }
+      ],
+      "excludes": [
+        "r1_dog_rumors"
       ]
     },
     {
@@ -303,6 +295,9 @@
           "value": 0.5,
           "hp": 0.55
         }
+      ],
+      "excludes": [
+        "r1_dog_horn"
       ]
     },
     {
@@ -343,12 +338,12 @@
         "blueprints": 110
       },
       "growth": 1.0,
-      "max": 2,
+      "max": 1,
       "effects": [
         {
           "type": "tower_limit_add",
           "target": "riveter",
-          "value": 2
+          "value": 3
         }
       ]
     },
@@ -390,13 +385,16 @@
         "blueprints": 180
       },
       "growth": 0.9,
-      "max": 2,
+      "max": 1,
       "effects": [
         {
           "type": "enemy_spawn_add",
           "target": "junker",
-          "value": 0.5
+          "value": 0.8
         }
+      ],
+      "excludes": [
+        "r1_junk_rumors"
       ]
     },
     {
@@ -422,6 +420,9 @@
           "value": 0.5,
           "hp": 0.55
         }
+      ],
+      "excludes": [
+        "r1_junk_horn"
       ]
     },
     {
@@ -439,7 +440,7 @@
         "blueprints": 80
       },
       "growth": 1.4,
-      "max": 3,
+      "max": 2,
       "effects": [
         {
           "type": "moat_damage",
@@ -462,11 +463,17 @@
         "blueprints": 220
       },
       "growth": 0.8,
-      "max": 2,
+      "max": 1,
       "effects": [
         {
           "type": "lens_rate",
-          "value": 0.3
+          "value": 0.4
+        },
+        {
+          "type": "lens_status",
+          "value": 0.25,
+          "status": "slow",
+          "duration": 0.5
         }
       ]
     },
@@ -536,13 +543,16 @@
         "blueprints": 800
       },
       "growth": 0.9,
-      "max": 2,
+      "max": 1,
       "effects": [
         {
           "type": "enemy_spawn_add",
           "target": "tin_knight",
-          "value": 1
+          "value": 1.5
         }
+      ],
+      "excludes": [
+        "r1_knight_rumors"
       ]
     },
     {
@@ -568,6 +578,9 @@
           "value": 0.5,
           "hp": 0.55
         }
+      ],
+      "excludes": [
+        "r1_knight_horn"
       ]
     },
     {
@@ -632,12 +645,12 @@
         "blueprints": 1000
       },
       "growth": 1.0,
-      "max": 2,
+      "max": 1,
       "effects": [
         {
           "type": "tower_limit_add",
           "target": "mortar",
-          "value": 1
+          "value": 2
         }
       ]
     },
@@ -717,11 +730,11 @@
         "blueprints": 1200
       },
       "growth": 0.8,
-      "max": 3,
+      "max": 1,
       "effects": [
         {
           "type": "global_dmg_mult",
-          "value": 0.25
+          "value": 0.5
         }
       ]
     },
@@ -737,7 +750,7 @@
       ],
       "kind": "boss",
       "cost": {
-        "blueprints": 1700
+        "blueprints": 2700
       },
       "growth": 0,
       "max": 1,
@@ -817,8 +830,8 @@
         "r1_boss"
       ],
       "pos": [
-        860,
-        480
+        861,
+        472
       ],
       "kind": "spine",
       "cost": {
@@ -834,18 +847,277 @@
       ]
     },
     {
+      "id": "r2_mine",
+      "region": 2,
+      "parents": [
+        "r2_road"
+      ],
+      "pos": [
+        782,
+        476
+      ],
+      "kind": "mechanism",
+      "cost": {
+        "blueprints": 1500,
+        "gears": 2500
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "unlock_producer",
+          "target": "coal_mine"
+        }
+      ]
+    },
+    {
+      "id": "r2_mine_shaft",
+      "region": 2,
+      "parents": [
+        "r2_mine"
+      ],
+      "pos": [
+        721,
+        456
+      ],
+      "kind": "mechanism",
+      "cost": {
+        "blueprints": 3000,
+        "gears": 5000
+      },
+      "growth": 1.0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "producer_amount_mult",
+          "target": "coal_mine",
+          "value": 1.0
+        }
+      ]
+    },
+    {
+      "id": "r2_mine_rails",
+      "region": 2,
+      "parents": [
+        "r2_mine"
+      ],
+      "pos": [
+        730,
+        520
+      ],
+      "kind": "mechanism",
+      "cost": {
+        "blueprints": 5000,
+        "gears": 8000
+      },
+      "growth": 1.2,
+      "max": 1,
+      "effects": [
+        {
+          "type": "producer_rate_mult",
+          "target": "coal_mine",
+          "value": 0.4
+        }
+      ]
+    },
+    {
+      "id": "r2_mine_lift",
+      "region": 2,
+      "parents": [
+        "r2_mine_shaft",
+        "r2_mine_rails"
+      ],
+      "pos": [
+        682,
+        474
+      ],
+      "kind": "mechanism",
+      "cost": {
+        "blueprints": 9000,
+        "gears": 15000
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "producer_output_add",
+          "target": "coal_mine",
+          "value": 120,
+          "res": "blueprints"
+        }
+      ]
+    },
+    {
+      "id": "r2_lens_dig",
+      "region": 2,
+      "parents": [
+        "r2_mine"
+      ],
+      "pos": [
+        760,
+        570
+      ],
+      "kind": "lens",
+      "cost": {
+        "blueprints": 5000,
+        "coal": 60
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "lens_dig",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "r2_mole_horn",
+      "region": 2,
+      "parents": [
+        "r2_road"
+      ],
+      "pos": [
+        820,
+        458
+      ],
+      "kind": "bait",
+      "cost": {
+        "blueprints": 1600
+      },
+      "growth": 0.9,
+      "max": 1,
+      "effects": [
+        {
+          "type": "enemy_spawn_add",
+          "target": "mole_miner",
+          "value": 1.5
+        }
+      ],
+      "excludes": [
+        "r2_mole_rumors"
+      ]
+    },
+    {
+      "id": "r2_mole_rumors",
+      "region": 2,
+      "parents": [
+        "r2_road"
+      ],
+      "pos": [
+        900,
+        455
+      ],
+      "kind": "bait",
+      "cost": {
+        "blueprints": 1800
+      },
+      "growth": 0.8,
+      "max": 1,
+      "effects": [
+        {
+          "type": "enemy_bait",
+          "target": "mole_miner",
+          "value": 0.5,
+          "hp": 0.55
+        }
+      ],
+      "excludes": [
+        "r2_mole_horn"
+      ]
+    },
+    {
+      "id": "r2_carts",
+      "region": 2,
+      "parents": [
+        "r2_road"
+      ],
+      "pos": [
+        930,
+        485
+      ],
+      "kind": "spine",
+      "cost": {
+        "blueprints": 2600
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "unlock_enemy",
+          "target": "coal_cart"
+        }
+      ]
+    },
+    {
+      "id": "r2_cart_horn",
+      "region": 2,
+      "parents": [
+        "r2_carts"
+      ],
+      "pos": [
+        960,
+        455
+      ],
+      "kind": "bait",
+      "cost": {
+        "blueprints": 4000
+      },
+      "growth": 0.9,
+      "max": 1,
+      "effects": [
+        {
+          "type": "enemy_spawn_add",
+          "target": "coal_cart",
+          "value": 0.8
+        }
+      ],
+      "excludes": [
+        "r2_cart_rumors"
+      ]
+    },
+    {
+      "id": "r2_cart_rumors",
+      "region": 2,
+      "parents": [
+        "r2_carts"
+      ],
+      "pos": [
+        998,
+        472
+      ],
+      "kind": "bait",
+      "cost": {
+        "blueprints": 4500
+      },
+      "growth": 0.8,
+      "max": 1,
+      "effects": [
+        {
+          "type": "enemy_bait",
+          "target": "coal_cart",
+          "value": 0.5,
+          "hp": 0.55
+        }
+      ],
+      "excludes": [
+        "r2_cart_horn"
+      ]
+    },
+    {
       "id": "r2_steam_jet",
       "region": 2,
       "parents": [
         "r2_road"
       ],
       "pos": [
-        810,
-        540
+        820,
+        550
       ],
       "kind": "tower",
       "cost": {
-        "blueprints": 1500
+        "blueprints": 1500,
+        "coal": 70
       },
       "growth": 0,
       "max": 1,
@@ -866,12 +1138,13 @@
         "r2_road"
       ],
       "pos": [
-        910,
-        540
+        900,
+        550
       ],
       "kind": "tower",
       "cost": {
-        "blueprints": 1500
+        "blueprints": 1500,
+        "coal": 70
       },
       "growth": 0,
       "max": 1,
@@ -886,51 +1159,114 @@
       ]
     },
     {
-      "id": "r2_mole_horn",
+      "id": "r2_jet_limit",
       "region": 2,
       "parents": [
-        "r2_road"
+        "r2_steam_jet"
       ],
       "pos": [
-        830,
-        440
+        790,
+        600
       ],
-      "kind": "bait",
+      "kind": "tower",
       "cost": {
-        "blueprints": 1600
+        "blueprints": 4000,
+        "coal": 60
       },
-      "growth": 0.9,
-      "max": 2,
+      "growth": 1.0,
+      "max": 1,
       "effects": [
         {
-          "type": "enemy_spawn_add",
-          "target": "mole_miner",
+          "type": "tower_limit_add",
+          "target": "steam_jet",
+          "value": 2
+        },
+        {
+          "type": "tower_range_add",
+          "target": "steam_jet",
+          "value": 40
+        }
+      ]
+    },
+    {
+      "id": "r2_jet_dig",
+      "region": 2,
+      "parents": [
+        "r2_steam_jet"
+      ],
+      "pos": [
+        832,
+        604
+      ],
+      "kind": "tower",
+      "cost": {
+        "blueprints": 7000,
+        "coal": 100
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "tower_dig",
+          "target": "steam_jet",
           "value": 1
         }
       ]
     },
     {
-      "id": "r2_mole_rumors",
+      "id": "r2_boiler_limit",
       "region": 2,
       "parents": [
-        "r2_road"
+        "r2_boiler"
       ],
       "pos": [
-        900,
-        440
+        927,
+        594
       ],
-      "kind": "bait",
+      "kind": "tower",
       "cost": {
-        "blueprints": 1800
+        "blueprints": 4000,
+        "coal": 60
       },
-      "growth": 0.8,
-      "max": 2,
+      "growth": 1.0,
+      "max": 1,
       "effects": [
         {
-          "type": "enemy_bait",
-          "target": "mole_miner",
-          "value": 0.5,
-          "hp": 0.55
+          "type": "tower_limit_add",
+          "target": "boiler",
+          "value": 2
+        },
+        {
+          "type": "tower_splash_add",
+          "target": "boiler",
+          "value": 15
+        }
+      ]
+    },
+    {
+      "id": "r2_boiler_tar",
+      "region": 2,
+      "parents": [
+        "r2_boiler"
+      ],
+      "pos": [
+        884,
+        601
+      ],
+      "kind": "tower",
+      "cost": {
+        "blueprints": 7000,
+        "coal": 100
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "tower_zone_status",
+          "target": "boiler",
+          "value": 0.45,
+          "status": "slow",
+          "duration": 0.5
         }
       ]
     },
@@ -942,15 +1278,15 @@
       ],
       "pos": [
         860,
-        600
+        636
       ],
       "kind": "moat",
       "cost": {
         "blueprints": 2000,
-        "coal": 15
+        "coal": 30
       },
       "growth": 0.9,
-      "max": 3,
+      "max": 1,
       "effects": [
         {
           "type": "moat_damage",
@@ -963,76 +1299,539 @@
       ]
     },
     {
-      "id": "r2_jet_nozzle",
+      "id": "r2_coal_kettle",
       "region": 2,
       "parents": [
-        "r2_steam_jet"
+        "r2_furnace"
       ],
       "pos": [
-        780,
-        600
+        790,
+        650
       ],
-      "kind": "tower",
+      "kind": "mechanism",
       "cost": {
-        "blueprints": 2500,
-        "coal": 10
+        "blueprints": 5000,
+        "coal": 80
       },
-      "growth": 0.9,
-      "max": 2,
+      "growth": 0,
+      "max": 1,
       "effects": [
         {
-          "type": "tower_range_add",
-          "target": "steam_jet",
-          "value": 60
+          "type": "ability_puddle",
+          "target": "kettle",
+          "value": 0.6,
+          "radius": 55,
+          "duration": 3.0,
+          "dmg_type": "steam"
         }
       ]
     },
     {
-      "id": "r2_boiler_lid",
-      "region": 2,
-      "parents": [
-        "r2_boiler"
-      ],
-      "pos": [
-        940,
-        600
-      ],
-      "kind": "tower",
-      "cost": {
-        "blueprints": 2500,
-        "coal": 10
-      },
-      "growth": 0.9,
-      "max": 2,
-      "effects": [
-        {
-          "type": "tower_splash_add",
-          "target": "boiler",
-          "value": 20
-        }
-      ]
-    },
-    {
-      "id": "r2_coal_decree",
+      "id": "r2_geysers",
       "region": 2,
       "parents": [
         "r2_furnace"
       ],
       "pos": [
         860,
-        650
+        679
+      ],
+      "kind": "mechanism",
+      "cost": {
+        "blueprints": 6000,
+        "coal": 150
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "unlock_ability",
+          "target": "geyser"
+        }
+      ]
+    },
+    {
+      "id": "r2_geyser_spray",
+      "region": 2,
+      "parents": [
+        "r2_geysers"
+      ],
+      "pos": [
+        810,
+        690
+      ],
+      "kind": "mechanism",
+      "cost": {
+        "blueprints": 8000,
+        "coal": 200
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "ability_status",
+          "target": "geyser",
+          "value": 0.8,
+          "status": "scald",
+          "duration": 3.0
+        },
+        {
+          "type": "ability_status",
+          "target": "geyser",
+          "value": 0.5,
+          "status": "slow",
+          "duration": 1.5
+        }
+      ]
+    },
+    {
+      "id": "r2_geyser_twin",
+      "region": 2,
+      "parents": [
+        "r2_geysers"
+      ],
+      "pos": [
+        904,
+        688
+      ],
+      "kind": "mechanism",
+      "cost": {
+        "blueprints": 12000,
+        "coal": 350
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "ability_count_add",
+          "target": "geyser",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "r2_wall",
+      "region": 2,
+      "parents": [
+        "r2_carts"
+      ],
+      "pos": [
+        1000,
+        517
+      ],
+      "kind": "tower",
+      "cost": {
+        "blueprints": 5000,
+        "gears": 6000
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "tower_limit_add",
+          "target": "shooter",
+          "value": 2
+        },
+        {
+          "type": "tower_limit_add",
+          "target": "riveter",
+          "value": 2
+        },
+        {
+          "type": "tower_limit_add",
+          "target": "mortar",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "r2_golems",
+      "region": 2,
+      "parents": [
+        "r2_carts"
+      ],
+      "pos": [
+        961,
+        533
+      ],
+      "kind": "spine",
+      "cost": {
+        "blueprints": 9000
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "unlock_enemy",
+          "target": "coal_golem"
+        }
+      ]
+    },
+    {
+      "id": "r2_golem_bounty",
+      "region": 2,
+      "parents": [
+        "r2_golems"
+      ],
+      "pos": [
+        1000,
+        570
+      ],
+      "kind": "bait",
+      "cost": {
+        "blueprints": 15000
+      },
+      "growth": 0.8,
+      "max": 1,
+      "effects": [
+        {
+          "type": "enemy_bait",
+          "target": "coal_golem",
+          "value": 0.5,
+          "hp": 0.55
+        }
+      ]
+    },
+    {
+      "id": "r2_scald_shred",
+      "region": 2,
+      "parents": [
+        "r2_golems"
+      ],
+      "pos": [
+        958,
+        622
+      ],
+      "kind": "synergy",
+      "cost": {
+        "blueprints": 10000,
+        "coal": 180
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "scald_shred",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "r2_decree",
+      "region": 2,
+      "parents": [
+        "r2_golems"
+      ],
+      "pos": [
+        1000,
+        628
       ],
       "kind": "global",
       "cost": {
-        "blueprints": 3000,
-        "coal": 20
+        "blueprints": 15000,
+        "coal": 200
       },
-      "growth": 0.9,
-      "max": 3,
+      "growth": 0.8,
+      "max": 1,
       "effects": [
         {
-          "type": "global_loot_mult",
-          "value": 0.3
+          "type": "global_dmg_mult",
+          "value": 0.4
+        }
+      ]
+    },
+    {
+      "id": "r2_boss",
+      "region": 2,
+      "parents": [
+        "r2_golems"
+      ],
+      "pos": [
+        974,
+        662
+      ],
+      "kind": "boss",
+      "cost": {
+        "blueprints": 40000,
+        "coal": 600
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "call_boss",
+          "target": "drill_giant"
+        }
+      ]
+    },
+    {
+      "id": "r2_trophy_ram",
+      "region": 2,
+      "parents": [
+        "r2_boss"
+      ],
+      "pos": [
+        946,
+        695
+      ],
+      "kind": "reward",
+      "cost": {
+        "blueprints": 0
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "unlock_ability",
+          "target": "drill_ram"
+        }
+      ],
+      "excludes": [
+        "r2_trophy_lens"
+      ],
+      "requires": {
+        "boss": "drill_giant"
+      }
+    },
+    {
+      "id": "r2_trophy_lens",
+      "region": 2,
+      "parents": [
+        "r2_boss"
+      ],
+      "pos": [
+        1000,
+        695
+      ],
+      "kind": "reward",
+      "cost": {
+        "blueprints": 0
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "lens_extra_add",
+          "value": 1
+        },
+        {
+          "type": "lens_dig",
+          "value": 1
+        }
+      ],
+      "excludes": [
+        "r2_trophy_ram"
+      ],
+      "requires": {
+        "boss": "drill_giant"
+      }
+    },
+    {
+      "id": "r3_road",
+      "region": 3,
+      "parents": [
+        "r2_boss"
+      ],
+      "pos": [
+        640,
+        619
+      ],
+      "kind": "spine",
+      "cost": {
+        "blueprints": 20000
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "unlock_enemy",
+          "target": "diver"
+        }
+      ]
+    },
+    {
+      "id": "r3_tesla",
+      "region": 3,
+      "parents": [
+        "r3_road"
+      ],
+      "pos": [
+        590,
+        570
+      ],
+      "kind": "tower",
+      "cost": {
+        "blueprints": 25000,
+        "copper": 10,
+        "coal": 300
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "unlock_tower",
+          "target": "tesla"
+        }
+      ],
+      "excludes": [
+        "r3_ricochet"
+      ]
+    },
+    {
+      "id": "r3_ricochet",
+      "region": 3,
+      "parents": [
+        "r3_road"
+      ],
+      "pos": [
+        590,
+        660
+      ],
+      "kind": "tower",
+      "cost": {
+        "blueprints": 25000,
+        "copper": 10,
+        "coal": 300
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "unlock_tower",
+          "target": "ricochet"
+        }
+      ],
+      "excludes": [
+        "r3_tesla"
+      ]
+    },
+    {
+      "id": "r3_wet_metal",
+      "region": 3,
+      "parents": [
+        "r3_tesla"
+      ],
+      "pos": [
+        530,
+        540
+      ],
+      "kind": "synergy",
+      "cost": {
+        "blueprints": 30000,
+        "copper": 20,
+        "coal": 300
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "wet_metal",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "r3_tesla_limit",
+      "region": 3,
+      "parents": [
+        "r3_tesla"
+      ],
+      "pos": [
+        540,
+        599
+      ],
+      "kind": "tower",
+      "cost": {
+        "blueprints": 25000,
+        "copper": 15,
+        "coal": 200
+      },
+      "growth": 1.0,
+      "max": 2,
+      "effects": [
+        {
+          "type": "tower_limit_add",
+          "target": "tesla",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "r3_ricochet_limit",
+      "region": 3,
+      "parents": [
+        "r3_ricochet"
+      ],
+      "pos": [
+        540,
+        641
+      ],
+      "kind": "tower",
+      "cost": {
+        "blueprints": 25000,
+        "copper": 15,
+        "coal": 200
+      },
+      "growth": 1.0,
+      "max": 2,
+      "effects": [
+        {
+          "type": "tower_limit_add",
+          "target": "ricochet",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "r3_hot_shot",
+      "region": 3,
+      "parents": [
+        "r3_ricochet"
+      ],
+      "pos": [
+        530,
+        690
+      ],
+      "kind": "synergy",
+      "cost": {
+        "blueprints": 30000,
+        "copper": 20,
+        "coal": 300
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "tower_on_hit_status",
+          "target": "ricochet",
+          "value": 0.6,
+          "status": "scald",
+          "duration": 2.0
+        }
+      ]
+    },
+    {
+      "id": "r3_diver_horn",
+      "region": 3,
+      "parents": [
+        "r3_road"
+      ],
+      "pos": [
+        650,
+        661
+      ],
+      "kind": "bait",
+      "cost": {
+        "blueprints": 25000,
+        "coal": 200
+      },
+      "growth": 0.9,
+      "max": 2,
+      "effects": [
+        {
+          "type": "enemy_spawn_add",
+          "target": "diver",
+          "value": 0.5
         }
       ]
     }

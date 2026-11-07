@@ -1,5 +1,5 @@
 {
-  "_comment": "Towers on the wall, shop upgrades (gears) with behaviour milestones, mechanisms (abilities). Tower price for owning n: price * (1 + growth)^n. range_min/max: x distance tower->enemy. row: preferred wall row (0 = front). on_hit: base statuses; puddle: burning ground left by shells.",
+  "_comment": "Towers on the wall, shop upgrades (gears, later + coal/copper) with behaviour milestones, mechanisms (abilities). Tower price for owning n: price * (1 + growth)^n. range_min/max: x distance tower->enemy. row: preferred wall row (0 = front). on_hit: base statuses (scald/slow/stun); puddle: burning ground left by shells. projectile: bullet | rivet | shell | cone (cone_angle) | chain (chain jumps, chain_range, chain_decay) | ricochet (bounces, bounce_gain, bounce_range). abilities: shape splash (at the enemies closest to the moat within reach_x) or line (line_width, the busiest lane); kill_loot_mult: loot share for kills by it; event: event type (default ability_fired). combat.direct_kinds: projectile kinds blocked by frontal armour; knockback_novel_min: smaller knockback is not a new behaviour.",
   "wall": {
     "rows": [
       {
@@ -37,7 +37,24 @@
     "cone_hit_factor": 0.5,
     "knockback_boss": 0.0,
     "bullet_splash_dmg": 0.5,
-    "near_moat_x": 150
+    "near_moat_x": 150,
+    "knockback_novel_min": 20,
+    "direct_kinds": [
+      "bullet",
+      "rivet",
+      "cone",
+      "ricochet",
+      "chain"
+    ],
+    "stun_boss": 0.25,
+    "split_spread": 16,
+    "tower_stagger_step": 0.137,
+    "tower_stagger_mod": 0.3,
+    "fallback_slot": [
+      150,
+      370
+    ],
+    "wet_metal_mult": 2.0
   },
   "towers": {
     "shooter": {
@@ -110,35 +127,35 @@
     "steam_jet": {
       "name": "TOWER_STEAM_JET",
       "desc": "TOWER_STEAM_JET_DESC",
-      "dmg": 10,
+      "dmg": 40,
       "dmg_type": "steam",
-      "reload": 0.6,
+      "reload": 0.7,
       "range_min": 0,
-      "range_max": 320,
+      "range_max": 380,
       "projectile": "cone",
       "proj_speed": 0,
       "pierce": 0,
       "splash": 0,
       "crit_chance": 0.05,
       "crit_mult": 2.0,
-      "limit": 3,
+      "limit": 2,
       "price": {
         "gears": 2500,
-        "coal": 12
+        "coal": 20
       },
       "growth": 0.5,
       "row": 0,
       "color": "steam_2",
-      "cone_angle": 0.35,
+      "cone_angle": 0.38,
       "on_hit": [
         {
           "status": "scald",
-          "value": 0.4,
+          "value": 0.5,
           "duration": 2.0
         },
         {
           "status": "slow",
-          "value": 0.3,
+          "value": 0.35,
           "duration": 1.2
         }
       ]
@@ -160,7 +177,7 @@
       "limit": 2,
       "price": {
         "gears": 3000,
-        "coal": 15
+        "coal": 25
       },
       "growth": 0.6,
       "row": 2,
@@ -171,6 +188,60 @@
         "duration": 3.0,
         "dmg_type": "steam"
       }
+    },
+    "tesla": {
+      "name": "TOWER_TESLA",
+      "desc": "TOWER_TESLA_DESC",
+      "dmg": 220,
+      "dmg_type": "spark",
+      "reload": 1.3,
+      "range_min": 0,
+      "range_max": 540,
+      "projectile": "chain",
+      "proj_speed": 0,
+      "pierce": 0,
+      "splash": 0,
+      "crit_chance": 0.05,
+      "crit_mult": 2.0,
+      "limit": 2,
+      "price": {
+        "gears": 15000,
+        "copper": 12,
+        "coal": 150
+      },
+      "growth": 0.7,
+      "row": 1,
+      "color": "teal_2",
+      "chain": 3,
+      "chain_range": 120,
+      "chain_decay": 0.8
+    },
+    "ricochet": {
+      "name": "TOWER_RICOCHET",
+      "desc": "TOWER_RICOCHET_DESC",
+      "dmg": 380,
+      "dmg_type": "impact",
+      "reload": 1.5,
+      "range_min": 0,
+      "range_max": 560,
+      "projectile": "ricochet",
+      "proj_speed": 650,
+      "pierce": 0,
+      "splash": 0,
+      "crit_chance": 0.05,
+      "crit_mult": 2.0,
+      "limit": 2,
+      "price": {
+        "gears": 15000,
+        "copper": 12,
+        "coal": 150
+      },
+      "growth": 0.7,
+      "row": 1,
+      "color": "iron_3",
+      "bounces": 3,
+      "bounce_gain": 0.15,
+      "bounce_range": 150
     }
   },
   "upgrades": {
@@ -180,18 +251,18 @@
       "cost": {
         "gears": 14
       },
-      "growth": 1.2,
-      "max": 12,
+      "growth": 1.6,
+      "max": 8,
       "effects": [
         {
           "type": "tower_dmg_mult",
           "target": "shooter",
-          "value": 0.4
+          "value": 0.6
         }
       ],
       "milestones": [
         {
-          "level": 3,
+          "level": 2,
           "name": "MS_SHOOTER_DOUBLE",
           "effects": [
             {
@@ -207,7 +278,7 @@
           ]
         },
         {
-          "level": 6,
+          "level": 4,
           "name": "MS_SHOOTER_EXPLOSIVE",
           "effects": [
             {
@@ -221,6 +292,30 @@
               "value": 18
             }
           ]
+        },
+        {
+          "level": 6,
+          "name": "MS_SHOOTER_AP",
+          "effects": [
+            {
+              "type": "tower_armor_pierce",
+              "target": "shooter",
+              "value": 0.5
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "name": "MS_SHOOTER_INCENDIARY",
+          "effects": [
+            {
+              "type": "tower_on_hit_status",
+              "target": "shooter",
+              "value": 0.4,
+              "status": "scald",
+              "duration": 2.0
+            }
+          ]
         }
       ]
     },
@@ -230,13 +325,13 @@
       "cost": {
         "gears": 40
       },
-      "growth": 1.5,
-      "max": 6,
+      "growth": 2.4,
+      "max": 4,
       "effects": [
         {
           "type": "tower_reload_mult",
           "target": "shooter",
-          "value": 0.4
+          "value": 0.5
         }
       ],
       "milestones": [
@@ -255,6 +350,19 @@
               "value": 0.1
             }
           ]
+        },
+        {
+          "level": 4,
+          "name": "MS_SHOOTER_LEAD",
+          "effects": [
+            {
+              "type": "tower_on_hit_status",
+              "target": "shooter",
+              "value": 0.2,
+              "status": "slow",
+              "duration": 0.6
+            }
+          ]
         }
       ]
     },
@@ -264,13 +372,13 @@
       "cost": {
         "gears": 110
       },
-      "growth": 1.2,
-      "max": 12,
+      "growth": 2.0,
+      "max": 8,
       "effects": [
         {
           "type": "tower_dmg_mult",
           "target": "riveter",
-          "value": 0.4
+          "value": 0.6
         }
       ],
       "milestones": [
@@ -291,14 +399,36 @@
           ]
         },
         {
-          "level": 5,
-          "name": "MS_RIVETER_CHANNEL",
+          "level": 4,
+          "name": "MS_RIVETER_AP",
           "effects": [
             {
               "type": "tower_tier_add",
               "target": "riveter",
               "value": 1
             },
+            {
+              "type": "tower_armor_pierce",
+              "target": "riveter",
+              "value": 0.5
+            }
+          ]
+        },
+        {
+          "level": 6,
+          "name": "MS_RIVETER_KNOCKBACK",
+          "effects": [
+            {
+              "type": "tower_knockback_add",
+              "target": "riveter",
+              "value": 25
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "name": "MS_RIVETER_CHANNEL",
+          "effects": [
             {
               "type": "tower_pierce_add",
               "target": "riveter",
@@ -314,24 +444,42 @@
       "cost": {
         "gears": 320
       },
-      "growth": 1.5,
-      "max": 6,
+      "growth": 2.4,
+      "max": 5,
       "effects": [
         {
           "type": "tower_reload_mult",
           "target": "riveter",
-          "value": 0.4
+          "value": 0.5
         }
       ],
       "milestones": [
         {
           "level": 2,
-          "name": "MS_RIVETER_KNOCKBACK",
+          "name": "MS_RIVETER_PIN",
           "effects": [
             {
-              "type": "tower_knockback_add",
+              "type": "tower_on_hit_status",
               "target": "riveter",
-              "value": 12
+              "value": 0.3,
+              "status": "slow",
+              "duration": 1.0
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "name": "MS_RIVETER_SPARK",
+          "effects": [
+            {
+              "type": "tower_crit_chain_add",
+              "target": "riveter",
+              "value": 1
+            },
+            {
+              "type": "tower_crit_chance_add",
+              "target": "riveter",
+              "value": 0.1
             }
           ]
         }
@@ -343,13 +491,13 @@
       "cost": {
         "gears": 450
       },
-      "growth": 1.2,
-      "max": 12,
+      "growth": 2.0,
+      "max": 8,
       "effects": [
         {
           "type": "tower_dmg_mult",
           "target": "mortar",
-          "value": 0.4
+          "value": 0.6
         }
       ],
       "milestones": [
@@ -386,6 +534,17 @@
               "duration": 3.0
             }
           ]
+        },
+        {
+          "level": 6,
+          "name": "MS_MORTAR_TWIN",
+          "effects": [
+            {
+              "type": "tower_multishot_add",
+              "target": "mortar",
+              "value": 1
+            }
+          ]
         }
       ]
     },
@@ -395,13 +554,13 @@
       "cost": {
         "gears": 1200
       },
-      "growth": 1.5,
-      "max": 6,
+      "growth": 2.4,
+      "max": 4,
       "effects": [
         {
           "type": "tower_reload_mult",
           "target": "mortar",
-          "value": 0.4
+          "value": 0.5
         }
       ],
       "milestones": [
@@ -412,9 +571,20 @@
             {
               "type": "tower_on_hit_status",
               "target": "mortar",
-              "value": 0.4,
-              "status": "slow",
-              "duration": 1.5
+              "value": 0,
+              "status": "stun",
+              "duration": 0.6
+            }
+          ]
+        },
+        {
+          "level": 3,
+          "name": "MS_MORTAR_SEISMIC",
+          "effects": [
+            {
+              "type": "tower_dig",
+              "target": "mortar",
+              "value": 1
             }
           ]
         }
@@ -424,20 +594,21 @@
       "name": "UPG_STEAM_JET_DMG",
       "tower": "steam_jet",
       "cost": {
-        "gears": 3000
+        "gears": 3000,
+        "coal": 15
       },
-      "growth": 0.85,
-      "max": 12,
+      "growth": 1.6,
+      "max": 8,
       "effects": [
         {
           "type": "tower_dmg_mult",
           "target": "steam_jet",
-          "value": 0.5
+          "value": 0.6
         }
       ],
       "milestones": [
         {
-          "level": 3,
+          "level": 2,
           "name": "MS_STEAM_JET_TWIN",
           "effects": [
             {
@@ -451,6 +622,22 @@
               "value": 1
             }
           ]
+        },
+        {
+          "level": 4,
+          "name": "MS_STEAM_JET_RAM",
+          "effects": [
+            {
+              "type": "tower_tier_add",
+              "target": "steam_jet",
+              "value": 1
+            },
+            {
+              "type": "tower_knockback_add",
+              "target": "steam_jet",
+              "value": 30
+            }
+          ]
         }
       ]
     },
@@ -458,20 +645,21 @@
       "name": "UPG_BOILER_DMG",
       "tower": "boiler",
       "cost": {
-        "gears": 3500
+        "gears": 3500,
+        "coal": 15
       },
-      "growth": 0.85,
-      "max": 12,
+      "growth": 1.6,
+      "max": 8,
       "effects": [
         {
           "type": "tower_dmg_mult",
           "target": "boiler",
-          "value": 0.5
+          "value": 0.6
         }
       ],
       "milestones": [
         {
-          "level": 3,
+          "level": 2,
           "name": "MS_BOILER_SHRAPNEL",
           "effects": [
             {
@@ -483,6 +671,148 @@
               "type": "tower_cluster_add",
               "target": "boiler",
               "value": 2
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "name": "MS_BOILER_DIG",
+          "effects": [
+            {
+              "type": "tower_tier_add",
+              "target": "boiler",
+              "value": 1
+            },
+            {
+              "type": "tower_dig",
+              "target": "boiler",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    },
+    "steam_jet_rate": {
+      "name": "UPG_STEAM_JET_RATE",
+      "tower": "steam_jet",
+      "cost": {
+        "gears": 5000,
+        "coal": 25
+      },
+      "growth": 2.0,
+      "max": 5,
+      "effects": [
+        {
+          "type": "tower_reload_mult",
+          "target": "steam_jet",
+          "value": 0.5
+        }
+      ],
+      "milestones": [
+        {
+          "level": 2,
+          "name": "MS_STEAM_JET_STUN",
+          "effects": [
+            {
+              "type": "tower_on_hit_status",
+              "target": "steam_jet",
+              "value": 0,
+              "status": "stun",
+              "duration": 0.35
+            }
+          ]
+        }
+      ]
+    },
+    "boiler_rate": {
+      "name": "UPG_BOILER_RATE",
+      "tower": "boiler",
+      "cost": {
+        "gears": 5500,
+        "coal": 25
+      },
+      "growth": 2.0,
+      "max": 5,
+      "effects": [
+        {
+          "type": "tower_reload_mult",
+          "target": "boiler",
+          "value": 0.5
+        }
+      ],
+      "milestones": [
+        {
+          "level": 2,
+          "name": "MS_BOILER_TWIN",
+          "effects": [
+            {
+              "type": "tower_multishot_add",
+              "target": "boiler",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    },
+    "tesla_dmg": {
+      "name": "UPG_TESLA_DMG",
+      "tower": "tesla",
+      "cost": {
+        "gears": 20000,
+        "copper": 5,
+        "coal": 100
+      },
+      "growth": 1.0,
+      "max": 8,
+      "effects": [
+        {
+          "type": "tower_dmg_mult",
+          "target": "tesla",
+          "value": 0.5
+        }
+      ],
+      "milestones": [
+        {
+          "level": 2,
+          "name": "MS_TESLA_ARC",
+          "effects": [
+            {
+              "type": "tower_on_hit_status",
+              "target": "tesla",
+              "value": 0,
+              "status": "stun",
+              "duration": 0.25
+            }
+          ]
+        }
+      ]
+    },
+    "ricochet_dmg": {
+      "name": "UPG_RICOCHET_DMG",
+      "tower": "ricochet",
+      "cost": {
+        "gears": 20000,
+        "copper": 5,
+        "coal": 100
+      },
+      "growth": 1.0,
+      "max": 8,
+      "effects": [
+        {
+          "type": "tower_dmg_mult",
+          "target": "ricochet",
+          "value": 0.5
+        }
+      ],
+      "milestones": [
+        {
+          "level": 2,
+          "name": "MS_RICOCHET_SHRAPNEL",
+          "effects": [
+            {
+              "type": "tower_splash_add",
+              "target": "ricochet",
+              "value": 24
             }
           ]
         }
@@ -498,14 +828,45 @@
       "dmg_type": "steam",
       "radius": 60,
       "reach_x": 420,
-      "boss_pct_mult": 0.1,
+      "boss_pct_mult": 0.02,
       "statuses": [
         {
           "status": "scald",
           "value": 0.5,
           "duration": 2.0
         }
-      ]
+      ],
+      "shape": "splash",
+      "kill_loot_mult": 1.0
+    },
+    "geyser": {
+      "name": "ABILITY_GEYSER",
+      "interval": 4.0,
+      "dmg": 30,
+      "dmg_pct_hp": 0.1,
+      "dmg_type": "steam",
+      "radius": 46,
+      "reach_x": 150,
+      "boss_pct_mult": 0.03,
+      "shape": "splash",
+      "kill_loot_mult": 0.5,
+      "event": "geyser",
+      "statuses": []
+    },
+    "drill_ram": {
+      "name": "ABILITY_DRILL_RAM",
+      "interval": 10.0,
+      "dmg": 300,
+      "dmg_pct_hp": 0.25,
+      "dmg_type": "impact",
+      "radius": 26,
+      "reach_x": 610,
+      "boss_pct_mult": 0.04,
+      "shape": "line",
+      "line_width": 26,
+      "kill_loot_mult": 1.0,
+      "event": "drill_ram",
+      "statuses": []
     }
   }
 }

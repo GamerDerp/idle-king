@@ -60,30 +60,26 @@ NODE_R0_RUMORS,Слухи о кладе: бродяги,Treasure rumours: tramps
 NODE_R0_RUMORS_DESC,"Бродяги несут больше шестерён и чертежей, но становятся заметно живучее.","Tramps carry more gears and blueprints, but get much tougher."
 NODE_R0_LOOPHOLES,Бойницы,Loopholes
 NODE_R0_LOOPHOLES_DESC,Больше мест для паровых стрелков на стене.,More wall slots for steam riflemen.
-NODE_R0_ROAD,Застава на тракте,Highway outpost
-NODE_R0_ROAD_DESC,Открывает дорогу в Ржавые пустоши. Больше добычи.,Opens the road to the Rust Wastes. More loot.
 NODE_R1_DOGS,Открыть дорогу: ржавые псы,Open road: rust hounds
-NODE_R1_DOGS_DESC,Новый враг: быстрые ржавые псы.,New enemy: fast rust hounds.
+NODE_R1_DOGS_DESC,Открывает дорогу в Ржавые пустоши: новый враг — быстрые ржавые псы. Больше добычи со всех.,Opens the road to the Rust Wastes: new enemy — fast rust hounds. More loot from everyone.
 NODE_R1_DOG_HORN,Гудок: псы,Horn: hounds
-NODE_R1_DOG_HORN_DESC,Больше псов в каждой пачке.,More hounds in every pack.
+NODE_R1_DOG_HORN_DESC,Больше псов в каждой пачке. Выбор: закрывает «Слухи о кладе: псы».,More hounds in every pack. Choice: closes «Treasure rumours: hounds».
 NODE_R1_DOG_RUMORS,Слухи о кладе: псы,Treasure rumours: hounds
-NODE_R1_DOG_RUMORS_DESC,"Псы несут больше добычи, но становятся заметно живучее.","Hounds carry more loot, but get much tougher."
+NODE_R1_DOG_RUMORS_DESC,"Псы несут больше добычи, но становятся заметно живучее. Выбор: закрывает «Гудок: псы».","Hounds carry more loot, but get much tougher. Choice: closes «Horn: hounds»."
 NODE_R1_RIVETER,Клепальная мастерская,Rivet workshop
 NODE_R1_RIVETER_DESC,Новая башня: Клепальщик. Заклёпки пробивают врагов насквозь.,New tower: Riveter. Rivets pierce through enemies.
 NODE_R1_RIVETER_LIMIT,Второй ярус стены,Second wall tier
-NODE_R1_RIVETER_LIMIT_DESC,Больше мест для клепальщиков.,More slots for riveters.
-NODE_R1_RIVETER_PIERCE,Калёные заклёпки,Tempered rivets
-NODE_R1_RIVETER_PIERCE_DESC,Заклёпка пробивает ещё одного врага.,Each rivet pierces one more enemy.
+NODE_R1_RIVETER_LIMIT_DESC,+3 места для клепальщиков.,+3 riveter slots.
 NODE_R1_JUNKERS,Открыть дорогу: старьёвщики,Open road: junk peddlers
 NODE_R1_JUNKERS_DESC,Новый враг: медленные старьёвщики с тележками. Много здоровья и добычи.,New enemy: slow junk peddlers with carts. Lots of health and loot.
 NODE_R1_JUNK_HORN,Гудок: старьёвщики,Horn: peddlers
-NODE_R1_JUNK_HORN_DESC,Старьёвщики приходят чаще.,Peddlers come more often.
+NODE_R1_JUNK_HORN_DESC,Старьёвщики приходят чаще. Выбор: закрывает «Слухи о кладе: старьёвщики».,Peddlers come more often. Choice: closes «Treasure rumours: peddlers».
 NODE_R1_JUNK_RUMORS,Слухи о кладе: старьёвщики,Treasure rumours: peddlers
-NODE_R1_JUNK_RUMORS_DESC,"Старьёвщики несут больше добычи, но становятся заметно живучее.","Peddlers carry more loot, but get much tougher."
+NODE_R1_JUNK_RUMORS_DESC,"Старьёвщики несут больше добычи, но становятся заметно живучее. Выбор: закрывает «Гудок: старьёвщики».","Peddlers carry more loot, but get much tougher. Choice: closes «Horn: peddlers»."
 NODE_R1_CURTAIN,Паровая завеса,Steam curtain
 NODE_R1_CURTAIN_DESC,"Пар над рвом обжигает всех, кто подошёл к краю. Видна стена пара.",Steam over the moat scalds everyone at the edge. A visible wall of steam.
-NODE_R1_LENS_RATE,Быстрый затвор,Quick shutter
-NODE_R1_LENS_RATE_DESC,Линза жжёт чаще.,The lens burns more often.
+NODE_R1_LENS_RATE,Вязкий пар,Sticky steam
+NODE_R1_LENS_RATE_DESC,"Линза жжёт чаще, и враги под ней вязнут в паре (замедление).","The lens burns more often, and enemies under it bog down in steam (slow)."
 NODE_R1_SEEK,Наводчик,Spotter
 NODE_R1_SEEK_DESC,Линза без мыши сама летит к самой плотной группе врагов и жжёт сильнее.,Without the mouse the lens flies to the densest group itself and burns harder.
 NODE_R1_KNIGHTS,Открыть дорогу: жестяные латники,Open road: tin knights
@@ -93,9 +89,9 @@ NODE_R1_MORTAR_DESC,"Новая башня: Мортира. Навесной с�
 NODE_R1_HOT_RIVETS,Раскалённые заклёпки,Red-hot rivets
 NODE_R1_HOT_RIVETS_DESC,"Выбор: заклёпки ошпаривают врагов, пар жжёт после попадания (латники особенно страдают). Исключает «Тяжёлые бомбы».","Choice: rivets scald enemies, steam keeps burning after a hit (tin knights suffer most). Excludes Heavy bombs."
 NODE_R1_MORTAR_LIMIT,Мортирный бастион,Mortar bastion
-NODE_R1_MORTAR_LIMIT_DESC,Больше мест для мортир.,More slots for mortars.
+NODE_R1_MORTAR_LIMIT_DESC,+2 места для мортир.,+2 mortar slots.
 NODE_R1_KNIGHT_HORN,Гудок: латники,Horn: knights
-NODE_R1_KNIGHT_HORN_DESC,Больше латников в каждой пачке.,More knights in every pack.
+NODE_R1_KNIGHT_HORN_DESC,Больше латников в каждой пачке. Выбор: закрывает «Слухи о кладе: латники».,More knights in every pack. Choice: closes «Treasure rumours: knights».
 NODE_R1_DECREE,Королевский указ «Сталь»,Royal decree: Steel
 NODE_R1_DECREE_DESC,Всё оружие крепости бьёт сильнее.,All fortress weapons hit harder.
 NODE_R1_BOSS,Вызвать Вожака пустошей,Summon the Wasteland Chief
@@ -113,7 +109,7 @@ UI_BOSS_CALL_AGAIN,Вызвать снова,Call again
 UI_BOSS_RETREATED,"Отступил! Вернётся, когда будешь готов",Retreated! He'll be back when you're ready
 UI_BOSS_DEFEATED,Вожак повержен!,The Chief is defeated!
 NODE_R1_KNIGHT_RUMORS,Слухи о кладе: латники,Treasure rumours: knights
-NODE_R1_KNIGHT_RUMORS_DESC,"Латники несут больше добычи, но становятся заметно живучее.","Knights carry more loot, but get much tougher."
+NODE_R1_KNIGHT_RUMORS_DESC,"Латники несут больше добычи, но становятся заметно живучее. Выбор: закрывает «Гудок: латники».","Knights carry more loot, but get much tougher. Choice: closes «Horn: knights»."
 NODE_R0_KETTLE,Королевский чайник,The King's kettle
 NODE_R0_KETTLE_DESC,"На стене закипает чайник Короля: раз в несколько секунд он выплёскивает кипяток на тех, кто ближе всех ко рву.",The King's kettle boils on the wall: every few seconds it splashes boiling water on whoever is closest to the moat.
 NODE_R0_KETTLE_WHISTLE,Свисток чайника,Kettle whistle
@@ -133,17 +129,11 @@ NODE_R2_STEAM_JET_DESC,"Выбор башни: Пароструй — конус
 NODE_R2_BOILER,Котельная котлобоя,Boiler thrower works
 NODE_R2_BOILER_DESC,"Выбор башни: Котлобой — бросает котёл через всё поле, большой взрыв и лужа кипятка. Исключает Пароструй.","Tower choice: Boiler thrower — lobs a boiler across the field, big blast and a boiling puddle. Excludes the Steam jet."
 NODE_R2_MOLE_HORN,Гудок: кроты,Horn: moles
-NODE_R2_MOLE_HORN_DESC,Больше кротов в каждой пачке.,More moles in every pack.
+NODE_R2_MOLE_HORN_DESC,Намного больше кротов в каждой пачке. Выбор: закрывает «Слухи о кладе: кроты».,Many more moles in every pack. Choice: closes «Treasure rumours: moles».
 NODE_R2_MOLE_RUMORS,Слухи о кладе: кроты,Treasure rumours: moles
-NODE_R2_MOLE_RUMORS_DESC,"Кроты несут больше добычи, но становятся заметно живучее.","Moles carry more loot, but get much tougher."
+NODE_R2_MOLE_RUMORS_DESC,"Кроты несут мешки с добычей, но становятся заметно живучее. Выбор: закрывает «Гудок: кроты».","Moles carry loot sacks, but get much tougher. Choice: closes «Horn: moles»."
 NODE_R2_FURNACE,Топка рва,Moat furnace
-NODE_R2_FURNACE_DESC,Уголь разогревает ров: завеса шире и жжёт сильнее.,Coal heats the moat: the curtain is wider and burns harder.
-NODE_R2_JET_NOZZLE,Длинное сопло,Long nozzle
-NODE_R2_JET_NOZZLE_DESC,Пароструй бьёт дальше.,The steam jet reaches farther.
-NODE_R2_BOILER_LID,Котёл без крышки,Lidless boiler
-NODE_R2_BOILER_LID_DESC,Шире взрыв котлобоя.,Wider boiler blasts.
-NODE_R2_COAL_DECREE,Угольный указ,Coal decree
-NODE_R2_COAL_DECREE_DESC,Больше добычи со всех врагов.,More loot from every enemy.
+NODE_R2_FURNACE_DESC,Уголь разогревает ров: завеса шире и жжёт сильнее. Дальше — гейзеры.,Coal heats the moat: the curtain is wider and burns harder. Next: geysers.
 ENEMY_MOLE_MINER,Крот-шахтёр,Mole miner
 TOWER_STEAM_JET,Пароструй,Steam jet
 TOWER_STEAM_JET_DESC,Конус пара вблизи рва: ошпаривает и замедляет. Урон: пар.,Steam cone near the moat: scalds and slows. Steam damage.
@@ -163,19 +153,134 @@ MS_SHOOTER_SPARK_DESC,Критический выстрел перескакив
 MS_RIVETER_TWIN,Сдвоенная клёпка,Twin rivets
 MS_RIVETER_TWIN_DESC,Две заклёпки веером за выстрел. Латунная отделка.,Two rivets in a fan per shot. Brass trim.
 MS_RIVETER_CHANNEL,Сквозной канал,Through-channel
-MS_RIVETER_CHANNEL_DESC,Заклёпки пробивают ещё двоих. Позолота.,Rivets pierce two more enemies. Gilded.
+MS_RIVETER_CHANNEL_DESC,Заклёпки пробивают ещё двоих.,Rivets pierce two more enemies.
 MS_RIVETER_KNOCKBACK,Пневмоудар,Pneumatic punch
-MS_RIVETER_KNOCKBACK_DESC,Заклёпка отбрасывает врага назад.,A rivet knocks the enemy back.
+MS_RIVETER_KNOCKBACK_DESC,Заклёпка отбрасывает каждого пробитого врага на пару шагов назад.,A rivet knocks every enemy it pierces a couple of steps back.
 MS_MORTAR_CLUSTER,Кассетный снаряд,Cluster shell
 MS_MORTAR_CLUSTER_DESC,Снаряд разлетается на осколки с малыми взрывами. Латунная отделка.,The shell splits into fragments with small blasts. Brass trim.
 MS_MORTAR_INCENDIARY,Зажигательная начинка,Incendiary filling
 MS_MORTAR_INCENDIARY_DESC,Взрыв ошпаривает врагов. Позолота.,Blasts scald enemies. Gilded.
 MS_MORTAR_STUN,Оглушающий заряд,Stunning charge
-MS_MORTAR_STUN_DESC,Взрыв замедляет врагов.,Blasts slow enemies.
+MS_MORTAR_STUN_DESC,Взрыв оглушает врагов на 0.6 с: они замирают на месте. Вагонетки и Бур не оглушаются.,Blasts stun enemies for 0.6 s: they freeze in place. Carts and the Drill are immune.
 MS_STEAM_JET_TWIN,Двойное сопло,Twin nozzle
 MS_STEAM_JET_TWIN_DESC,Пароструй бьёт двумя конусами. Латунная отделка.,The steam jet fires two cones. Brass trim.
 MS_BOILER_SHRAPNEL,Котёл с начинкой,Loaded boiler
 MS_BOILER_SHRAPNEL_DESC,Котёл разлетается осколками. Латунная отделка.,The boiler bursts into fragments. Brass trim.
+NODE_R2_MINE,Угольная шахта,Coal mine
+NODE_R2_MINE_DESC,Цех у стены: раз в 10 с из шахты выезжает вагонетка угля и немного шестерён.,A workshop by the wall: every 10 s a cart of coal and a few gears rolls out of the mine.
+NODE_R2_MINE_SHAFT,Новый штрек,New drift
+NODE_R2_MINE_SHAFT_DESC,Шахта выдаёт вдвое больше за одну вагонетку.,The mine yields twice as much per cart.
+NODE_R2_MINE_RAILS,Рельсы в забой,Rails to the face
+NODE_R2_MINE_RAILS_DESC,Вагонетки шахты ходят чаще.,Mine carts come out more often.
+NODE_R2_MINE_LIFT,Подъёмник с чертёжной,Lift to the drawing office
+NODE_R2_MINE_LIFT_DESC,Шахта выдаёт ещё и чертежи.,The mine yields blueprints too.
+NODE_R2_LENS_DIG,Линза-кирка,Pickaxe lens
+NODE_R2_LENS_DIG_DESC,Линза выжигает кротов из нор: под линзой крот вылезает наружу и получает урон.,The lens burns moles out of their tunnels: under the lens a mole pops up and takes damage.
+NODE_R2_CARTS,Открыть дорогу: вагонетки,Open road: coal carts
+NODE_R2_CARTS_DESC,"Новый враг — вагонетка: быстрая и тяжёлая, её не замедлить, не оглушить и не отбросить. Везёт уголь.","New enemy — the coal cart: fast and heavy, it cannot be slowed, stunned or knocked back. Carries coal."
+NODE_R2_CART_HORN,Гудок: вагонетки,Horn: coal carts
+NODE_R2_CART_HORN_DESC,Больше вагонеток в каждой пачке. Выбор: закрывает «Слухи о кладе: вагонетки».,More carts in every pack. Choice: closes «Treasure rumours: carts».
+NODE_R2_CART_RUMORS,Слухи о кладе: вагонетки,Treasure rumours: coal carts
+NODE_R2_CART_RUMORS_DESC,"Вагонетки везут мешки с добычей, но становятся заметно живучее. Выбор: закрывает «Гудок: вагонетки».","Carts haul loot sacks, but get much tougher. Choice: closes «Horn: carts»."
+NODE_R2_JET_LIMIT,Паровая батарея,Steam battery
+NODE_R2_JET_LIMIT_DESC,"+2 места для пароструев, струя бьёт дальше.","+2 steam jet slots, the jet reaches farther."
+NODE_R2_JET_DIG,Пар в норы,Steam into the burrows
+NODE_R2_JET_DIG_DESC,Конус пароструя выдувает кротов из нор.,The steam cone blows moles out of their tunnels.
+NODE_R2_BOILER_LIMIT,Вторая котельная,Second boiler house
+NODE_R2_BOILER_LIMIT_DESC,"+2 места для котлобоев, взрыв шире.","+2 boiler thrower slots, wider blasts."
+NODE_R2_BOILER_TAR,Смоляная лужа,Tar puddle
+NODE_R2_BOILER_TAR_DESC,Лужа котлобоя липкая: все в ней вязнут (замедление).,The boiler puddle is sticky: everyone in it bogs down (slow).
+NODE_R2_COAL_KETTLE,Угли в чайнике,Coals in the kettle
+NODE_R2_COAL_KETTLE_DESC,"Чайник Короля оставляет лужу кипятка там, куда плеснул.",The King's kettle leaves a boiling puddle where it splashes.
+NODE_R2_GEYSERS,Гейзеры,Geysers
+NODE_R2_GEYSERS_DESC,Раз в 4 с у рва бьёт гейзер кипятка. Убитые гейзером дают половину добычи — остальное тонет.,Every 4 s a boiling geyser erupts by the moat. Kills by a geyser give half the loot — the rest sinks.
+NODE_R2_GEYSER_SPRAY,Кипящие брызги,Boiling spray
+NODE_R2_GEYSER_SPRAY_DESC,"Гейзер ошпаривает и замедляет всех, кого задел.",A geyser scalds and slows everyone it hits.
+NODE_R2_GEYSER_TWIN,Второй гейзер,Second geyser
+NODE_R2_GEYSER_TWIN_DESC,"Бьют два гейзера сразу, у разных групп.","Two geysers erupt at once, at different groups."
+NODE_R2_WALL,Надстройка стены,Wall extension
+NODE_R2_WALL_DESC,"+2 места стрелкам, +2 клепальщикам, +1 мортире.","+2 rifleman, +2 riveter and +1 mortar slots."
+NODE_R2_GOLEMS,Открыть дорогу: угольные големы,Open road: coal golems
+NODE_R2_GOLEMS_DESC,"Новый враг — угольный голем: огромный и медленный, при смерти раскалывается на два быстрых уголька.","New enemy — the coal golem: huge and slow, on death it cracks into two fast embers."
+NODE_R2_GOLEM_BOUNTY,Награда за голову: голем,Bounty: coal golem
+NODE_R2_GOLEM_BOUNTY_DESC,"Големы несут больше добычи, но становятся живучее.","Golems carry more loot, but get tougher."
+NODE_R2_SCALD_SHRED,Паровая ржавчина,Steam rust
+NODE_R2_SCALD_SHRED_DESC,"Ошпаренные враги теряют броню от удара, а у Бур-Великана ошпаренная лобовая броня держит вдвое хуже.","Scalded enemies lose their impact armour, and the Drill Giant's scalded frontal armour holds half as well."
+NODE_R2_DECREE,Указ о копях,Decree of the Pits
+NODE_R2_DECREE_DESC,Всё оружие крепости бьёт сильнее.,All fortress weapons hit harder.
+NODE_R2_BOSS,Вызвать Бур-Великана,Summon the Drill Giant
+NODE_R2_BOSS_DESC,"Хозяин копей: спереди броня (пули, заклёпки и струи — ×0.3), навесные снаряды, взрывы, линза и гейзеры бьют в полную силу. Победа откроет Медные болота.","Master of the pits: frontal armour (bullets, rivets and jets ×0.3); lobbed shells, blasts, the lens and geysers hit in full. Victory opens the Copper Marshes."
+NODE_R2_TROPHY_RAM,Трофей: бур-таран,Trophy: drill ram
+NODE_R2_TROPHY_RAM_DESC,Награда за Бура (выбор): каждые 10 с бур прокатывается по самой людной полосе дороги.,Drill reward (choice): every 10 s the drill rolls down the busiest lane of the road.
+NODE_R2_TROPHY_LENS,Трофей: буровые линзы,Trophy: drill lenses
+NODE_R2_TROPHY_LENS_DESC,"Награда за Бура (выбор): ещё одна автолинза, и все линзы выжигают кротов из нор.","Drill reward (choice): one more auto lens, and all lenses burn moles out of their tunnels."
+NODE_R3_ROAD,Открыть дорогу: водолазы,Open road: divers
+NODE_R3_ROAD_DESC,"Медные болота: новый враг — водолаз в медном шлеме. Шлем держит удар и взрыв, снимают его только пар и искра. Несёт медь.",Copper Marshes: new enemy — the diver in a copper helmet. The helmet stops impact and blasts; only steam and sparks wear it down. Carries copper.
+NODE_R3_TESLA,Мастерская теслы,Tesla workshop
+NODE_R3_TESLA_DESC,Выбор башни: Тесла-катушка — молния прыгает по четырём врагам. Исключает Рикошетную пушку.,Tower choice: Tesla coil — lightning jumps through four enemies. Excludes the Ricochet cannon.
+NODE_R3_RICOCHET,Рикошетная мастерская,Ricochet works
+NODE_R3_RICOCHET_DESC,"Выбор башни: Рикошетная пушка — ядро отскакивает между врагами, +15% урона за отскок. Исключает Теслу.","Tower choice: Ricochet cannon — the ball bounces between enemies, +15% damage per bounce. Excludes the Tesla coil."
+NODE_R3_WET_METAL,Мокрый металл,Wet metal
+NODE_R3_WET_METAL_DESC,Ошпаренные враги получают двойной урон от искры.,Scalded enemies take double spark damage.
+NODE_R3_TESLA_LIMIT,Ещё катушки,More coils
+NODE_R3_TESLA_LIMIT_DESC,+1 место для теслы.,+1 Tesla coil slot.
+NODE_R3_RICOCHET_LIMIT,Ещё пушки,More cannons
+NODE_R3_RICOCHET_LIMIT_DESC,+1 место для рикошетной пушки.,+1 Ricochet cannon slot.
+NODE_R3_HOT_SHOT,Калёное ядро,Red-hot shot
+NODE_R3_HOT_SHOT_DESC,"Ядро ошпаривает каждого, в кого попадает.",The ball scalds everyone it hits.
+NODE_R3_DIVER_HORN,Гудок: водолазы,Horn: divers
+NODE_R3_DIVER_HORN_DESC,Больше водолазов в каждой пачке.,More divers in every pack.
+REGION_3,Медные болота,Copper Marshes
+ENEMY_COAL_CART,Вагонетка,Coal cart
+ENEMY_COAL_GOLEM,Угольный голем,Coal golem
+ENEMY_COAL_EMBER,Уголёк,Ember
+ENEMY_DIVER,Водолаз,Diver
+ENEMY_DRILL_GIANT,Бур-Великан,Drill Giant
+BOSS_DRILL_GIANT,Бур-Великан,Drill Giant
+TOWER_TESLA,Тесла-катушка,Tesla coil
+TOWER_TESLA_DESC,Молния бьёт врага и перескакивает ещё на троих (каждый прыжок слабее). Урон: искра.,Lightning hits an enemy and jumps to three more (each jump weaker). Spark damage.
+TOWER_RICOCHET,Рикошетная пушка,Ricochet cannon
+TOWER_RICOCHET_DESC,"Ядро отскакивает от врага к врагу, каждый отскок +15% урона. Урон: удар.","The ball bounces from enemy to enemy, +15% damage per bounce. Impact damage."
+UPG_STEAM_JET_RATE,Паровой насос,Steam pump
+UPG_STEAM_JET_RATE_DESC,Пароструй бьёт чаще.,The steam jet fires more often.
+UPG_BOILER_RATE,Котельный конвейер,Boiler conveyor
+UPG_BOILER_RATE_DESC,Котлобой бросает чаще.,The boiler thrower lobs more often.
+UPG_TESLA_DMG,Толстая обмотка,Thick winding
+UPG_TESLA_DMG_DESC,Больше урона теслы.,More Tesla damage.
+UPG_RICOCHET_DMG,Тяжёлое ядро,Heavy ball
+UPG_RICOCHET_DMG_DESC,Больше урона рикошетной пушки.,More ricochet damage.
+MS_SHOOTER_AP,Бронебойные пули,Armour-piercing bullets
+MS_SHOOTER_AP_DESC,Пули пробивают половину лобовой брони (Бур-Великан).,Bullets pierce half of frontal armour (the Drill Giant).
+MS_SHOOTER_INCENDIARY,Раскалённые пули,Red-hot bullets
+MS_SHOOTER_INCENDIARY_DESC,Пули ошпаривают врага.,Bullets scald the enemy.
+MS_SHOOTER_LEAD,Свинцовые пули,Lead bullets
+MS_SHOOTER_LEAD_DESC,Попадание сбивает шаг: враг ненадолго замедляется.,A hit breaks the stride: the enemy slows for a moment.
+MS_RIVETER_AP,Бронебойная заклёпка,Armour-piercing rivet
+MS_RIVETER_AP_DESC,Заклёпки пробивают половину лобовой брони (Бур-Великан). Позолота.,Rivets pierce half of frontal armour (the Drill Giant). Gilded.
+MS_RIVETER_PIN,Пригвождение,Pinning
+MS_RIVETER_PIN_DESC,Заклёпка прибивает врага к земле: он замедляется.,A rivet pins the enemy down: it slows.
+MS_RIVETER_SPARK,Искровая клёпка,Spark rivets
+MS_RIVETER_SPARK_DESC,Критическая заклёпка перескакивает искрой на соседа.,A critical rivet jumps to a neighbour as a spark.
+MS_MORTAR_TWIN,Спаренная мортира,Twin mortar
+MS_MORTAR_TWIN_DESC,Мортира стреляет сразу по двум группам.,The mortar fires at two groups at once.
+MS_MORTAR_SEISMIC,Сейсмический заряд,Seismic charge
+MS_MORTAR_SEISMIC_DESC,Взрыв трясёт землю и выбивает кротов из нор.,The blast shakes the ground and knocks moles out of their tunnels.
+MS_STEAM_JET_RAM,Паровой таран,Steam ram
+MS_STEAM_JET_RAM_DESC,Струя отбрасывает врагов назад (кроме вагонеток). Позолота.,The jet pushes enemies back (except carts). Gilded.
+MS_STEAM_JET_STUN,Ошпаривающий удар,Scalding blow
+MS_STEAM_JET_STUN_DESC,Струя оглушает на миг всех в конусе.,The jet stuns everyone in the cone for a moment.
+MS_BOILER_DIG,Котёл-дробилка,Crusher boiler
+MS_BOILER_DIG_DESC,Взрыв котла выбивает кротов из нор. Позолота.,A boiler blast knocks moles out of their tunnels. Gilded.
+MS_BOILER_TWIN,Двойная закладка,Double charge
+MS_BOILER_TWIN_DESC,Котлобой бросает два котла по разным группам.,The boiler thrower lobs two boilers at different groups.
+MS_TESLA_ARC,Дуговой разряд,Arc discharge
+MS_TESLA_ARC_DESC,"Молния оглушает на миг каждого, по кому прошла.",Lightning stuns everyone it passes through for a moment.
+MS_RICOCHET_SHRAPNEL,Ядро-шрапнель,Shrapnel ball
+MS_RICOCHET_SHRAPNEL_DESC,Каждое попадание ядра задевает соседей.,Every ball hit also hurts neighbours.
+ABILITY_GEYSER,Гейзеры,Geysers
+ABILITY_DRILL_RAM,Бур-таран,Drill ram
+PROD_COAL_MINE,Угольная шахта,Coal mine
+STATUS_STUN,оглушение,stun
 GOAL_NODE,Цель: %s,Goal: %s
 GOAL_BOSS_FIGHT,Бой: %s,Fight: %s
 GOAL_BOSS_RETRY,"%s отступил. Вызвать снова, когда будешь готов",%s retreated. Call again when ready

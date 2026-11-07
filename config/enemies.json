@@ -1,5 +1,5 @@
 {
-  "_comment": "Enemy types. pack = spawn count per pack (fractions accumulate). resist: damage type -> fraction blocked (negative = weakness). loot per kill before multipliers. burrow: alternates underground (untouchable) / surface seconds.",
+  "_comment": "Enemy types. pack = spawn count per pack (fractions accumulate). resist: damage type -> fraction blocked (negative = weakness). loot per kill before multipliers. Optional mechanics: burrow {under, over s, under_speed} (underground = untouchable), immune [slow|stun|knockback], split {type, count} (on death), front_armor (fraction of direct fire blocked: bullets, rivets, cones, ricochets, chains), charge {every, duration, mult} (dash), shield {frac of max hp, block = cut of other damage while up, breakers = damage types that wear it down}.",
   "damage_types": {
     "impact": {
       "name": "DMG_IMPACT",
@@ -89,20 +89,108 @@
       "name": "ENEMY_MOLE_MINER",
       "region": 2,
       "role": "normal",
-      "hp": 1500,
+      "hp": 2100,
       "speed": 26,
       "radius": 11,
       "loot": {
-        "gears": 45,
-        "blueprints": 60,
+        "gears": 55,
+        "blueprints": 90,
         "coal": 1
       },
       "resist": {},
       "color": "soot_3",
       "pack": 1,
       "burrow": {
-        "under": 1.5,
-        "over": 2.5
+        "under": 1.6,
+        "over": 2.4,
+        "under_speed": 1.5
+      }
+    },
+    "coal_cart": {
+      "name": "ENEMY_COAL_CART",
+      "region": 2,
+      "role": "normal",
+      "hp": 4000,
+      "speed": 52,
+      "radius": 13,
+      "loot": {
+        "gears": 100,
+        "blueprints": 170,
+        "coal": 2
+      },
+      "resist": {
+        "impact": 0.2
+      },
+      "color": "soot_2",
+      "pack": 0.6,
+      "immune": [
+        "slow",
+        "stun",
+        "knockback"
+      ]
+    },
+    "coal_golem": {
+      "name": "ENEMY_COAL_GOLEM",
+      "region": 2,
+      "role": "normal",
+      "hp": 11000,
+      "speed": 15,
+      "radius": 17,
+      "loot": {
+        "gears": 280,
+        "blueprints": 450,
+        "coal": 4
+      },
+      "resist": {
+        "impact": 0.3
+      },
+      "color": "soot_1",
+      "pack": 0.35,
+      "split": {
+        "type": "coal_ember",
+        "count": 2
+      }
+    },
+    "coal_ember": {
+      "name": "ENEMY_COAL_EMBER",
+      "region": 2,
+      "role": "normal",
+      "hp": 1400,
+      "speed": 40,
+      "radius": 8,
+      "loot": {
+        "gears": 30,
+        "blueprints": 50,
+        "coal": 1
+      },
+      "resist": {
+        "steam": 0.5
+      },
+      "color": "ember_2",
+      "pack": 0
+    },
+    "diver": {
+      "name": "ENEMY_DIVER",
+      "region": 3,
+      "role": "normal",
+      "hp": 22000,
+      "speed": 22,
+      "radius": 13,
+      "loot": {
+        "gears": 320,
+        "blueprints": 420,
+        "copper": 1
+      },
+      "resist": {},
+      "color": "copper_2",
+      "pack": 0.6,
+      "shield": {
+        "frac": 0.6,
+        "block": 0.75,
+        "breakers": [
+          "steam",
+          "spark"
+        ]
       }
     },
     "scav_guard": {
@@ -135,6 +223,30 @@
         "impact": 0.3
       },
       "color": "ember_1"
+    },
+    "drill_giant": {
+      "name": "ENEMY_DRILL_GIANT",
+      "region": 2,
+      "role": "boss",
+      "hp": 500000,
+      "speed": 9,
+      "radius": 26,
+      "loot": {
+        "gears": 2000,
+        "coal": 50
+      },
+      "resist": {},
+      "color": "iron_1",
+      "front_armor": 0.7,
+      "charge": {
+        "every": 9.0,
+        "duration": 2.0,
+        "mult": 2.2
+      },
+      "immune": [
+        "knockback",
+        "stun"
+      ]
     }
   },
   "bosses": {
@@ -171,6 +283,48 @@
         {
           "type": "unlock_region",
           "value": 2
+        }
+      ]
+    },
+    "drill_giant": {
+      "name": "BOSS_DRILL_GIANT",
+      "enemy": "drill_giant",
+      "escorts": [
+        {
+          "type": "mole_miner",
+          "count": 4,
+          "at": 0.0
+        },
+        {
+          "type": "coal_cart",
+          "count": 3,
+          "at": 8.0
+        },
+        {
+          "type": "mole_miner",
+          "count": 5,
+          "at": 18.0
+        },
+        {
+          "type": "coal_cart",
+          "count": 4,
+          "at": 28.0
+        },
+        {
+          "type": "coal_golem",
+          "count": 2,
+          "at": 38.0
+        }
+      ],
+      "reward": {
+        "blueprints": 30000,
+        "gears": 30000,
+        "coal": 300
+      },
+      "on_defeat": [
+        {
+          "type": "unlock_region",
+          "value": 3
         }
       ]
     }

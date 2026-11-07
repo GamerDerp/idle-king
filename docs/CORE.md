@@ -2,7 +2,7 @@
 
 Ядро — `scripts/core/`, чистые `RefCounted`-классы без узлов сцены. Их одинаково гоняют игра
 (автолоад `Game`), тесты (`tests/test_core*.gd`) и headless-симуляция (`tools/simulate.sh`).
-Решения и почему так — DECISIONS.md D-016…D-030.
+Решения и почему так — DECISIONS.md D-016…D-030, R2 — D-051…D-057.
 
 | Файл | Класс | Что делает |
 |---|---|---|
@@ -40,14 +40,26 @@ core.new_run()                         # престиж (позже): забег
 (290), появление `battle.spawn_x` (900), полоса `battle.y_min..y_max` (130–610).
 
 - `battle.enemies` (`Battle.Enemy`): `uid, type, role, pos, hp, max_hp, radius, scald_t (>0 — ошпарен), slow_t/slow_f
-  (замедлен), underground (в норе: рисовать холмик, неуязвим), age, alive`.
+  (замедлен), underground (в норе: рисовать холмик, неуязвим), age, alive`. R2+:
+  `stun_t` (>0 — оглушён, стоит: звёздочки), `immune` (`{"slow","stun","knockback"}` — вагонетка), `charging` (рывок
+  Бура: пыль), `front_armor` (>0 — лобовая броня: латунная плита спереди), `shield_hp/shield_max` (>0 — медный шлем
+  водолаза), `split` (не пусто — расколется: трещины), `parent_uid` (уголёк: из какого голема), `bait` (уровни приманки
+  этого типа: мешки с добычей на спине), `scald_src` (кто ошпарил).
 - `battle.towers` (`Battle.Tower`): `type, index, slot, pos, cd, shots, aim`. Вид башни: `core.tower_tier(type)`
   (1 — железо, 2 — латунь, 3 — позолота; растёт вехами улучшений).
-- `battle.projectiles`: `kind ("bullet"/"rivet"/"shell"), tower, pos, crit`; заклёпка `dir`; снаряд `start, dest, t,
-  flight, fragment` (дуга по `t/flight`; осколки кассетного снаряда — маленькая дуга).
-- `battle.zones` (`Battle.Zone`): лужи кипятка котлобоя — `pos, radius, t, duration, dmg_type`.
+- `battle.projectiles`: `kind ("bullet"/"rivet"/"shell"/"ricochet"), tower, pos, crit`; заклёпка `dir`; снаряд `start, dest, t,
+  flight, fragment` (дуга по `t/flight`; осколки кассетного снаряда — маленькая дуга); ядро рикошета летит как пуля,
+  `bounce` — сколько отскоков сделало (событие `ricochet` на каждый). Конус (пароструй) и молния (тесла) мгновенные —
+  только события `cone_fired` / `chain_fired`.
+- `battle.zones` (`Battle.Zone`): лужи — `pos, radius, t, duration, dmg_type, tower` (владелец: тип башни или
+  `ability:kettle`), `statuses` (не пусто — липкая смоляная лужа: замедляет).
 - Ров: завеса бьёт врагов с `x < moat_x + core.mods.moat_width`, если `mods.moat_dps > 0`; `mods.moat_slow > 0` — цепи.
-- Механизмы: `core.mods.abilities` (сейчас `kettle` — чайник Короля), таймеры `battle.ability_timers`.
+- Механизмы: `core.mods.abilities` (`kettle` — чайник Короля, `geyser` — гейзеры у рва, `drill_ram` — бур-таран,
+  трофей Бура), таймеры `battle.ability_timers`. У механизма `shape` (`splash` / `line`), `puddle` (не пусто — чайник
+  оставляет лужу), `kill_loot_mult` (гейзер: убитые им дают 50% добычи).
+- Цеха (производство): `core.mods.producers` — `{id: {interval, output {res: amount}, level}}` (`coal_mine` — Угольная
+  шахта: колесо/вагонетки у стены), прогресс цикла `core.producer_progress(id)` 0..1 (заполнять колесо/вагонетку),
+  выпуск — событие `producer_output` (рисовать вагонетку и всплывающие «+3 уголь +150 шест.»).
 - Босс: `battle.boss_enemy` / `battle.boss_id`.
 - Цель (строка над полем): `core.next_goal()` → `{id, text_key, args, progress 0..1, cost}`;
   `text_key` — `GOAL_NODE` / `GOAL_BOSS_FIGHT` / `GOAL_BOSS_RETRY` / `GOAL_NONE`, `args` — ключи i18n
@@ -62,26 +74,35 @@ core.new_run()                         # престиж (позже): забег
 | `pack_spawned` | index | новая пачка |
 | `enemy_spawned` | uid, enemy, role, pos | враг появился |
 | `enemy_burrow` | uid, pos, under | крот ушёл под землю / вылез |
+| `enemy_emerge` | uid, pos, forced | крот вылез (дополнительно к `enemy_burrow` under=false); forced — выбит линзой/взрывом/струёй |
+| `enemy_charge` | uid, pos, duration | рывок (Бур-Великан) |
+| `enemy_split` | uid, enemy, pos, child_type, children [uid] | голем раскололся на угольки (после `enemy_killed`) |
+| `enemy_shield_broken` | uid, pos | с водолаза сорван медный шлем |
 | `projectile_fired` | uid, kind, tower, tower_index, from, to, crit | выстрел |
 | `cone_fired` | tower, tower_index, from, dir, length, angle, hits, crit | конус пароструя (мгновенный) |
-| `enemy_hit` | uid, amount, dmg_type, crit, pos, source | попадание (прямое) |
+| `chain_fired` | tower, tower_index, from, points [Vector2], hits, crit | молния теслы: ломаная from → points (мгновенная) |
+| `ricochet` | uid, tower, from, to, bounce | ядро отскочило к следующему врагу |
+| `enemy_hit` | uid, amount, dmg_type, crit, pos, source, armored, shielded | попадание (прямое); armored — лобовая броня погасила часть («дзынь», искры); shielded — по шлему |
 | `enemy_dot` | uid, pos, source ("scald"/"moat"/"zone"), amount, total | урон со временем, сводка раз в `waves.dot_event_interval` (0.25 с) на врага и источник; total — весь DoT по врагу |
 | `enemy_status` | uid, status ("scald"/"slow"), pos, duration | статус наложен заново |
 | `crit_chain` | from, to | искра крита перескочила |
 | `bullet_burst` | pos, radius | разрывная пуля |
 | `shell_exploded` | uid, tower, pos, radius, crit, fragment | взрыв снаряда / осколка |
-| `zone_created` | uid, pos, radius, duration, dmg_type | лужа кипятка |
-| `ability_fired` | id, pos, radius, hits, damage | чайник выплеснул кипяток |
+| `zone_created` | uid, pos, radius, duration, dmg_type, tower, statuses | лужа (котлобой, чайник); statuses `["slow"]` — смола |
+| `ability_fired` | id, pos, radius, hits, damage, shape | чайник выплеснул кипяток |
+| `geyser` | id, pos, radius, hits, damage, shape | гейзер у рва (вместо `ability_fired`) |
+| `drill_ram` | id, pos (moat_x, y), x_end, width, hits, damage, shape "line" | бур-таран проехал по полосе y от рва до x_end |
+| `producer_output` | id, amount {res: n}, level | цех выдал партию (уголь и шестерни; с «Подъёмником» — чертежи) |
 | `lens_tick` | index, pos, radius, mode, damage, hits | тик линзы с суммой урона |
-| `enemy_killed` | uid, enemy, pos, loot | убит, добыча начислена |
+| `enemy_killed` | uid, enemy, pos, loot, source | убит, добыча начислена (гейзер: половина) |
 | `enemy_fell_in_moat` | uid, enemy, pos | упал в ров |
 | `purchased` | id, level, price | покупка |
 | `tower_built` | tower, index, pos | новая башня на стене |
 | `milestone` | upgrade, tower, name, level | веха улучшения (name — ключ i18n `MS_*`, описание `MS_*_DESC`) |
 | `tier_up` | tower, tier | башня сменила вид |
 | `choice_made` | id, excluded | выбор сделан, ветки `excluded` закрыты |
-| `unlocked` | what ("enemy"/"tower"/"region"/"behavior"), id | открытие; behavior: id — ключ из `Mods.behaviours()` |
-| `boss_spawned` / `boss_retreated` / `boss_defeated` / `boss_reward` | boss, … | бой с боссом |
+| `unlocked` | what ("enemy"/"tower"/"region"/"producer"/"behavior"), id | открытие; behavior: id — ключ из `Mods.behaviours()` |
+| `boss_spawned` / `boss_retreated` / `boss_defeated` / `boss_reward` | boss, … | бой с боссом; retreated/defeated: `hp_left` (доля) |
 
 `core.emit_events = false` — без событий (симуляция).
 
@@ -95,20 +116,33 @@ core.price(id) / can_buy(id) / buy(id) / level_of(id) / max_of(id) / is_availabl
 core.node_status(node_id)         # hidden | locked | excluded | available | maxed
 core.preview_mods(id)             # Mods после покупки — «было → станет»
 core.novelty_of(id)               # что нового на экране принесёт покупка (ключи behaviours); [] = только числа
+core.changes_of(id)               # то же + «косметика»: tier:* (новый вид), region:* (регион) — не считаются новым
 core.purchase_category(id)        # "novel" | "tower" | "numeric"
+core.next_milestone(upgrade_id)   # {level, levels_left, name, desc, novelty} ближайшей вехи или {} — для карточки цеха
+core.producer_progress(id)        # 0..1 цикла цеха
 ```
 
 - Выбор: узлы с `excludes` (взаимно). Купил один — остальные `excluded`. Для показа обеих веток со статами
   сравнивай `preview_mods("node:a")` и `preview_mods("node:b")`. Награда за босса — пара узлов с
   `requires: {"boss": id}` и ценой 0 (скрыты до победы).
 - Вехи (`upgrades.*.milestones`): эффекты применяются один раз при достижении уровня; `tower_tier_add` — смена вида.
-- Узел «нового» показывай подсветкой: `novelty_of(id)` не пуст.
+- Узел «нового» показывай подсветкой: `novelty_of(id)` не пуст. Честно (D-052): новый вид башни (`tier:*`) или открытый
+  регион (`region:*`) сами по себе — не новое; отброс меньше `combat.knockback_novel_min` (20 px) — тоже.
+- Ключи поведений R2 (для текстов «что нового»): `status:<башня>:stun`, `armor_pierce:<башня>` (пробивает лобовую броню),
+  `dig:<башня>` / `lens_dig` (выбивает кротов из нор), `zone_status:<башня>:slow` (липкая лужа), `scald_shred`
+  (паровая ржавчина), `wet_metal` (мокрый металл), `producer:<id>`, `producer_out:<id>:<res>`, `ability_puddle:<id>`,
+  `ability:geyser`, `ability:drill_ram`, `tower:tesla` / `tower:ricochet`.
+- Приманки — пары «Гудок» ↔ «Слухи о кладе» (`excludes`): больше врагов или богаче-но-толще (D-053).
 
 ## Боссы
 
 `state.boss_status(id)`: `none | active | retreated | defeated`; `can_call_boss(id)`, `call_boss(id)`, `active_boss()`.
 Пока босс на поле — пачки на паузе. После победы каждого босса старые враги (регион < числа побеждённых
 боссов) приходят реже: пачка × `waves.old_region_pack_factor`^разница.
+Бур-Великан (R2): лобовая броня `front_armor` 0.7 гасит прямой огонь (`combat.direct_kinds`: пули, заклёпки, конусы,
+рикошеты, молнии); навесные снаряды, взрывы, лужи, линза, гейзеры, чайник — в полную силу. Рывки (`charge`), иммунен к
+оглушению и отбросу. Награда за победу — выбор из двух качественных узлов (`r2_trophy_ram` / `r2_trophy_lens`),
+затем открывается регион 3 (Медные болота, заглушка: водолазы, медь, Тесла ↔ Рикошетная пушка).
 
 ## Сохранение
 
@@ -119,10 +153,10 @@ core.purchase_category(id)        # "novel" | "tower" | "numeric"
 
 | Файл | Что |
 |---|---|
-| `economy.json` | ресурсы (meta-флаг), старт, сид, округление цен, окно дохода, предел tick |
+| `economy.json` | ресурсы (meta-флаг), старт, сид, округление цен, окно дохода, предел tick, `producers` (цеха) |
 | `waves.json` | поле, пачки, разброс скорости/по y, покачивание, прореживание старых врагов, завеса, интервал DoT-событий |
-| `enemies.json` | типы урона, враги (`burrow` — норы), боссы (свита, награда, on_defeat) |
-| `towers.json` | `wall.rows`, `combat` (константы боя), башни (`row`, `on_hit`, `puddle`, `cone_angle`), улучшения с `milestones`, `abilities` |
+| `enemies.json` | типы урона, враги (`burrow`, `immune`, `split`, `front_armor`, `charge`, `shield`), боссы (свита, награда, on_defeat) |
+| `towers.json` | `wall.rows`, `combat` (константы боя), башни (`row`, `on_hit`, `puddle`, `cone_angle`, `chain*`, `bounce*`), улучшения с `milestones`, `abilities` (`shape`, `kill_loot_mult`, `event`) |
 | `lens.json` | линза: урон, % здоровья, тик, авто-полоса и развёртка, наводчик |
 | `map.json` | регионы и узлы (`excludes`, `requires`) |
 
@@ -135,14 +169,20 @@ tower_crit_mult_add, tower_range_add, tower_on_hit_status (scald: доля ур�
 slow: −value скорости), tower_multishot_add, tower_knockback_add (px), tower_cluster_add (осколки),
 tower_crit_chain_add, tower_tier_add, lens_radius, lens_dmg, lens_rate, lens_auto_mult, lens_seek, lens_status,
 lens_extra_add, global_dmg_mult, global_loot_mult, global_bp_mult, moat_damage, moat_slow_add, moat_width_add,
-unlock_ability, ability_dmg_mult, ability_status, ability_count_add, call_boss, unlock_region`.
+unlock_ability, ability_dmg_mult, ability_status, ability_count_add, call_boss, unlock_region`; R2: `unlock_producer,
+producer_amount_mult, producer_rate_mult, producer_output_add (res), tower_zone_status (status, duration),
+tower_armor_pierce, tower_dig, lens_dig, scald_shred, wet_metal, tower_chain_add, tower_bounce_add, ability_puddle
+(radius, duration, dmg_type; value = доля среднего удара в секунду)`. Статусы: `scald, slow, stun`.
 `"stack": "mul"` — множитель вместо сложения. Новый тип: `GameData.EFFECT_TYPES` + `Mods.apply_effect/_derive`;
 если это новое поведение — добавить ключ в `Mods.behaviours()` (по нему считается «новое на экране»).
 
 ## Симуляция
 
-`tools/simulate.sh [минут=20] [--active | --real | --idle] [--seed=N] [--dt=0.05] [--strict]` — без флага все
-три режима. `sim_out/report.md`: проверки (темп DESIGN §9, покупок между новинками ≤ 8, доля чисто числовых
-< 50%, давление ≥ 5% падений в какую-то минуту и не > 35%, пара башен R2 до 20:00), выборы бота, урон по
-источникам, «что нового» с ключами поведений, по минутам — падения в ров, средний x убийств и доля убийств у рва,
-таймлайн, все покупки с категориями. `timeline*.csv` — раз в 10 с. ~13 с реального времени на 20 минут режима.
+`tools/simulate.sh [минут=35] [--active | --real | --idle] [--seed=N] [--seeds=1,2,3] [--compare] [--force=node,...]
+[--baits=default|none|greedy] [--dt=0.05] [--out=report.md] [--strict]` — без флага режима все три. `sim_out/report.md`:
+сводка всех прогонов (сиды), сравнение вариантов (`--compare`: принудительно Пароструй / Котлобой, без приманок, жадные
+приманки), по каждому режиму — проверки за **весь** прогон (темп DESIGN §9, пара R2 в 14:30–18:00, Бур 26–34 мин,
+вход в R3, паузы ≤ 3 мин, новое ≤ 5 мин, ≤ 8 покупок между новинками, числовых ≤ 40%, давление 5–35% падений,
+запасы в конце ≤ 6 мин дохода), ритм по фазам, боссы с попытками и остатком здоровья при отступлении, выборы, купленные
+приманки, урон по источникам (+ошпаривание по тому, кто ошпарил), новинки по времени, падения по минутам, таймлайн,
+все покупки. ~25 с реального времени на 35 минут режима.
