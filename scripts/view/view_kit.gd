@@ -11,13 +11,15 @@ const FONT_BOLD: FontFile = preload("res://fonts/kotel_bold.fnt")
 const FONT_REGULAR: FontFile = preload("res://fonts/kotel_regular.fnt")
 const FONT_TITLE: FontFile = preload("res://fonts/kotel_title.fnt")
 const FLASH_SHADER: Shader = preload("res://assets/shaders/hit_flash.gdshader")
+const LIGHT_SHADER: Shader = preload("res://scripts/view/shaders/hit_light.gdshader")
 
 var core: GameCore
 var cfg: Dictionary = {}
 var origin: Vector2 = Vector2(0, 40)   ## screen position of art (0, 0)
 var art_scale: float = 2.0
-var flash_mat: ShaderMaterial
-var crit_flash_mat: ShaderMaterial
+var flash_mat: ShaderMaterial          ## solid steam-white silhouette (towers: drop, tier-up)
+var hit_mat: ShaderMaterial            ## light hit flash (enemies)
+var crit_flash_mat: ShaderMaterial     ## light warm flash (enemy crits)
 var _colors: Dictionary = {}
 
 
@@ -29,13 +31,23 @@ func _init(game_core: GameCore) -> void:
 	origin = Vector2(float(so[0]), float(so[1]))
 	art_scale = float(SpriteLib.scale())
 	flash_mat = _make_flash(str(v("flash.color", "steam_3")))
-	crit_flash_mat = _make_flash(str(v("flash.crit_color", "ember_2")))
+	hit_mat = _make_light(str(v("flash.color", "steam_3")), f("flash.strength", 0.55))
+	crit_flash_mat = _make_light(str(v("flash.crit_color", "parchment_2")), f("flash.crit_strength", 0.7))
 
 
 func _make_flash(color_name: String) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = FLASH_SHADER
 	m.set_shader_parameter("flash", 1.0)
+	m.set_shader_parameter("flash_color", col(color_name))
+	return m
+
+
+## Light (non-silhouette) hit flash for enemies: the sprite keeps its shading.
+func _make_light(color_name: String, strength: float) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = LIGHT_SHADER
+	m.set_shader_parameter("strength", strength)
 	m.set_shader_parameter("flash_color", col(color_name))
 	return m
 
@@ -319,6 +331,8 @@ func diff_lines(id: String, after: Mods = null, before: Mods = null) -> Array:
 		after = core.preview_mods(id)
 	var out: Array = []
 	var p: PackedStringArray = GameCore.split_id(id)
+	# a bonus to all weapons is one row ("Всё оружие"), not a damage row for every tower
+	var g_k: float = after.global_dmg / maxf(1e-9, before.global_dmg)
 	# towers
 	for t: String in core.data.towers:
 		var a: Dictionary = before.tower_stats[t]
@@ -336,33 +350,43 @@ func diff_lines(id: String, after: Mods = null, before: Mods = null) -> Array:
 				"good": true, "icon": icon_name})
 			continue
 		var pre: String = "" if p[0] == "upg" or p[1] == t else tower_name(t) + ": "
-		_cmp(out, pre + tr("DIFF_DMG"), float(a["dmg"]), float(b["dmg"]), icon_name)
+		_cmp(out, pre + tr("DIFF_DMG"), float(a["dmg"]) * g_k, float(b["dmg"]), icon_name)
 		_cmp(out, pre + tr("DIFF_RATE"), 1.0 / float(a["reload"]), 1.0 / float(b["reload"]), icon_name)
 		_cmp(out, pre + tr("DIFF_LIMIT"), float(a["limit"]), float(b["limit"]), icon_name)
 		_cmp(out, pre + tr("DIFF_PIERCE"), float(a["pierce"]), float(b["pierce"]), icon_name)
 		_cmp(out, pre + tr("DIFF_SPLASH"), float(a["splash"]), float(b["splash"]), icon_name)
 		_cmp(out, pre + tr("DIFF_MULTISHOT"), float(a["multishot"]), float(b["multishot"]), icon_name)
 		_cmp(out, pre + tr("DIFF_CRIT"), float(a["crit_chance"]) * 100.0, float(b["crit_chance"]) * 100.0, icon_name, "%")
+		_cmp(out, pre + tr("DIFF_CRIT_MULT"), float(a["crit_mult"]), float(b["crit_mult"]), icon_name, "", true, "×")
+		_cmp(out, pre + tr("DIFF_CRIT_CHAIN"), float(a["crit_chain"]), float(b["crit_chain"]), icon_name)
+		_cmp(out, pre + tr("DIFF_TIER"), float(a["tier"]), float(b["tier"]), icon_name)
 		_cmp(out, pre + tr("DIFF_KNOCKBACK"), float(a["knockback"]), float(b["knockback"]), icon_name)
 		_cmp(out, pre + tr("DIFF_CLUSTER"), float(a["cluster"]), float(b["cluster"]), icon_name)
 		_cmp(out, pre + tr("DIFF_RANGE"), float(a["range_max"]), float(b["range_max"]), icon_name)
-		var sa: Dictionary = a["statuses"]
-		var sb: Dictionary = b["statuses"]
-		for st: String in sb:
-			var va: float = float((sa.get(st, {}) as Dictionary).get("value", 0.0))
-			var vb: float = float((sb[st] as Dictionary).get("value", 0.0))
-			_cmp(out, pre + status_name(st).capitalize(), va * 100.0, vb * 100.0, "dmg_steam", "%")
+		_status_rows(out, pre, a["statuses"], b["statuses"])
 	# lens
 	var la: Dictionary = before.lens
 	var lb: Dictionary = after.lens
 	_cmp(out, tr("DIFF_LENS_DPS"), float(la["dmg"]) / float(la["interval"]), float(lb["dmg"]) / float(lb["interval"]), "dmg_steam")
 	_cmp(out, tr("DIFF_LENS_RADIUS"), float(la["radius"]), float(lb["radius"]), "dmg_steam")
 	_cmp(out, tr("DIFF_LENS_AUTO"), float(la["auto_mult"]) * 100.0, float(lb["auto_mult"]) * 100.0, "dmg_steam", "%")
+	_cmp(out, tr("DIFF_LENS_COUNT"), 1.0 + float(la["extra"]), 1.0 + float(lb["extra"]), "dmg_steam")
+	_status_rows(out, tr("UI_LENS") + ": ", la["statuses"], lb["statuses"])
 	# moat, global
 	_cmp(out, tr("DIFF_MOAT_DPS"), before.moat_dps, after.moat_dps, "dmg_steam")
 	_cmp(out, tr("DIFF_MOAT_SLOW"), before.moat_slow * 100.0, after.moat_slow * 100.0, "dmg_steam", "%")
 	_cmp(out, tr("DIFF_MOAT_WIDTH"), before.moat_width, after.moat_width, "dmg_steam")
 	_cmp(out, tr("DIFF_GLOBAL_DMG"), before.global_dmg * 100.0, after.global_dmg * 100.0, "dmg_blast", "%")
+	# global loot: one row instead of a loot row for every enemy
+	var gl_a: float = before.stat("global_loot", "all", 1.0)
+	var gl_b: float = after.stat("global_loot", "all", 1.0)
+	var gb_a: float = before.stat("global_bp", "all", 1.0)
+	var gb_b: float = after.stat("global_bp", "all", 1.0)
+	_cmp(out, tr("DIFF_GLOBAL_LOOT"), gl_a * 100.0, gl_b * 100.0, "res_gears", "%")
+	_cmp(out, tr("DIFF_GLOBAL_BP"), gb_a * 100.0, gb_b * 100.0, "res_blueprints", "%")
+	var loot_k: Dictionary = {}   ## resource -> after/before global factor (divided out of enemy rows)
+	for r: String in core.data.resource_ids:
+		loot_k[r] = (gb_b / gb_a) if r == "blueprints" else (gl_b / gl_a)
 	# abilities
 	for ab: String in after.abilities:
 		var bb: Dictionary = after.abilities[ab]
@@ -371,6 +395,7 @@ func diff_lines(id: String, after: Mods = null, before: Mods = null) -> Array:
 		var aa: Dictionary = before.abilities[ab]
 		_cmp(out, ability_name(ab) + ": " + tr("DIFF_DMG"), float(aa["dmg"]), float(bb["dmg"]), "dmg_steam")
 		_cmp(out, ability_name(ab) + ": " + tr("DIFF_COUNT"), float(aa["count"]), float(bb["count"]), "dmg_steam")
+		_status_rows(out, ability_name(ab) + ": ", aa["statuses"], bb["statuses"])
 	# enemies (baits: reward good, health bad); no name prefix when only one enemy changes
 	var per_enemy: Dictionary = {}
 	for e: String in before.unlocked_enemies:
@@ -381,7 +406,8 @@ func diff_lines(id: String, after: Mods = null, before: Mods = null) -> Array:
 		var lra: Dictionary = ea["loot"]
 		var lrb: Dictionary = eb["loot"]
 		for r: String in lrb:
-			_cmp(lines, tr("DIFF_LOOT") % res_short(r), float(lra.get(r, 0.0)), float(lrb[r]), res_icon(r))
+			# a global loot bonus is already its own row: compare this enemy's loot without it
+			_cmp(lines, tr("DIFF_LOOT") % res_short(r), float(lra.get(r, 0.0)) * float(loot_k.get(r, 1.0)), float(lrb[r]), res_icon(r))
 		_cmp(lines, tr("DIFF_HP"), float(ea["hp"]), float(eb["hp"]), "dmg_blast", "", false)
 		if not lines.is_empty():
 			per_enemy[e] = lines
@@ -395,13 +421,32 @@ func diff_lines(id: String, after: Mods = null, before: Mods = null) -> Array:
 	return out
 
 
-func _cmp(out: Array, what: String, a: float, b: float, icon_name: String, suffix: String = "", up_is_good: bool = true) -> void:
+func _cmp(out: Array, what: String, a: float, b: float, icon_name: String, suffix: String = "", up_is_good: bool = true,
+		prefix: String = "") -> void:
 	if absf(a - b) <= maxf(1e-6, absf(a) * 1e-4):
 		return
 	var ra: float = roundf(a) if absf(a) >= 100.0 else a
 	var rb: float = roundf(b) if absf(b) >= 100.0 else b
-	out.append({"text": "%s %s%s → %s%s" % [what, Fmt.num(ra), suffix, Fmt.num(rb), suffix],
+	out.append({"text": "%s %s%s%s → %s%s%s" % [what, prefix, Fmt.num(ra), suffix, prefix, Fmt.num(rb), suffix],
 		"good": (b > a) == up_is_good, "icon": icon_name})
+
+
+## On-hit status rows ("Ошпаривание 0% → 60% · 3с"): strength, and how long it lasts.
+func _status_rows(out: Array, pre: String, sa: Dictionary, sb: Dictionary) -> void:
+	for st: String in sb:
+		var a: Dictionary = sa.get(st, {})
+		var b: Dictionary = sb[st]
+		var va: float = float(a.get("value", 0.0)) * 100.0
+		var vb: float = float(b.get("value", 0.0)) * 100.0
+		var da: float = float(a.get("duration", 0.0))
+		var db: float = float(b.get("duration", 0.0))
+		var n: int = out.size()
+		_cmp(out, pre + status_name(st).capitalize(), va, vb, "dmg_steam", "%")
+		if out.size() > n:
+			out[n]["text"] = str(out[n]["text"]).replace(" → ", "\u00a0→\u00a0") + "\u00a0·\u00a0" + Fmt.time(db)
+		elif absf(da - db) > 1e-4:
+			out.append({"text": "%s%s: %s → %s" % [pre, status_name(st).capitalize(), Fmt.time(da), Fmt.time(db)],
+				"good": db > da, "icon": "dmg_steam"})
 
 
 ## Short summary of a tower type (choice cards, unlock nodes): "Урон 10 · 1.7/с · дальн. 320".
@@ -429,8 +474,25 @@ func loot_text(loot: Dictionary) -> String:
 
 ## Novel keys of a purchase as text lines.
 func novelty_lines(id: String) -> PackedStringArray:
+	return novelty_texts(core.novelty_of(id))
+
+
+## Every row the choice window / a card shows for going from `before` to `after` ("new" lines, then
+## "было → станет"). Used by tests to prove each effect type in the config produces a visible row.
+func change_rows(before: Mods, after: Mods, id: String = "node:_") -> PackedStringArray:
+	var keys: Array = []
+	var now: Dictionary = before.behaviours()
+	for k: String in after.behaviours():
+		if not now.has(k):
+			keys.append(k)
+	var out: PackedStringArray = novelty_texts(keys)
+	for d: Dictionary in diff_lines(id, after, before):
+		out.append(str(d["text"]))
+	return out
+
+
+func novelty_texts(keys: Array) -> PackedStringArray:
 	var out: PackedStringArray = []
-	var keys: Array = core.novelty_of(id)
 	for k: Variant in keys:
 		var ks: String = str(k)
 		var p: PackedStringArray = ks.split(":")

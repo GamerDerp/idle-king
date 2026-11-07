@@ -439,6 +439,8 @@ func _draw_enemy_marks() -> void:
 	var bg: Color = _c["soot_0"]
 	var fill: Color = _c["verdigris_2"]
 	var low: Color = _c["ember_2"]
+	var field_w: float = (1280.0 - kit.f("panel_width", 380)) / kit.art_scale
+	var new_w: float = kit.FONT_NUMBER.get_string_size(tr("UI_NEW"), HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 	for e: Battle.Enemy in core.battle.enemies:
 		if not e.alive or e.underground:
 			continue
@@ -459,8 +461,11 @@ func _draw_enemy_marks() -> void:
 				Vector2(randf_range(-2.0, 2.0), -12.0), _c["steam_3"], 0.45, 1.0)
 			_low_prio = false
 		if ev.new_t > 0.0:
+			# kept inside the field: a just-arrived enemy stands at the panel edge
 			var bob: float = roundf(sin(_time * 6.0))
-			draw_string(kit.FONT_NUMBER, Vector2(roundf(top.x - 30), roundf(top.y - 3 + bob)), tr("UI_NEW"),
+			var tw: float = new_w * 0.5 + 2.0
+			var cx: float = clampf(top.x, tw, field_w - tw)
+			draw_string(kit.FONT_NUMBER, Vector2(roundf(cx - 30), roundf(maxf(top.y - 3, 14.0) + bob)), tr("UI_NEW"),
 				HORIZONTAL_ALIGNMENT_CENTER, 60, 12, _c["brass_3"])
 
 

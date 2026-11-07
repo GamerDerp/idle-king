@@ -140,7 +140,7 @@
       ]
     },
     "wall": {
-      "_comment": "Visual wall slots (art px, tower feet). Three columns on the gallery 16 px apart; within a column towers are 30 px apart and the middle column sits in the gaps (y-sorted), so every tower shows its head. Core row -> column; first free slot of its column in list order, then the other columns. Gatehouse with the King: y 160-230.",
+      "_comment": "Visual wall slots (art px, tower feet). Three columns on the gallery 16 px apart; within a column towers are 30 px apart and the middle column sits in the gaps (y-sorted), so every tower shows its head. Core row -> column; first free slot of its column in list order, then the other columns. Gatehouse with the King: y 160-230. Depth (C2b): `dy` lifts a column further back so its heads clear the one in front, `dim` darkens it slightly.",
       "row_column": {
         "0": "front",
         "1": "mid",
@@ -170,6 +170,8 @@
         },
         "mid": {
           "x": 74,
+          "dy": -4,
+          "dim": 0.9,
           "ys": [
             135,
             265,
@@ -186,6 +188,8 @@
         },
         "back": {
           "x": 58,
+          "dy": -10,
+          "dim": 0.8,
           "ys": [
             150,
             250,
@@ -265,7 +269,12 @@
       "crowd": 0.5,
       "crowd_merge_k": 2.0,
       "crowd_merge_px": 110,
-      "crowd_min_amount": 2.0
+      "crowd_min_amount": 2.0,
+      "gap_x": 12,
+      "top_margin": 40,
+      "left": 216,
+      "gap_y": 3,
+      "bottom_margin": 44
     },
     "loot": {
       "fly_time": [
@@ -280,12 +289,16 @@
       "bump_time": 0.18
     },
     "flash": {
-      "time": 0.07,
+      "_comment": "Enemy hit flash: the sprite is lightened toward the colour by `strength` for `time` s (1-2 frames), details stay visible - no solid silhouette. Towers (drop / tier-up) keep the solid steam-white blink.",
+      "time": 0.034,
       "min_interval": 0.1,
       "color": "steam_3",
-      "crit_color": "ember_2",
+      "strength": 0.55,
+      "crit_color": "parchment_2",
+      "crit_strength": 0.7,
+      "crit_time": 0.05,
       "boss_interval": 0.6,
-      "boss_time": 0.05
+      "boss_time": 0.034
     },
     "wobble": {
       "time": 0.08,
@@ -325,9 +338,28 @@
       "label_alpha": 0.75
     },
     "moat": {
+      "_comment": "C2b: the moat is alive regardless of falls. water = bubbles popping on the moat (under the curtain sprite); steam = billowing crest over the near bank (over the curtain, under enemies), sparse without the curtain, dense (x(1+heat_k*heat)) with it; heat = 1 + moat_dps/hot_dps (max 2). Wisps drift wisp_drift art px onto the field every wisp_period s; the curtain sprite flickers its alpha by up to curtain_flicker.",
       "bubble_ring_time": 0.6,
       "curtain_puff_every": 0.35,
-      "wisps": 7
+      "wisps": 7,
+      "wisp_drift": 26,
+      "wisp_period": 4.5,
+      "curtain_flicker": 0.08,
+      "hot_dps": 30,
+      "water": {
+        "per_s": 14,
+        "heat_k": 0.6,
+        "max": 40,
+        "prewarm": 12
+      },
+      "steam": {
+        "per_s": 6,
+        "heat_k": 1.5,
+        "max": 90,
+        "prewarm": 14,
+        "spread": 10,
+        "alpha": 0.75
+      }
     },
     "king_tea_every": [
       6.0,
@@ -341,7 +373,7 @@
       "time": 2.6
     },
     "new_marker_time": 4.0,
-    "time_to_afford_min": 10.0,
+    "time_to_afford_min": 1.0,
     "stress": {
       "enemies": 150,
       "projectiles": 300

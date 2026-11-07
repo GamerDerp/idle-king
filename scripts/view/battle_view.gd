@@ -55,12 +55,16 @@ var _king_timer: float = 0.0
 var _king_next: float = 8.0
 var _king_tea: bool = false
 var _slot_used: Dictionary = {}
+var _slot_col: String = ""          ## column of the last slot handed out by _free_visual_slot
 var _ready_done: bool = false
 var _curtain_t: float = 0.0
 var _bank_x: float = 138.0
 var _bg: Sprite2D
 var _bg_name: String = ""
 var _curtain: AnimatedSprite2D
+var _steam: MoatFx
+var _wisps: Array[AnimatedSprite2D] = []
+var _wisp_t: Array[float] = []       ## 0..1 phase of each wisp's drift from the bank onto the field
 var _furnaces: Array[AnimatedSprite2D] = []
 var _region_t: float = 0.0
 
@@ -100,6 +104,11 @@ func _build_scenery() -> void:
 		var w := SpriteLib.make("moat_water", (y / tile_h) % 4)
 		w.position = Vector2(float(moat_x[0]), float(y))
 		add_child(w)
+	# bubbles on the boiling water (under the curtain): the moat is alive even when nothing falls in
+	var bubbles := MoatFx.new()
+	bubbles.name = "MoatBubbles"
+	add_child(bubbles)
+	bubbles.setup(kit, "water")
 	var vents: Array = lay.get("steam_vents_y", [])
 	var pipe_x: float = float(lay.get("pipe_x", 101))
 	var gate_y: float = float(lay.get("gate_y", 196))
@@ -135,6 +144,11 @@ func _build_scenery() -> void:
 	_curtain = SpriteLib.make("steam_curtain")
 	_curtain.position = Vector2(float(lay.get("steam_curtain_x", 112)), 0.0)
 	add_child(_curtain)
+	# billowing crest over the near bank (above the curtain, under the enemies): a wall of steam
+	_steam = MoatFx.new()
+	_steam.name = "MoatSteam"
+	add_child(_steam)
+	_steam.setup(kit, "steam")
 	decals = DecalLayer.new()
 	decals.name = "Decals"
 	add_child(decals)
@@ -153,6 +167,8 @@ func _build_scenery() -> void:
 		var wsp := SpriteLib.make("steam_wisps", (i * 3) % 8)
 		wsp.position = Vector2(_bank_x - 8.0, 30.0 + i * (float(size[1]) - 40.0) / n_wisps + float((i * 13) % 17))
 		add_child(wsp)
+		_wisps.append(wsp)
+		_wisp_t.append(randf())
 
 
 ## Battlefield background of the newest unlocked region (manifest.regions), furnace doors.
@@ -224,6 +240,9 @@ func _make_tower(tw: Battle.Tower, key: String) -> TowerView:
 	_slot_used[_slot_id(tv.feet)] = true
 	tv.node = SpriteLib.make(kit.tower_sprite(tw.type, tv.tier))
 	tv.node.position = tv.feet
+	# columns further back are slightly dimmer (aerial depth), the front column stays full colour
+	var dim: float = float(kit.v("wall.columns.%s.dim" % _slot_col, 1.0)) if _slot_col != "" else 1.0
+	tv.node.modulate = Color(dim, dim, dim)
 	var sh := SpriteLib.make("shadow_l")
 	sh.position = Vector2(2, -2)
 	sh.show_behind_parent = true
@@ -248,11 +267,15 @@ func _free_visual_slot(tw: Battle.Tower) -> Vector2:
 			order.append(str(c))
 	for c: String in order:
 		var cd: Dictionary = cols.get(c, {})
+		# depth: columns further back stand a little higher (their heads clear the column in front)
+		var dy: float = float(cd.get("dy", 0.0))
 		for y: Variant in cd.get("ys", []):
-			var p := Vector2(float(cd.get("x", 80)), float(y))
+			var p := Vector2(float(cd.get("x", 80)), float(y) + dy)
 			if not _slot_used.has(_slot_id(p)):
+				_slot_col = c
 				return p
 	# wall completely full: stack slightly behind the core position
+	_slot_col = ""
 	return kit.to_art(tw.pos).round() + Vector2(-6, 3)
 
 
@@ -416,13 +439,15 @@ func flash_enemy(uid: int, crit: bool) -> void:
 	var is_boss: bool = core.battle.boss_enemy != null and core.battle.boss_enemy.uid == uid
 	if not is_boss:
 		ev.wobble_t = kit.f("wobble.time", 0.08)
-	# bosses get hit by everything: a rare short white blink instead of a permanent orange blob
+	# bosses get hit by everything: a rare short light blink instead of a permanent blob
 	var gap: float = kit.f("flash.boss_interval", 0.6) if is_boss else kit.f("flash.min_interval", 0.1)
 	if _time - ev.last_flash < gap and not (crit and not is_boss):
 		return
 	ev.last_flash = _time
-	ev.flash_t = kit.f("flash.boss_time", 0.05) if is_boss else kit.f("flash.time", 0.07)
-	ev.node.material = kit.crit_flash_mat if crit and not is_boss else kit.flash_mat
+	# 1-2 frames of a lighter sprite (shading kept), never a flat silhouette
+	var big: bool = crit and not is_boss
+	ev.flash_t = kit.f("flash.boss_time", 0.034) if is_boss else kit.f("flash.crit_time" if big else "flash.time", 0.034)
+	ev.node.material = kit.crit_flash_mat if big else kit.hit_mat
 
 
 func enemy_view(uid: int) -> EnemyView:
@@ -475,6 +500,21 @@ func _update_king(delta: float) -> void:
 
 
 func _update_curtain(delta: float) -> void:
+	# the curtain breathes: a slow uneven alpha flicker (two sines), never a static band
+	var fl: float = kit.f("moat.curtain_flicker", 0.08)
+	_curtain.modulate.a = 1.0 - fl * (0.5 + 0.3 * sin(_time * 2.3) + 0.2 * sin(_time * 5.1 + 1.0))
+	# loose wisps drift from the bank onto the field edge, fading in and out, then start over
+	var size: Array = lay.get("size", [450, 340])
+	var drift: float = kit.f("moat.wisp_drift", 26.0)
+	var period: float = kit.f("moat.wisp_period", 4.5)
+	for i in _wisps.size():
+		_wisp_t[i] += delta / period
+		if _wisp_t[i] >= 1.0:
+			_wisp_t[i] -= 1.0
+			_wisps[i].position.y = randf_range(10.0, float(size[1]) - 4.0)
+		var k: float = _wisp_t[i]
+		_wisps[i].position.x = roundf(_bank_x - 8.0 + drift * k)
+		_wisps[i].modulate.a = clampf(minf(k * 4.0, (1.0 - k) * 2.5), 0.0, 1.0)
 	if core.mods.moat_dps <= 0.0:
 		return
 	_curtain_t -= delta
@@ -483,7 +523,6 @@ func _update_curtain(delta: float) -> void:
 	# hotter curtain = more puffs rising along the near bank
 	var heat: float = clampf(core.mods.moat_dps / 30.0, 0.5, 3.0)
 	_curtain_t = kit.f("moat.curtain_puff_every", 0.35) / heat
-	var size: Array = lay.get("size", [450, 340])
 	var y: float = randf_range(6.0, float(size[1]) - 6.0)
 	var w: float = core.mods.moat_width / kit.art_scale
 	fx.curtain_puff(Vector2(_bank_x + randf_range(0.0, maxf(4.0, w * 0.5)), y))

@@ -1,7 +1,7 @@
 class_name Hud
 extends Control
-## Screen overlay: the resource bar (resource plates: icon, value via Fmt.num, +income/с — briefly
-## replaced by a "+N" when loot arrives — the goal from core.next_goal(), the boss call button and a
+## Screen overlay: the resource bar (resource plates: icon, value via Fmt.num, +income/с; a big loot
+## portion shows as a "+N" chip with the resource icon hanging under the plate — the goal from core.next_goal(), the boss call button and a
 ## "?" glossary), the thin boss strip, the moat counter, one toast at a time, banners and the
 ## compact parchment enemy tooltip. All positions come from config/visual.json → game_view.hud.
 ## Pure view: purchases go through MainGame.
@@ -15,7 +15,8 @@ class Plate:
 	var icon: TextureRect
 	var value: Label
 	var income: Label
-	var plus: Label
+	var plus: Label                   ## text of the "+N" chip
+	var chip: PanelContainer          ## "+N" chip under the plate (own colour + icon, income stays)
 	var plus_amount: float = 0.0
 	var plus_t: float = 9.0
 	var bump_t: float = 9.0
@@ -71,6 +72,8 @@ func setup(view_kit: ViewKit) -> void:
 	_build_banner()
 	_build_tip()
 	_build_glossary()
+	for r: String in plates:   # loot chips above the boss strip
+		move_child((plates[r] as Plate).chip, -1)
 
 
 func _xy(key: String) -> Vector2:
@@ -101,19 +104,34 @@ func _build_bar() -> void:
 		pl.value = kit.label("0", "CounterLabel")
 		pl.value.custom_minimum_size = Vector2(kit.f("hud.plate_value_w", 64), 0)
 		h.add_child(pl.value)
-		# "+N" sits right of the number, over the income text (hidden meanwhile): no layout jumps
 		var slot := Control.new()
 		slot.custom_minimum_size = Vector2(kit.f("hud.plate_income_w", 88), 32)
 		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		pl.income = kit.label("", "GoodLabel")
 		pl.income.position = Vector2(0, 2)
 		slot.add_child(pl.income)
+		h.add_child(slot)
+		# a big loot portion: a dark chip with the resource icon hanging under the plate, in the
+		# resource's colour — never in the place / style of the green "+X/с" income
+		pl.chip = PanelContainer.new()
+		pl.chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(kit.col("soot_0"), 0.92)
+		sb.border_color = kit.col("brass_1")
+		sb.set_border_width_all(2)
+		sb.content_margin_left = 4
+		sb.content_margin_right = 8
+		sb.content_margin_top = 0
+		sb.content_margin_bottom = 0
+		pl.chip.add_theme_stylebox_override("panel", sb)
+		var ch := kit.hbox(4)
+		ch.add_child(kit.icon(kit.res_icon(r), 24))
 		pl.plus = kit.label("", "BoldLabel")
 		pl.plus.add_theme_color_override("font_color", kit.num_color(r))
-		pl.plus.position = Vector2(0, 2)
-		pl.plus.visible = false
-		slot.add_child(pl.plus)
-		h.add_child(slot)
+		ch.add_child(pl.plus)
+		pl.chip.add_child(ch)
+		pl.chip.visible = false
+		add_child(pl.chip)
 		pl.panel.add_child(h)
 		pl.panel.visible = false
 		_bar_row.add_child(pl.panel)
@@ -176,8 +194,22 @@ func bump(res: String, amount: float) -> void:
 	var inc: float = float(core.income.get(res, 0.0))
 	if pl.plus_amount >= maxf(kit.f("hud.plus_min", 2.0), inc * kit.f("hud.plus_income_k", 2.5)):
 		pl.plus.text = "+" + Fmt.num(ViewKit.shown(pl.plus_amount))
-		pl.plus.visible = true
-		pl.income.visible = false
+		if not pl.chip.visible:
+			pl.chip.visible = true
+			pl.chip.reset_size()
+		_place_chip(pl)
+
+
+## The "+N" chip hangs under its plate, left-aligned with the counter (slides down as it appears).
+func _place_chip(pl: Plate) -> void:
+	var r: Rect2 = pl.panel.get_global_rect()
+	var drop: float = clampf(pl.plus_t / 0.12, 0.0, 1.0)
+	var y: float = r.end.y + kit.f("hud.chip.dy", -2.0)
+	var x: float = r.position.x + kit.f("hud.chip.dx", 4.0)
+	# never over the boss strip's name: hang under the strip instead
+	if _boss_panel.visible and Rect2(Vector2(x, y), pl.chip.size).intersects(_boss_panel.get_global_rect()):
+		y = _boss_panel.get_global_rect().end.y + 2.0
+	pl.chip.position = Vector2(roundf(x), roundf(y - 6.0 * (1.0 - drop)))
 
 
 func bump_falls() -> void:
@@ -530,7 +562,7 @@ func refresh() -> void:
 			continue
 		pl.value.text = Fmt.num(ViewKit.shown(core.state.res(r)))
 		var inc: float = float(core.income.get(r, 0.0))
-		pl.income.text = ("+%s/%s" % [Fmt.num(inc), tr("UI_SEC")]) if inc > 0.0 else ""
+		pl.income.text = income_text(inc)
 		pl.panel.tooltip_text = "%s\n%s" % [tr(str(core.data.economy["resources"][r]["name"])),
 			tr("UI_INCOME_TIP") % [Fmt.num(inc), tr("UI_SEC")]]
 	_falls.text = tr("UI_FALLS_N") % int(core.state.stats.get("falls", 0))
@@ -545,6 +577,15 @@ func refresh() -> void:
 	_update_boss()
 
 
+## "+X/с" for the plate; a trickle below `hud.income_min` (0.05/с) is hidden rather than shown as "+0/с",
+## below 0.1/с it gets two decimals so a slow resource does not read as zero.
+func income_text(inc: float) -> String:
+	if inc < kit.f("hud.income_min", 0.05):
+		return ""
+	var n: String = Fmt.num(inc) if inc >= 0.1 else String.num(snappedf(inc, 0.01), 2)
+	return "+%s/%s" % [n, tr("UI_SEC")]
+
+
 func _process(delta: float) -> void:
 	_time += delta
 	var bt: float = kit.f("loot.bump_time", 0.18)
@@ -557,10 +598,12 @@ func _process(delta: float) -> void:
 		var s: float = lerpf(bs, 1.0, k) if pl.bump_t < bt else 1.0
 		pl.icon.scale = Vector2(s, s)
 		pl.plus_t += delta
-		if pl.plus.visible and pl.plus_t > win:
-			pl.plus.visible = false
-			pl.income.visible = true
-			pl.plus_amount = 0.0
+		if pl.chip.visible:
+			if pl.plus_t > win:
+				pl.chip.visible = false
+				pl.plus_amount = 0.0
+			else:
+				_place_chip(pl)
 	_falls_bump += delta
 	_falls.modulate = Color(1.4, 1.4, 1.4) if _falls_bump < 0.15 else Color.WHITE
 	if _goal_ready:

@@ -22,6 +22,8 @@ class Card:
 	var buy_row: Control
 	var price_icon: TextureRect
 	var price: Label
+	var price_more: HBoxContainer     ## further resources of the price: icon + amount each (never cut)
+	var price_sig: String = ""
 	var ttl: Label
 	var button: Button
 	var affordable: int = -1
@@ -114,6 +116,14 @@ func _header(list: VBoxContainer, text: String, hint: String = "") -> void:
 	list.add_child(sep)
 
 
+## A card text that wraps to a second line instead of being cut with "…".
+func _wrap(text: String, variation: String = "") -> Label:
+	var l := kit.label(text, variation)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return l
+
+
 func _card_panel() -> PanelContainer:
 	var p := PanelContainer.new()
 	p.theme_type_variation = &"CardPanel"
@@ -126,11 +136,13 @@ func _buy_row(c: Card, button_text: String) -> HBoxContainer:
 	var row := kit.hbox(4)
 	c.price_icon = kit.icon("res_gears", 32)
 	row.add_child(c.price_icon)
-	c.price = kit.label("", "PriceLabel", true)
-	c.price.custom_minimum_size = Vector2(64, 0)
+	c.price = kit.label("", "PriceLabel")
 	row.add_child(c.price)
+	c.price_more = kit.hbox(2)
+	row.add_child(c.price_more)
 	c.ttl = kit.label("", "DimLabel")
 	c.ttl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	c.ttl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(c.ttl)
 	c.button = Button.new()
 	c.button.text = button_text
@@ -164,9 +176,9 @@ func _tower_card(t: String) -> Card:
 	h.add_child(v)
 	var name_row := kit.hbox(4)
 	name_row.add_child(kit.icon(kit.dmg_icon(str(core.mods.tower_stats[t]["dmg_type"])), 24))
-	name_row.add_child(kit.label(kit.tower_name(t), "BoldLabel", true))
+	name_row.add_child(_wrap(kit.tower_name(t), "BoldLabel"))
 	v.add_child(name_row)
-	c.level = kit.label("", "DimLabel", true)
+	c.level = _wrap("", "DimLabel")
 	v.add_child(c.level)
 	c.effects = kit.vbox(0)
 	v.add_child(c.effects)
@@ -189,9 +201,9 @@ func _upg_card(u: String) -> Card:
 		eff_type = str(ef["type"])
 	c.pic = kit.icon(kit.dmg_icon(str(core.mods.tower_stats[t]["dmg_type"])) if eff_type == "tower_dmg_mult" else "gear_coin", 24)
 	top.add_child(c.pic)
-	top.add_child(kit.label(tr(str(core.data.upgrades[u]["name"])), "BoldLabel", true))
+	top.add_child(_wrap(tr(str(core.data.upgrades[u]["name"])), "BoldLabel"))
 	v.add_child(top)
-	c.level = kit.label("", "DimLabel", true)
+	c.level = _wrap("", "DimLabel")
 	v.add_child(c.level)
 	c.effects = kit.vbox(0)
 	v.add_child(c.effects)
@@ -217,11 +229,11 @@ func _node_card(id: String) -> Card:
 	top.add_child(box)
 	var tv := kit.vbox(0)
 	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var nl := kit.label(tr(kit.name_key(id)), "BoldLabel", true)
+	var nl := _wrap(tr(kit.name_key(id)), "BoldLabel")
 	if _node_kind(id) == "boss":
 		nl.add_theme_color_override("font_color", kit.col("ember_2"))
 	tv.add_child(nl)
-	c.level = kit.label("", "DimLabel", true)
+	c.level = _wrap("", "DimLabel")
 	tv.add_child(c.level)
 	top.add_child(tv)
 	v.add_child(top)
@@ -259,7 +271,7 @@ func _choice_card(ids: Array) -> PanelContainer:
 		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(kit.sprite_box(kit.node_icon(str(id)), Vector2(36, 36)))
 		row.add_child(box)
-		row.add_child(kit.label(tr(kit.name_key(str(id))), "", true))
+		row.add_child(_wrap(tr(kit.name_key(str(id)))))
 		var pr := kit.label(Fmt.num(GameCore._cost_sum(core.price(str(id)))), "PriceLabel")
 		row.add_child(pr)
 		v.add_child(row)
@@ -413,19 +425,8 @@ func _update_card(c: Card) -> void:
 		c.buy_row.visible = compact == 0
 		c.diff_sig = ""
 	c.button.disabled = not can
-	var first: String = ""
-	var extra: PackedStringArray = []
-	for r: String in cost:
-		if first == "":
-			first = r
-		else:
-			extra.append("+%s %s" % [Fmt.num(float(cost[r])), kit.res_short(r)])
-	if first != "":
-		c.price_icon.texture = SpriteLib.texture(kit.res_icon(first))
-		c.price.text = Fmt.num(float(cost[first])) + (" " + " ".join(extra) if not extra.is_empty() else "")
-	c.price.theme_type_variation = &"PriceLabel" if can else &"BadLabel"
-	var ttl: float = kit.time_to_afford(cost) if avail and not can else 0.0
-	c.ttl.text = ("~" + Fmt.time(ttl)) if ttl > kit.f("time_to_afford_min", 10.0) and ttl < INF else ""
+	_update_price(c, cost, can)
+	c.ttl.text = ttl_text(cost) if avail and not can else ""
 	var p: PackedStringArray = GameCore.split_id(c.id)
 	match c.kind:
 		"tower":
@@ -449,6 +450,55 @@ func _update_card(c: Card) -> void:
 		c.diff_sig = sig
 		_fill_effects(c)
 		c.panel.tooltip_text = _tooltip(c.id)
+
+
+## Price row: every resource of the cost as icon + full amount (a second resource is never cut off).
+func _update_price(c: Card, cost: Dictionary, can: bool) -> void:
+	var first: String = ""
+	var sig: String = ""
+	for r: String in cost:
+		if first == "":
+			first = r
+		else:
+			sig += r + ","
+	if sig != c.price_sig:
+		c.price_sig = sig
+		for ch: Node in c.price_more.get_children():
+			c.price_more.remove_child(ch)
+			ch.queue_free()
+		for r: String in cost:
+			if r == first:
+				continue
+			c.price_more.add_child(kit.icon(kit.res_icon(r), 24))
+			c.price_more.add_child(kit.label("", "PriceLabel"))
+	if first != "":
+		c.price_icon.texture = SpriteLib.texture(kit.res_icon(first))
+		c.price.text = Fmt.num(float(cost[first]))
+	var style: StringName = &"PriceLabel" if can else &"BadLabel"
+	c.price.theme_type_variation = style
+	var i: int = 1
+	for r: String in cost:
+		if r == first:
+			continue
+		var l: Label = c.price_more.get_child(i) as Label
+		l.text = Fmt.num(float(cost[r]))
+		l.theme_type_variation = &"PriceLabel" if core.state.res(r) >= float(cost[r]) else &"BadLabel"
+		i += 2
+
+
+## "~14с" until affordable at the current income; before there is any income (the very first
+## tower) — "ещё 3": how much is missing, so every card that cannot be bought says how far it is.
+func ttl_text(cost: Dictionary) -> String:
+	var ttl: float = kit.time_to_afford(cost)
+	if ttl <= 0.0:
+		return ""
+	if ttl < INF:
+		return "~" + Fmt.time(maxf(kit.f("time_to_afford_min", 1.0), ttl))
+	for r: String in cost:
+		var need: float = float(cost[r]) - core.state.res(r)
+		if need > 0.0:
+			return tr("UI_NEED_MORE") % Fmt.num(ceilf(need))
+	return ""
 
 
 func _effect_line(text: String, good: bool, icon_name: String) -> HBoxContainer:
@@ -512,7 +562,7 @@ func _fill_effects(c: Card) -> void:
 		var lvl: int = core.level_of(c.id)
 		for ms: Dictionary in core.data.upgrades[u].get("milestones", []):
 			if int(ms["level"]) > lvl:
-				var ml := kit.label(tr("UI_NEXT_MILESTONE") % [int(ms["level"]), tr(str(ms["name"]))], "DimLabel", true)
+				var ml := _wrap(tr("UI_NEXT_MILESTONE") % [int(ms["level"]), tr(str(ms["name"]))], "DimLabel")
 				if int(ms["level"]) == lvl + 1:
 					ml.theme_type_variation = &"PriceLabel"
 					ml.text = "• " + ml.text

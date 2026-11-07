@@ -222,6 +222,12 @@ DIFF_COUNT,Брызг,Splashes
 DIFF_PACK,в пачке,per pack
 DIFF_LOOT,"добыча, %s","loot, %s"
 DIFF_HP,здоровье,health
+DIFF_CRIT_MULT,Сила крита,Crit power
+DIFF_CRIT_CHAIN,Искра крита (прыжков),Crit spark (jumps)
+DIFF_TIER,Ступень башни,Tower tier
+DIFF_LENS_COUNT,Линз,Lenses
+DIFF_GLOBAL_LOOT,"Добыча со всех врагов","Loot from all enemies"
+DIFF_GLOBAL_BP,"Чертежи со всех врагов","Blueprints from all enemies"
 SUM_TOWER,Урон %s (%s) · %s/с · дальн. %s,Dmg %s (%s) · %s/s · range %s
 SUM_ENEMY,Здоровье %s · скор. %s · %s,Health %s · speed %s · %s
 UI_NEW,новый!,new!
@@ -256,6 +262,7 @@ UI_MAP_EMPTY,Пока нечего открыть — копи чертежи.,N
 UI_LIMIT,предел,limit
 UI_ON_WALL,На стене: %d / %d,On the wall: %d / %d
 UI_NEXT_MILESTONE,ур. %d: %s,lv. %d: %s
+UI_NEED_MORE,ещё %s,%s more
 UI_BLUB,буль!,blub!
 UI_BOSS_COMING,%s идёт!,%s is coming!
 UI_BOSS_COMING_SUB,Дойдёт до рва — отступит и вернётся позже.,If he reaches the moat he retreats and comes back later.

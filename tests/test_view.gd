@@ -54,6 +54,65 @@ func test_texts_are_translated() -> void:
 		assert_true(tr(kit.name_key(id)) != kit.name_key(id), "name of %s" % id)
 
 
+## Mods with every tower / enemy / mechanism unlocked, except what `skip` itself unlocks.
+func _all_unlocked(data: GameData, skip: Dictionary) -> Mods:
+	var m := Mods.new()
+	for r: Variant in data.economy["start"]["regions"]:
+		m.regions[int(r)] = true
+	var groups: Dictionary = {"unlock_tower": data.towers, "unlock_enemy": data.enemies, "unlock_ability": data.abilities}
+	for ty: String in groups:
+		for tgt: String in groups[ty]:
+			if str(skip.get("type", "")) == ty and str(skip.get("target", "")) == tgt:
+				continue
+			m.apply_effect({"type": ty, "target": tgt}, 1)
+	return m
+
+
+## Every effect in the config (map nodes, shop upgrades and their milestones, boss rewards) shows at
+## least one row in a card / the choice window: something new, or "было → станет".
+func test_every_effect_type_renders_a_row() -> void:
+	var kit := ViewKit.new(_core())
+	var data: GameData = kit.core.data
+	var effects: Array = []
+	for n: String in data.nodes:
+		for ef: Dictionary in data.node_effects(n):
+			effects.append(["node:" + n, ef])
+	for u: String in data.upgrades:
+		for ef: Dictionary in data.upgrades[u]["effects"]:
+			effects.append(["upg:" + u, ef])
+		for ms: Dictionary in data.upgrades[u].get("milestones", []):
+			for ef: Dictionary in ms["effects"]:
+				effects.append(["upg:%s@%d" % [u, int(ms["level"])], ef])
+	for b: String in data.bosses:
+		for ef: Dictionary in data.bosses[b].get("on_defeat", []):
+			effects.append(["boss:" + b, ef])
+	var types: Dictionary = {}
+	for pair: Array in effects:
+		var ef: Dictionary = pair[1]
+		var ty: String = str(ef["type"])
+		types[ty] = true
+		if ty == "call_boss":
+			# an action, not a stat: the card says "Бой: <boss>"
+			var t: String = kit.behaviour_text("boss:" + str(ef["target"]))
+			assert_true(t != "boss:" + str(ef["target"]) and not t.contains("_"), "call_boss row for %s" % pair[0])
+			continue
+		var before: Mods = _all_unlocked(data, ef)
+		before._derive(data)
+		var after: Mods = _all_unlocked(data, ef)
+		after.apply_effect(ef, 1)
+		after._derive(data)
+		var rows: PackedStringArray = kit.change_rows(before, after)
+		assert_false(rows.is_empty(), "%s: effect %s shows no row" % [pair[0], ty])
+		for r: String in rows:
+			assert_false(r.contains("DIFF_") or r.contains("STATUS_") or r.contains("BEH_"), "%s: untranslated row %s" % [pair[0], r])
+		if ty.ends_with("_status"):
+			var has_status: bool = false
+			for r: String in rows:
+				has_status = has_status or (r.contains("→") and r.contains("%"))
+			assert_true(has_status, "%s: status %s has a было→станет row: %s" % [pair[0], ty, rows])
+	assert_true(types.size() >= 20, "collected effect types: %d" % types.size())
+
+
 func test_scene_survives_a_scripted_session() -> void:
 	var mg: MainGame = (load(SCENE) as PackedScene).instantiate() as MainGame
 	Engine.get_main_loop().root.add_child(mg)
