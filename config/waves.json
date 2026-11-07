@@ -1,5 +1,5 @@
 {
-  "_comment": "Battlefield geometry (logical units = screen px at 1280x720) and pack spawning.",
+  "_comment": "Battlefield geometry (logical units = screen px at 1280x720), pack spawning, movement. old_region_pack_factor: per boss defeated beyond an enemy's region its pack count is multiplied by this (older enemies thin out).",
   "field": {
     "moat_x": 290,
     "spawn_x": 900,
@@ -12,6 +12,14 @@
   "first_pack_at": 0.3,
   "max_enemies": 300,
   "boss_pauses_packs": true,
+  "pack_y_spread": 0.2,
+  "speed_jitter": [
+    0.92,
+    1.08
+  ],
+  "lane_drift": 6.0,
+  "bob_freq": 1.7,
+  "old_region_pack_factor": 0.5,
   "curtain_width": 50,
-  "lane_drift": 6.0
+  "dot_event_interval": 0.25
 }

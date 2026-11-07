@@ -3,23 +3,43 @@ extends RefCounted
 ## Read-only game content parsed from config/*.json (economy, waves, enemies,
 ## towers, lens, map). Built from the raw dictionaries returned by
 ## ConfigLoader.load_dir(), so it works in the game, tests and headless sim.
+## Validation is strict: every required field must exist (the rest of the core
+## reads them without defaults) and every reference must resolve.
 
 ## Effect types the core understands (see Mods.apply_effect and docs/CORE.md).
 const EFFECT_TYPES: Array[String] = [
-	"unlock_enemy", "enemy_spawn_add", "enemy_loot_mult", "enemy_bp_mult", "enemy_hp_mult",
+	"unlock_enemy", "enemy_spawn_add", "enemy_loot_mult", "enemy_bp_mult", "enemy_hp_mult", "enemy_bait",
 	"unlock_tower", "tower_limit_add", "tower_dmg_mult", "tower_reload_mult", "tower_pierce_add",
 	"tower_splash_add", "tower_crit_chance_add", "tower_crit_mult_add", "tower_range_add",
-	"tower_on_hit_status",
-	"lens_radius", "lens_dmg", "lens_rate", "lens_auto_mult", "lens_seek",
+	"tower_on_hit_status", "tower_multishot_add", "tower_knockback_add", "tower_cluster_add",
+	"tower_crit_chain_add", "tower_tier_add",
+	"lens_radius", "lens_dmg", "lens_rate", "lens_auto_mult", "lens_seek", "lens_status", "lens_extra_add",
 	"global_dmg_mult", "global_loot_mult", "global_bp_mult",
-	"moat_damage", "call_boss", "unlock_region",
+	"moat_damage", "moat_slow_add", "moat_width_add",
+	"unlock_ability", "ability_dmg_mult", "ability_status", "ability_count_add",
+	"call_boss", "unlock_region",
 ]
+const STATUSES: Array[String] = ["scald", "slow"]
 
-## Effect types that put something new on screen / change behaviour (pacing "novelty").
-const NOVEL_EFFECTS: Array[String] = [
-	"unlock_enemy", "unlock_tower", "tower_on_hit_status", "lens_seek", "moat_damage",
-	"call_boss", "unlock_region", "tower_pierce_add", "tower_splash_add",
-]
+const TOWER_REQ: Array[String] = ["name", "desc", "dmg", "dmg_type", "reload", "range_min", "range_max",
+	"projectile", "proj_speed", "pierce", "splash", "crit_chance", "crit_mult", "limit", "price", "growth", "row", "color"]
+const PROJECTILES: Array[String] = ["bullet", "rivet", "shell", "cone"]
+const ENEMY_REQ: Array[String] = ["name", "region", "role", "hp", "speed", "radius", "loot", "resist", "color"]
+const NODE_REQ: Array[String] = ["id", "region", "parents", "pos", "kind", "cost", "growth", "max", "effects"]
+const UPG_REQ: Array[String] = ["name", "tower", "cost", "growth", "max", "effects"]
+const LENS_REQ: Array[String] = ["radius", "dmg", "dmg_pct_hp", "boss_pct_mult", "tick", "dmg_type", "idle_to_auto", "auto_mult", "auto_path",
+	"auto_speed", "auto_retarget", "auto_band", "auto_sweep_period", "auto_sweep_amp", "seek_speed",
+	"seek_retarget", "hit_radius_factor"]
+const WAVES_REQ: Array[String] = ["field", "pack_interval", "first_pack_at", "max_enemies", "boss_pauses_packs",
+	"pack_y_spread", "speed_jitter", "lane_drift", "bob_freq", "old_region_pack_factor", "curtain_width",
+	"dot_event_interval"]
+const FIELD_REQ: Array[String] = ["moat_x", "spawn_x", "spawn_jitter_x", "end_x", "y_min", "y_max"]
+const COMBAT_REQ: Array[String] = ["shell_flight_min", "shell_flight_max", "splash_hit_factor", "rivet_hit_pad",
+	"multishot_spread", "cluster_spread", "cluster_dmg", "cluster_radius", "cluster_flight", "crit_chain_range",
+	"crit_chain_dmg", "cone_hit_factor", "knockback_boss", "bullet_splash_dmg", "near_moat_x"]
+const ECON_REQ: Array[String] = ["resources", "start", "seed", "price_ceil_below", "income_window", "max_tick"]
+const PUDDLE_REQ: Array[String] = ["dps", "radius", "duration", "dmg_type"]
+const ABILITY_REQ: Array[String] = ["name", "interval", "dmg", "dmg_pct_hp", "boss_pct_mult", "dmg_type", "radius", "reach_x"]
 
 var economy: Dictionary = {}
 var waves: Dictionary = {}
@@ -29,12 +49,17 @@ var bosses: Dictionary = {}       # boss id -> def
 var damage_types: Dictionary = {}
 var towers: Dictionary = {}       # type -> def
 var wall: Dictionary = {}
+var combat: Dictionary = {}
+var abilities: Dictionary = {}
 var upgrades: Dictionary = {}     # upgrade id -> def
 var regions: Array = []
 var nodes: Dictionary = {}        # node id -> def (insertion order = config order)
 var node_order: Array[String] = []
 var resource_ids: Array[String] = []
+var meta_resource_ids: Array[String] = []
 var children: Dictionary = {}     # node id -> Array of child ids
+var wall_slots: Array[Vector2] = []   # all wall slot positions
+var wall_slot_row: Array[int] = []    # row index of each slot
 var errors: Array[String] = []
 
 
@@ -53,6 +78,8 @@ func _init(cfg: Dictionary = {}) -> void:
 	var tw: Dictionary = cfg.get("towers", {})
 	towers = tw.get("towers", {})
 	wall = tw.get("wall", {})
+	combat = tw.get("combat", {})
+	abilities = tw.get("abilities", {})
 	upgrades = tw.get("upgrades", {})
 	var mp: Dictionary = cfg.get("map", {})
 	regions = mp.get("regions", [])
@@ -68,34 +95,102 @@ func _init(cfg: Dictionary = {}) -> void:
 	var res: Dictionary = economy.get("resources", {})
 	for r: String in res:
 		resource_ids.append(r)
+		if bool(res[r].get("meta", false)):
+			meta_resource_ids.append(r)
 	resource_ids.sort_custom(func(a: String, b: String) -> bool:
 		return int(res[a].get("order", 0)) < int(res[b].get("order", 0)))
+	_build_wall()
 	_validate()
 
 
+func _build_wall() -> void:
+	var rows: Array = wall.get("rows", [])
+	for ri in rows.size():
+		var row: Dictionary = rows[ri]
+		var count: int = maxi(1, int(row.get("count", 1)))
+		var y0: float = float(row.get("y_min", 150.0))
+		var y1: float = float(row.get("y_max", 600.0))
+		var mid: int = count / 2
+		for k in count:
+			# middle-out order: the first towers stand in the middle of the wall
+			var slot: int = mid - (k + 1) / 2 if k % 2 == 1 else mid + k / 2
+			wall_slots.append(Vector2(float(row.get("x", 200.0)), y0 + (slot + 0.5) * (y1 - y0) / count))
+			wall_slot_row.append(ri)
+
+
+func _require(where: String, d: Dictionary, keys: Array[String]) -> void:
+	for k in keys:
+		if not d.has(k):
+			errors.append("%s: missing required field '%s'" % [where, k])
+
+
 func _validate() -> void:
+	_require("economy", economy, ECON_REQ)
+	_require("waves", waves, WAVES_REQ)
+	_require("waves.field", waves.get("field", {}), FIELD_REQ)
+	_require("lens", lens, LENS_REQ)
+	_require("towers.combat", combat, COMBAT_REQ)
+	if wall.get("rows", []).is_empty():
+		errors.append("towers.wall.rows is empty")
 	for id: String in node_order:
 		var n: Dictionary = nodes[id]
+		_require("node " + id, n, NODE_REQ)
 		for p: Variant in n.get("parents", []):
 			if not nodes.has(str(p)):
 				errors.append("node %s: unknown parent %s" % [id, str(p)])
+		for x: Variant in n.get("excludes", []):
+			if not nodes.has(str(x)):
+				errors.append("node %s: unknown excluded node %s" % [id, str(x)])
+			elif not (nodes[str(x)].get("excludes", []) as Array).has(id):
+				errors.append("node %s: excludes %s but not vice versa" % [id, str(x)])
+		var req: Dictionary = n.get("requires", {})
+		if req.has("boss") and not bosses.has(str(req["boss"])):
+			errors.append("node %s: requires unknown boss %s" % [id, str(req["boss"])])
 		_validate_effects("node " + id, n.get("effects", []))
 		_validate_cost("node " + id, n.get("cost", {}))
 	for id: String in upgrades:
-		_validate_effects("upgrade " + id, upgrades[id].get("effects", []))
-		_validate_cost("upgrade " + id, upgrades[id].get("cost", {}))
-		if not towers.has(str(upgrades[id].get("tower", ""))):
+		var u: Dictionary = upgrades[id]
+		_require("upgrade " + id, u, UPG_REQ)
+		_validate_effects("upgrade " + id, u.get("effects", []))
+		_validate_cost("upgrade " + id, u.get("cost", {}))
+		if not towers.has(str(u.get("tower", ""))):
 			errors.append("upgrade %s: unknown tower" % id)
+		for ms: Dictionary in u.get("milestones", []):
+			if not ms.has("level") or not ms.has("effects") or not ms.has("name"):
+				errors.append("upgrade %s: milestone needs level, name, effects" % id)
+			_validate_effects("upgrade %s milestone" % id, ms.get("effects", []))
 	for id: String in towers:
-		_validate_cost("tower " + id, towers[id].get("price", {}))
+		var t: Dictionary = towers[id]
+		_require("tower " + id, t, TOWER_REQ)
+		_validate_cost("tower " + id, t.get("price", {}))
+		if not PROJECTILES.has(str(t.get("projectile", ""))):
+			errors.append("tower %s: unknown projectile %s" % [id, str(t.get("projectile", ""))])
+		if not damage_types.has(str(t.get("dmg_type", ""))):
+			errors.append("tower %s: unknown damage type" % id)
+		if int(t.get("row", 0)) >= (wall.get("rows", []) as Array).size():
+			errors.append("tower %s: row out of range" % id)
+		if str(t.get("projectile", "")) == "cone" and not t.has("cone_angle"):
+			errors.append("tower %s: cone needs cone_angle" % id)
+		for st: Dictionary in t.get("on_hit", []):
+			if not STATUSES.has(str(st.get("status", ""))):
+				errors.append("tower %s: unknown status" % id)
+		if t.has("puddle"):
+			_require("tower %s puddle" % id, t["puddle"], PUDDLE_REQ)
+	for id: String in abilities:
+		_require("ability " + id, abilities[id], ABILITY_REQ)
 	for id: String in bosses:
 		if not enemies.has(str(bosses[id].get("enemy", ""))):
 			errors.append("boss %s: unknown enemy" % id)
 		_validate_effects("boss " + id, bosses[id].get("on_defeat", []))
 	for e: String in enemies:
-		for dt: String in enemies[e].get("resist", {}):
+		var d: Dictionary = enemies[e]
+		_require("enemy " + e, d, ENEMY_REQ)
+		if str(d.get("role", "")) == "normal" and not d.has("pack"):
+			errors.append("enemy %s: normal enemies need 'pack'" % e)
+		for dt: String in d.get("resist", {}):
 			if not damage_types.has(dt):
 				errors.append("enemy %s: unknown damage type %s" % [e, dt])
+		_validate_cost("enemy %s loot" % e, d.get("loot", {}))
 	for msg in errors:
 		push_error("GameData: " + msg)
 
@@ -113,8 +208,12 @@ func _validate_effects(where: String, effects: Array) -> void:
 		if t.begins_with("enemy_") or t == "unlock_enemy":
 			if target != "all" and not enemies.has(target):
 				errors.append("%s: unknown enemy target %s" % [where, target])
+		if t in ["unlock_ability", "ability_dmg_mult", "ability_status", "ability_count_add"] and not abilities.has(target):
+			errors.append("%s: unknown ability %s" % [where, target])
 		if t == "call_boss" and not bosses.has(target):
 			errors.append("%s: unknown boss %s" % [where, target])
+		if t in ["tower_on_hit_status", "lens_status", "ability_status"] and not STATUSES.has(str(ef.get("status", ""))):
+			errors.append("%s: unknown status %s" % [where, str(ef.get("status", ""))])
 
 
 func _validate_cost(where: String, cost: Dictionary) -> void:
@@ -125,27 +224,35 @@ func _validate_cost(where: String, cost: Dictionary) -> void:
 
 # --- convenience ----------------------------------------------------------
 
-func field(key: String, default: float = 0.0) -> float:
-	return float(waves.get("field", {}).get(key, default))
+func field(key: String) -> float:
+	return float(waves["field"][key])
 
 
-func lens_value(key: String, default: float = 0.0) -> float:
-	return float(lens.get(key, default))
+func lens_value(key: String) -> float:
+	return float(lens[key])
+
+
+func combat_value(key: String) -> float:
+	return float(combat[key])
 
 
 func node_effects(id: String) -> Array:
 	return nodes.get(id, {}).get("effects", [])
 
 
-func is_novel_node(id: String) -> bool:
-	for ef: Dictionary in node_effects(id):
-		if NOVEL_EFFECTS.has(str(ef.get("type", ""))):
-			return true
-	return false
+func node_excludes(id: String) -> Array:
+	return nodes.get(id, {}).get("excludes", [])
 
 
 func node_kind(id: String) -> String:
 	return str(nodes.get(id, {}).get("kind", ""))
+
+
+func has_effect(id: String, effect_type: String) -> bool:
+	for ef: Dictionary in node_effects(id):
+		if str(ef.get("type", "")) == effect_type:
+			return true
+	return false
 
 
 ## i18n key helpers (keys live in i18n/strings.csv).

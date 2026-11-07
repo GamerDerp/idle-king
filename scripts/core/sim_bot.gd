@@ -3,48 +3,59 @@ extends RefCounted
 ## A "reasonable player" bot that drives a GameCore: used by the headless
 ## balance sim (tools/sim), tests and the debug view's --bot autoplay.
 ##
-## Cursor: active = a lazy player who keeps the lens over the densest group,
-## reacting every `reaction` s with some aim noise; idle = no cursor at all
-## (lens in auto mode).
+## Modes:
+##   active — a lazy player who keeps the lens over the densest group, reacting
+##            every `reaction` s with some aim noise;
+##   real   — like active, but the mouse leaves the field for 1.5–3 s on every
+##            purchase (to click in the shop panel) — the lens goes auto meanwhile;
+##   idle   — never touches the field (lens always in auto mode).
 ## Purchases every `think_interval` s:
 ##   1. re-call a retreated boss after `recall_delay` s;
 ##   2. map nodes: save for the cheapest "priority" node (new enemy / tower /
-##      behaviour / region / boss) if it is affordable within `save_horizon` s,
-##      otherwise buy the cheapest affordable node (skipping "bait" nodes while
-##      enemies leak into the moat);
-##   3. gears: save for a newly unlocked tower type, otherwise buy the cheapest
-##      tower / shop upgrade.
+##      region / boss / boss reward) if affordable within `save_horizon` s; else the
+##      node it wants most (novelty looks `novelty_discount` cheaper) if affordable
+##      within `wish_horizon` s; else the cheapest affordable. "Bait" nodes are
+##      skipped while more than `leak_skip_bait` of enemies fall into the moat.
+##      Choices (excludes): picks by a simple value heuristic, logged in `choices`;
+##   3. gears: save for a newly unlocked tower type, else the cheapest tower / shop upgrade.
 
 var core: GameCore
-var active: bool = true
-var purchases: Array = []           ## [{t, id, price, novel}]
-var boss_log: Array = []            ## [{t, event}]
+var mode: String = "active"
+var purchases: Array = []           ## [{t, id, price, category, novelty}]
+var choices: Array = []             ## [{t, picked, rejected, reason}]
+var boss_log: Array = []            ## [{t, boss, event}]
+var bait_skips: int = 0             ## think cycles where baits were skipped because of leaks
 var think_interval: float = 0.5
 var reaction: float = 0.4
 var cursor_speed: float = 900.0
 var aim_noise: float = 14.0
+var away_min: float = 1.5
+var away_max: float = 3.0
 var save_horizon: float = 60.0
+var wish_horizon: float = 25.0
+var novelty_discount: float = 0.4
 var recall_delay: float = 45.0
 var leak_skip_bait: float = 0.12
-## A new behaviour looks this much cheaper to the bot (players are drawn to new things).
-var novelty_discount: float = 0.4
-## Waits up to this many seconds of income for the node it wants most.
-var wish_horizon: float = 25.0
 
 var cursor: Vector2 = Vector2(600, 370)
 var _aim: Vector2 = Vector2(600, 370)
 var _think_t: float = 0.0
 var _aim_t: float = 0.0
+var _away: float = 0.0
 var _rng := RandomNumberGenerator.new()
 var _leak_samples: Array = []       ## [time, kills, falls]
 var _leak_t: float = 0.0
 var _last_boss_status: Dictionary = {}
 var _retreat_at: float = -1.0
+var _skipped_this_think: bool = false
 
 
-func _init(game_core: GameCore, is_active: bool = true, seed_value: int = 7) -> void:
+func _init(game_core: GameCore, bot_mode: Variant = "active", seed_value: int = 7) -> void:
 	core = game_core
-	active = is_active
+	if bot_mode is bool:
+		mode = "active" if bot_mode else "idle"
+	else:
+		mode = str(bot_mode)
 	_rng.seed = seed_value
 
 
@@ -75,8 +86,12 @@ func leak_ratio() -> float:
 
 
 func _cursor_step(dt: float) -> void:
-	if not active:
+	if mode == "idle":
 		core.set_cursor(Vector2.ZERO, false)
+		return
+	if _away > 0.0:
+		_away -= dt
+		core.set_cursor(Vector2(1100, 300), false)
 		return
 	_aim_t -= dt
 	if _aim_t <= 0.0:
@@ -102,26 +117,75 @@ func think() -> void:
 	for b: String in core.data.bosses:
 		if core.can_call_boss(b) and core.state.time - _retreat_at >= recall_delay:
 			core.call_boss(b)
+	_skipped_this_think = false
 	for i in 30:
 		if not _buy_one():
 			break
+	if _skipped_this_think:
+		bait_skips += 1
+
+
+## Value of a choice option (higher = preferred): towers by damage per second per
+## price, otherwise by how many new behaviours it brings, then cheaper, then config order.
+func _option_value(id: String) -> float:
+	var n: String = id.substr(5)
+	for ef: Dictionary in core.data.node_effects(n):
+		if str(ef["type"]) == "unlock_tower":
+			var t: String = str(ef["target"])
+			var td: Dictionary = core.data.towers[t]
+			var dps: float = float(td["dmg"]) / float(td["reload"]) * (1.0 + float(td["splash"]) / 40.0) \
+				* (1.0 + float(td["pierce"]))
+			if str(td["projectile"]) == "cone":
+				dps *= 2.5   # hits a whole cone of enemies
+			return 1000.0 + dps / maxf(1.0, GameCore._cost_sum(td["price"])) * 1000.0
+	# situational: boost the towers I own most of; moat help when enemies leak
+	var v: float = core.novelty_of(id).size() * 10.0 - GameCore._cost_sum(core.price(id)) / 1000.0
+	for ef: Dictionary in core.data.node_effects(n):
+		var et: String = str(ef["type"])
+		if et.begins_with("tower_") and ef.has("target"):
+			v += core.state.tower_count(str(ef["target"]))
+		if et.begins_with("moat_") and leak_ratio() > 0.03:
+			v += 5.0
+		if et.begins_with("lens_"):
+			v += 3.0 if mode != "idle" else 0.0
+	return v
+
+
+## Ids of choice options the bot has decided against (the other branch is better).
+func _rejected_options(offers: Array[String]) -> Dictionary:
+	var rej: Dictionary = {}
+	for id in offers:
+		if not id.begins_with("node:"):
+			continue
+		var n: String = id.substr(5)
+		for x: Variant in core.data.node_excludes(n):
+			var other: String = "node:" + str(x)
+			if offers.has(other) and not rej.has(id):
+				var mine: float = _option_value(id)
+				var theirs: float = _option_value(other)
+				var lose: bool = theirs > mine or (theirs == mine and \
+					core.data.node_order.find(str(x)) < core.data.node_order.find(n))
+				if lose:
+					rej[id] = other
+	return rej
 
 
 func _buy_one() -> bool:
 	var offers: Array[String] = core.offer_ids()
+	var rejected: Dictionary = _rejected_options(offers)
 	var leaking: bool = leak_ratio() > leak_skip_bait
 	var bp_rate: float = maxf(0.001, float(core.income.get("blueprints", 0.0)))
 	var gear_rate: float = maxf(0.001, float(core.income.get("gears", 0.0)))
 	# --- map nodes
 	var goal: String = ""
 	var goal_cost: float = INF
-	var cheapest: String = ""           # cheapest affordable by real cost
+	var cheapest: String = ""
 	var cheapest_cost: float = INF
-	var wish: String = ""               # best by score (novelty looks cheaper), maybe not affordable yet
+	var wish: String = ""
 	var wish_cost: float = INF
 	var wish_score: float = INF
 	for id in offers:
-		if not id.begins_with("node:"):
+		if not id.begins_with("node:") or rejected.has(id):
 			continue
 		var cost: float = _main_cost(id)
 		var n: String = id.substr(5)
@@ -130,10 +194,11 @@ func _buy_one() -> bool:
 				goal_cost = cost
 				goal = id
 			continue
-		if leaking and core.data.node_kind(n) == "bait":
+		if core.data.node_kind(n) == "bait" and leaking:
+			_skipped_this_think = true
 			continue
 		var score: float = cost
-		if core.state.node_level(n) == 0 and core.data.is_novel_node(n):
+		if not core.novelty_of(id).is_empty():
 			score *= novelty_discount
 		if score < wish_score:
 			wish_score = score
@@ -143,15 +208,15 @@ func _buy_one() -> bool:
 			cheapest_cost = cost
 			cheapest = id
 	if goal != "" and core.can_buy(goal):
-		return _buy(goal)
+		return _buy(goal, rejected)
 	var bp: float = core.state.res("blueprints")
 	var saving: bool = goal != "" and (goal_cost - bp) / bp_rate <= save_horizon
 	var spare: float = bp - goal_cost if saving else bp
 	if wish != "" and wish_cost <= spare and core.can_buy(wish):
-		return _buy(wish)
+		return _buy(wish, rejected)
 	var wish_wait: bool = wish != "" and (wish_cost - spare) / bp_rate <= wish_horizon
 	if cheapest != "" and not wish_wait and cheapest_cost <= spare:
-		return _buy(cheapest)
+		return _buy(cheapest, rejected)
 	# --- gears: towers and shop upgrades
 	var g_goal: String = ""
 	var g_goal_cost: float = INF
@@ -169,39 +234,42 @@ func _buy_one() -> bool:
 			g_best_cost = cost
 			g_best = id
 	if g_goal != "" and core.can_buy(g_goal):
-		return _buy(g_goal)
+		return _buy(g_goal, rejected)
 	var g_saving: bool = g_goal != "" and (g_goal_cost - core.state.res("gears")) / gear_rate <= save_horizon
 	if g_best != "" and (not g_saving or core.state.res("gears") - g_best_cost >= g_goal_cost):
-		return _buy(g_best)
+		return _buy(g_best, rejected)
 	return false
 
 
 func _is_priority(id: String) -> bool:
 	var n: String = id.substr(5)
-	var kind: String = core.data.node_kind(n)
-	if kind in ["spine", "region", "boss"]:
+	if core.data.node_kind(n) in ["spine", "region", "boss", "reward"]:
 		return true
-	for ef: Dictionary in core.data.node_effects(n):
-		if str(ef.get("type", "")) == "unlock_tower":
-			return true
-	return false
+	return core.data.has_effect(n, "unlock_tower")
 
 
+## Gears for towers/upgrades; blueprints for nodes (secondary materials count too).
 func _main_cost(id: String) -> float:
-	var p: Dictionary = core.price(id)
-	var s: float = 0.0
-	for r: String in p:
-		s += float(p[r])
-	return s
+	return GameCore._cost_sum(core.price(id))
 
 
-func _buy(id: String) -> bool:
+func _buy(id: String, rejected: Dictionary) -> bool:
 	var p: Dictionary = core.price(id)
-	var novel: bool = id.begins_with("node:") and core.state.node_level(id.substr(5)) == 0 \
-		and core.data.is_novel_node(id.substr(5))
-	if id.begins_with("tower:") and core.state.tower_count(id.substr(6)) == 0:
-		novel = true
+	var cat: String = core.purchase_category(id)
+	var nov: Array = core.novelty_of(id).duplicate()
+	var excl: Array = core.data.node_excludes(id.substr(5)) if id.begins_with("node:") else []
+	var other: Array = []
+	var why: String = ""
+	if not excl.is_empty():
+		for x: Variant in excl:
+			other.append("node:" + str(x))
+		why = "value %.2f vs %s" % [_option_value(id), ", ".join(other.map(func(o: String) -> String:
+			return "%.2f" % _option_value(o)))]
 	if not core.buy(id):
 		return false
-	purchases.append({"t": core.state.time, "id": id, "price": p, "novel": novel})
+	purchases.append({"t": core.state.time, "id": id, "price": p, "category": cat, "novelty": nov})
+	if not excl.is_empty():
+		choices.append({"t": core.state.time, "picked": id, "rejected": other, "reason": why})
+	if mode == "real":
+		_away = maxf(_away, _rng.randf_range(away_min, away_max))
 	return true

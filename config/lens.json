@@ -1,7 +1,7 @@
 {
-  "_comment": "Steam lens (cursor weapon). Manual: follows cursor. Auto (no cursor or cursor still > idle_to_auto s): sweeps an oval path at auto_mult damage; with lens_seek glides to the densest group.",
+  "_comment": "Steam lens (cursor weapon). Manual: follows the cursor. Auto (no cursor, or cursor still > idle_to_auto s): every auto_retarget s finds the x-band (auto_band px wide) with most enemies and sweeps up and down over it at auto_mult damage. With lens_seek (Наводчик) it glides straight to the densest group. Empty field: oval auto_path. Damage per tick = dmg + dmg_pct_hp * enemy max HP (bosses: * boss_pct_mult), so the lens stays useful against tough enemies.",
   "radius": 45,
-  "dmg": 0.8,
+  "dmg": 1.0,
   "tick": 0.25,
   "dmg_type": "steam",
   "idle_to_auto": 2.0,
@@ -14,7 +14,13 @@
     "period": 14.0
   },
   "auto_speed": 170,
-  "seek_speed": 150,
+  "auto_retarget": 0.5,
+  "auto_band": 60,
+  "auto_sweep_period": 4.0,
+  "auto_sweep_amp": 50,
+  "seek_speed": 170,
   "seek_retarget": 0.5,
-  "hit_radius_factor": 0.5
+  "hit_radius_factor": 0.5,
+  "dmg_pct_hp": 0.0012,
+  "boss_pct_mult": 0.1
 }

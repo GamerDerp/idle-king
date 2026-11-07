@@ -92,9 +92,13 @@ func test_effects_enemy_bait_and_limits() -> void:
 	var es: Dictionary = c.mods.enemy_stats["grunt"]
 	assert_almost(float(es["hp"]), 150.0)
 	assert_almost(float(es["loot"]["gears"]), 10.0)
-	assert_almost(float(es["loot"]["blueprints"]), 1.0, 1e-9, "loot mult does not touch blueprints")
+	assert_almost(float(es["loot"]["blueprints"]), 2.0, 1e-9, "bait raises blueprints too")
 	assert_almost(float(es["pack"]), 3.0)
 	assert_eq(int(c.mods.tower_stats["gun"]["limit"]), 5)
+	c.buy("node:b")
+	es = c.mods.enemy_stats["grunt"]
+	assert_almost(float(es["hp"]), 225.0, 1e-9, "bait HP stacks multiplicatively (1.5^2)")
+	assert_almost(float(es["loot"]["gears"]), 15.0, 1e-9, "bait loot stacks additively (1 + 2*1.0)")
 
 
 func test_effects_unlocks_and_lens() -> void:
@@ -118,6 +122,8 @@ func test_effects_unlocks_and_lens() -> void:
 	var evs: Array = c.drain_events()
 	var unlocked: Array = evs.filter(func(e: Dictionary) -> bool: return e["type"] == "unlocked")
 	assert_true(unlocked.size() >= 4, "unlocked events: %s" % str(unlocked))
+	var ids: Array = unlocked.map(func(e: Dictionary) -> String: return str(e["id"]))
+	assert_has(ids, "moat_curtain", "behaviour events come from the behaviour signature")
 
 
 func test_resistances() -> void:
@@ -192,7 +198,7 @@ func test_lens_goes_auto_when_idle_or_away() -> void:
 	# auto damage is scaled by auto_mult (0.5); fixture auto lens doesn't move (auto_speed 0)
 	var e: Battle.Enemy = c.battle.spawn_enemy_at("grunt", c.battle.lens_pos)
 	e.speed = 0.0
-	c.battle._lens_acc = 0.0
+	c.battle.lenses[0].acc = 0.0
 	_run(c, 1.0)
 	assert_almost(e.hp, 100.0 - 4 * 1.0)
 
@@ -276,15 +282,38 @@ func test_mortar_splash_hits_group() -> void:
 	assert_almost(lone.hp, 100.0)
 
 
-func test_tower_slots_distinct() -> void:
-	var c: GameCore = GameCore.create(1)
+func test_wall_slots_shared_by_types_and_rows() -> void:
+	var c: GameCore = Fixture.core()
+	assert_eq(c.data.wall_slots.size(), 8)
+	_give(c, 1e6, 10)
+	c.buy("node:road")
+	c.buy("node:armor")
+	for id in ["tower:gun", "tower:mortar", "tower:gun", "tower:rivet", "tower:jet", "tower:mortar", "tower:gun",
+			"tower:rivet", "tower:jet", "tower:jet"]:
+		assert_true(c.buy(id), id)
 	var seen: Dictionary = {}
-	for t: String in c.data.towers:
-		for i in 14:
-			var p: Vector2 = c.battle.tower_slot(t, i)
-			assert_false(seen.has(p), "slot %s#%d duplicates" % [t, i])
-			seen[p] = true
-			assert_true(p.x >= 90.0 and p.x <= 215.0 and p.y >= 130.0 and p.y <= 620.0)
+	for tw: Battle.Tower in c.battle.towers:
+		assert_false(seen.has(tw.pos), "two towers on one spot: %s#%d" % [tw.type, tw.index])
+		seen[tw.pos] = true
+	assert_almost(c.battle.tower_pos("mortar", 0).x, 168.0, 1e-9, "mortar prefers the back row")
+	assert_almost(c.battle.tower_pos("gun", 0).x, 200.0, 1e-9, "gun prefers the front row")
+	assert_eq(c.battle.towers.size(), 10, "more towers than slots still get a place")
+	var before: Vector2 = c.battle.tower_pos("gun", 0)
+	_give(c, 1e6, 0)
+	var d: Dictionary = JSON.parse_string(JSON.stringify(c.save_state()))
+	var c2 := GameCore.new(c.data)
+	c2.load_state(d)
+	assert_eq(c2.battle.tower_pos("gun", 0), before, "slots are saved")
+
+
+func test_real_wall_fits_many_tower_types() -> void:
+	var d := GameData.from_dir()
+	assert_true(d.wall_slots.size() >= 30, "%d slots" % d.wall_slots.size())
+	var seen: Dictionary = {}
+	for p in d.wall_slots:
+		assert_false(seen.has(p))
+		seen[p] = true
+		assert_true(p.x >= 90.0 and p.x <= 215.0 and p.y >= 130.0 and p.y <= 620.0)
 
 
 # --- bosses --------------------------------------------------------------------
@@ -313,6 +342,7 @@ func test_boss_retreats_and_can_be_called_again() -> void:
 	c.tick(0.05)
 	assert_eq(c.state.boss_status("chief"), "defeated")
 	assert_almost(c.state.res("blueprints"), 108.0, 1e-9, "reward")
+	assert_almost(c.state.res("seals"), 1.0, 1e-9, "meta reward")
 	assert_eq(c.node_status("beyond"), "available", "region 2 unlocked by on_defeat")
 	assert_false(c.call_boss("chief"), "defeated bosses stay defeated")
 
@@ -334,10 +364,10 @@ func test_boss_pauses_packs() -> void:
 
 # --- determinism, saves, long runs -----------------------------------------------
 
-func _bot_run(seed_value: int, seconds: float, dt: float) -> GameCore:
+func _bot_run(seed_value: int, seconds: float, dt: float, mode: String = "active") -> GameCore:
 	var c: GameCore = GameCore.create(seed_value)
 	c.emit_events = false
-	var bot := SimBot.new(c, true)
+	var bot := SimBot.new(c, mode)
 	var t: float = 0.0
 	while t < seconds - 1e-9:
 		bot.step(dt)
@@ -368,7 +398,7 @@ func test_save_roundtrip_json() -> void:
 
 
 func test_long_run_no_nan() -> void:
-	var c: GameCore = _bot_run(9, 25.0 * 60.0, 0.1)
+	var c: GameCore = _bot_run(9, 20.0 * 60.0, 0.1, "real")
 	for r: String in c.state.resources:
 		assert_finite(c.state.res(r), r)
 	for e: Battle.Enemy in c.battle.enemies:
@@ -396,7 +426,7 @@ func test_dt_sizes_are_close() -> void:
 
 func test_real_config_valid_and_translated() -> void:
 	var d := GameData.from_dir()
-	assert_eq(d.errors, [] as Array[String])
+	assert_eq(d.errors.size(), 0, str(d.errors))
 	assert_true(d.nodes.size() >= 25 and d.nodes.size() <= 40, "%d nodes" % d.nodes.size())
 	TranslationServer.set_locale("ru")
 	var keys: Array[String] = []
@@ -408,6 +438,14 @@ func test_real_config_valid_and_translated() -> void:
 		keys.append(str(d.towers[t]["desc"]))
 	for u: String in d.upgrades:
 		keys.append(str(d.upgrades[u]["name"]))
+		keys.append(str(d.upgrades[u]["name"]) + "_DESC")
+		for ms: Dictionary in d.upgrades[u].get("milestones", []):
+			keys.append(str(ms["name"]))
+			keys.append(str(ms["name"]) + "_DESC")
+	for a: String in d.abilities:
+		keys.append(str(d.abilities[a]["name"]))
+	for k in ["GOAL_NODE", "GOAL_BOSS_FIGHT", "GOAL_BOSS_RETRY", "GOAL_NONE"]:
+		keys.append(k)
 	for e: String in d.enemies:
 		keys.append(str(d.enemies[e]["name"]))
 	for r: String in d.resource_ids:

@@ -1,20 +1,58 @@
 {
-  "_comment": "Resources, starting state, price rules. Price of level/count n: base * (1 + growth)^n (n = current level or towers owned).",
-  "version": 2,
+  "_comment": "Resources, starting state, price rules. Price of level/count n: base * (1 + growth)^n (n = current level or towers owned). meta resources survive prestige.",
+  "version": 3,
   "resources": {
-    "gears":      {"name": "RES_GEARS",      "order": 0, "region": 0},
-    "blueprints": {"name": "RES_BLUEPRINTS", "order": 1, "region": 0},
-    "coal":       {"name": "RES_COAL",       "order": 2, "region": 2},
-    "copper":     {"name": "RES_COPPER",     "order": 3, "region": 3},
-    "springs":    {"name": "RES_SPRINGS",    "order": 4, "region": 4},
-    "ether":      {"name": "RES_ETHER",      "order": 5, "region": 5},
-    "seals":      {"name": "RES_SEALS",      "order": 6, "region": -1}
+    "gears": {
+      "name": "RES_GEARS",
+      "order": 0,
+      "region": 0
+    },
+    "blueprints": {
+      "name": "RES_BLUEPRINTS",
+      "order": 1,
+      "region": 0
+    },
+    "coal": {
+      "name": "RES_COAL",
+      "order": 2,
+      "region": 2
+    },
+    "copper": {
+      "name": "RES_COPPER",
+      "order": 3,
+      "region": 3
+    },
+    "springs": {
+      "name": "RES_SPRINGS",
+      "order": 4,
+      "region": 4
+    },
+    "ether": {
+      "name": "RES_ETHER",
+      "order": 5,
+      "region": 5
+    },
+    "seals": {
+      "name": "RES_SEALS",
+      "order": 6,
+      "region": -1,
+      "meta": true
+    }
   },
   "start": {
-    "resources": {"gears": 4, "blueprints": 0},
-    "towers": {"shooter": 1},
-    "regions": [0]
+    "resources": {
+      "gears": 5,
+      "blueprints": 0
+    },
+    "towers": {
+      "shooter": 1
+    },
+    "regions": [
+      0
+    ]
   },
   "seed": 20261107,
-  "price_ceil_below": 1e15
+  "price_ceil_below": 1000000000000000.0,
+  "income_window": 10.0,
+  "max_tick": 3600.0
 }

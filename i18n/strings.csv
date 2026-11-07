@@ -55,17 +55,11 @@ REGION_2,Угольные копи,Coal Pits
 NODE_R0_HORN,Гудок: бродяги,Horn: tramps
 NODE_R0_HORN_DESC,Больше бродяг в каждой пачке.,More tramps in every pack.
 NODE_R0_LENS_FOCUS,Фокус линзы,Lens focus
-NODE_R0_LENS_FOCUS_DESC,Паровая линза жжёт сильнее.,The steam lens burns harder.
+NODE_R0_LENS_FOCUS_DESC,Паровая линза жжёт сильнее и шире.,The steam lens burns harder and wider.
 NODE_R0_RUMORS,Слухи о кладе: бродяги,Treasure rumours: tramps
-NODE_R0_RUMORS_DESC,"Бродяги несут больше шестерён, но живучее.",Tramps carry more gears but are tougher.
+NODE_R0_RUMORS_DESC,"Бродяги несут больше шестерён и чертежей, но становятся заметно живучее.","Tramps carry more gears and blueprints, but get much tougher."
 NODE_R0_LOOPHOLES,Бойницы,Loopholes
 NODE_R0_LOOPHOLES_DESC,Больше мест для паровых стрелков на стене.,More wall slots for steam riflemen.
-NODE_R0_BOUNTY,Награда за голову: бродяги,Bounty: tramps
-NODE_R0_BOUNTY_DESC,"Бродяги приносят больше чертежей, но живучее.",Tramps drop more blueprints but are tougher.
-NODE_R0_LENS_GRIND,Шлифовка линзы,Lens grinding
-NODE_R0_LENS_GRIND_DESC,Шире круг паровой линзы.,Wider steam lens circle.
-NODE_R0_SIGHTS,Латунные прицелы,Brass sights
-NODE_R0_SIGHTS_DESC,Стрелки чаще бьют критом.,Riflemen crit more often.
 NODE_R0_ROAD,Застава на тракте,Highway outpost
 NODE_R0_ROAD_DESC,Открывает дорогу в Ржавые пустоши. Больше добычи.,Opens the road to the Rust Wastes. More loot.
 NODE_R1_DOGS,Открыть дорогу: ржавые псы,Open road: rust hounds
@@ -73,9 +67,7 @@ NODE_R1_DOGS_DESC,Новый враг: быстрые ржавые псы.,New e
 NODE_R1_DOG_HORN,Гудок: псы,Horn: hounds
 NODE_R1_DOG_HORN_DESC,Больше псов в каждой пачке.,More hounds in every pack.
 NODE_R1_DOG_RUMORS,Слухи о кладе: псы,Treasure rumours: hounds
-NODE_R1_DOG_RUMORS_DESC,"Псы несут больше шестерён, но живучее.",Hounds carry more gears but are tougher.
-NODE_R1_DOG_BOUNTY,Награда за голову: псы,Bounty: hounds
-NODE_R1_DOG_BOUNTY_DESC,"Псы приносят больше чертежей, но живучее.",Hounds drop more blueprints but are tougher.
+NODE_R1_DOG_RUMORS_DESC,"Псы несут больше добычи, но становятся заметно живучее.","Hounds carry more loot, but get much tougher."
 NODE_R1_RIVETER,Клепальная мастерская,Rivet workshop
 NODE_R1_RIVETER_DESC,Новая башня: Клепальщик. Заклёпки пробивают врагов насквозь.,New tower: Riveter. Rivets pierce through enemies.
 NODE_R1_RIVETER_LIMIT,Второй ярус стены,Second wall tier
@@ -87,37 +79,29 @@ NODE_R1_JUNKERS_DESC,Новый враг: медленные старьёвщи�
 NODE_R1_JUNK_HORN,Гудок: старьёвщики,Horn: peddlers
 NODE_R1_JUNK_HORN_DESC,Старьёвщики приходят чаще.,Peddlers come more often.
 NODE_R1_JUNK_RUMORS,Слухи о кладе: старьёвщики,Treasure rumours: peddlers
-NODE_R1_JUNK_RUMORS_DESC,"Старьёвщики несут больше шестерён, но живучее.",Peddlers carry more gears but are tougher.
-NODE_R1_JUNK_BOUNTY,Награда за голову: старьёвщики,Bounty: peddlers
-NODE_R1_JUNK_BOUNTY_DESC,"Старьёвщики приносят больше чертежей, но живучее.",Peddlers drop more blueprints but are tougher.
+NODE_R1_JUNK_RUMORS_DESC,"Старьёвщики несут больше добычи, но становятся заметно живучее.","Peddlers carry more loot, but get much tougher."
 NODE_R1_CURTAIN,Паровая завеса,Steam curtain
-NODE_R1_CURTAIN_DESC,"Пар над рвом обжигает всех, кто подошёл к краю.",Steam over the moat scalds everyone at the edge.
+NODE_R1_CURTAIN_DESC,"Пар над рвом обжигает всех, кто подошёл к краю. Видна стена пара.",Steam over the moat scalds everyone at the edge. A visible wall of steam.
 NODE_R1_LENS_RATE,Быстрый затвор,Quick shutter
 NODE_R1_LENS_RATE_DESC,Линза жжёт чаще.,The lens burns more often.
 NODE_R1_SEEK,Наводчик,Spotter
-NODE_R1_SEEK_DESC,В авторежиме линза сама плывёт к самой плотной группе врагов.,In auto mode the lens glides to the densest group of enemies.
-NODE_R1_AUTO,Отладка привода,Drive tuning
-NODE_R1_AUTO_DESC,Линза в авторежиме жжёт сильнее.,The lens burns harder in auto mode.
+NODE_R1_SEEK_DESC,Линза без мыши сама летит к самой плотной группе врагов и жжёт сильнее.,Without the mouse the lens flies to the densest group itself and burns harder.
 NODE_R1_KNIGHTS,Открыть дорогу: жестяные латники,Open road: tin knights
 NODE_R1_KNIGHTS_DESC,"Новый враг: латники. Броня держит удар, но пар жжёт их сильнее.","New enemy: tin knights. Armour resists impact, steam hurts them more."
 NODE_R1_MORTAR,Мортирная батарея,Mortar battery
 NODE_R1_MORTAR_DESC,"Новая башня: Мортира. Навесной снаряд, взрыв по площади.","New tower: Mortar. Lobbed shell, area blast."
 NODE_R1_HOT_RIVETS,Раскалённые заклёпки,Red-hot rivets
-NODE_R1_HOT_RIVETS_DESC,Заклёпки ошпаривают врагов: после попадания жжёт пар.,Rivets scald enemies: steam keeps burning after a hit.
-NODE_R1_MORTAR_SPLASH,Тяжёлые бомбы,Heavy bombs
-NODE_R1_MORTAR_SPLASH_DESC,Шире взрыв мортир.,Wider mortar blasts.
+NODE_R1_HOT_RIVETS_DESC,"Выбор: заклёпки ошпаривают врагов, пар жжёт после попадания (латники особенно страдают). Исключает «Тяжёлые бомбы».","Choice: rivets scald enemies, steam keeps burning after a hit (tin knights suffer most). Excludes Heavy bombs."
 NODE_R1_MORTAR_LIMIT,Мортирный бастион,Mortar bastion
 NODE_R1_MORTAR_LIMIT_DESC,Больше мест для мортир.,More slots for mortars.
 NODE_R1_KNIGHT_HORN,Гудок: латники,Horn: knights
 NODE_R1_KNIGHT_HORN_DESC,Больше латников в каждой пачке.,More knights in every pack.
-NODE_R1_KNIGHT_BOUNTY,Награда за голову: латники,Bounty: knights
-NODE_R1_KNIGHT_BOUNTY_DESC,"Латники приносят больше чертежей, но живучее.",Knights drop more blueprints but are tougher.
 NODE_R1_DECREE,Королевский указ «Сталь»,Royal decree: Steel
 NODE_R1_DECREE_DESC,Всё оружие крепости бьёт сильнее.,All fortress weapons hit harder.
 NODE_R1_BOSS,Вызвать Вожака пустошей,Summon the Wasteland Chief
 NODE_R1_BOSS_DESC,Хозяин пустошей идёт со свитой. Победа откроет Угольные копи.,The master of the wastes comes with his gang. Victory opens the Coal Pits.
-NODE_R2_ROAD,Дорога в Угольные копи,Road to the Coal Pits
-NODE_R2_ROAD_DESC,"Скоро: уголь, шахтёры и котельные башни. Больше добычи.","Coming soon: coal, miners and boiler towers. More loot."
+NODE_R2_ROAD,Открыть дорогу: кроты-шахтёры,Open road: mole miners
+NODE_R2_ROAD_DESC,"Угольные копи: новый враг — крот-шахтёр, роет ходы (под землёй неуязвим) и несёт уголь.",Coal Pits: new enemy — the mole miner burrows (untouchable underground) and carries coal.
 UI_SEC,с,s
 UI_KILLS,Убито,Killed
 UI_FALLS,В рву,In the moat
@@ -128,3 +112,72 @@ UI_LENS_SEEK,наводчик,spotter
 UI_BOSS_CALL_AGAIN,Вызвать снова,Call again
 UI_BOSS_RETREATED,"Отступил! Вернётся, когда будешь готов",Retreated! He'll be back when you're ready
 UI_BOSS_DEFEATED,Вожак повержен!,The Chief is defeated!
+NODE_R1_KNIGHT_RUMORS,Слухи о кладе: латники,Treasure rumours: knights
+NODE_R1_KNIGHT_RUMORS_DESC,"Латники несут больше добычи, но становятся заметно живучее.","Knights carry more loot, but get much tougher."
+NODE_R0_KETTLE,Королевский чайник,The King's kettle
+NODE_R0_KETTLE_DESC,"На стене закипает чайник Короля: раз в несколько секунд он выплёскивает кипяток на тех, кто ближе всех ко рву.",The King's kettle boils on the wall: every few seconds it splashes boiling water on whoever is closest to the moat.
+NODE_R0_KETTLE_WHISTLE,Свисток чайника,Kettle whistle
+NODE_R0_KETTLE_WHISTLE_DESC,"Чайник свистит: ошпаренные кипятком враги замедляются, а сам кипяток жжёт сильнее.","The kettle whistles: splashed enemies slow down, and the water burns hotter."
+NODE_R0_LENS_BURN,Жгучая линза,Searing lens
+NODE_R0_LENS_BURN_DESC,Линза ошпаривает: враги ещё пару секунд дымятся и теряют здоровье.,The lens scalds: enemies keep steaming and losing health for a while.
+NODE_R1_SECOND_KETTLE,Второй чайник,Second kettle
+NODE_R1_SECOND_KETTLE_DESC,Рядом с первым закипает второй: кипяток летит сразу в две группы.,A second kettle boils next to the first: boiling water hits two groups at once.
+NODE_R1_HEAVY_BOMBS,Тяжёлые бомбы,Heavy bombs
+NODE_R1_HEAVY_BOMBS_DESC,"Выбор: шире взрыв мортир, взрывная волна отбрасывает врагов назад. Исключает «Раскалённые заклёпки».","Choice: wider mortar blasts, the shockwave throws enemies back. Excludes Red-hot rivets."
+NODE_R1_TROPHY_BOILER,Трофей: котёл вожака,Trophy: the Chief's boiler
+NODE_R1_TROPHY_BOILER_DESC,"Награда за вожака (выбор): вторая паровая линза, которая всегда работает сама.",Boss reward (choice): a second steam lens that always works on its own.
+NODE_R1_TROPHY_CHAINS,Трофей: цепи вожака,Trophy: the Chief's chains
+NODE_R1_TROPHY_CHAINS_DESC,"Награда за вожака (выбор): у рва враги вязнут в цепях и замедляются, завеса жжёт сильнее.","Boss reward (choice): at the moat enemies get tangled in chains and slow down, the curtain burns harder."
+NODE_R2_STEAM_JET,Мастерская пароструя,Steam jet workshop
+NODE_R2_STEAM_JET_DESC,"Выбор башни: Пароструй — конус пара вблизи рва, ошпаривает и замедляет всех в конусе. Исключает Котлобой.",Tower choice: Steam jet — a steam cone near the moat that scalds and slows everyone inside. Excludes the Boiler thrower.
+NODE_R2_BOILER,Котельная котлобоя,Boiler thrower works
+NODE_R2_BOILER_DESC,"Выбор башни: Котлобой — бросает котёл через всё поле, большой взрыв и лужа кипятка. Исключает Пароструй.","Tower choice: Boiler thrower — lobs a boiler across the field, big blast and a boiling puddle. Excludes the Steam jet."
+NODE_R2_MOLE_HORN,Гудок: кроты,Horn: moles
+NODE_R2_MOLE_HORN_DESC,Больше кротов в каждой пачке.,More moles in every pack.
+NODE_R2_MOLE_RUMORS,Слухи о кладе: кроты,Treasure rumours: moles
+NODE_R2_MOLE_RUMORS_DESC,"Кроты несут больше добычи, но становятся заметно живучее.","Moles carry more loot, but get much tougher."
+NODE_R2_FURNACE,Топка рва,Moat furnace
+NODE_R2_FURNACE_DESC,Уголь разогревает ров: завеса шире и жжёт сильнее.,Coal heats the moat: the curtain is wider and burns harder.
+NODE_R2_JET_NOZZLE,Длинное сопло,Long nozzle
+NODE_R2_JET_NOZZLE_DESC,Пароструй бьёт дальше.,The steam jet reaches farther.
+NODE_R2_BOILER_LID,Котёл без крышки,Lidless boiler
+NODE_R2_BOILER_LID_DESC,Шире взрыв котлобоя.,Wider boiler blasts.
+NODE_R2_COAL_DECREE,Угольный указ,Coal decree
+NODE_R2_COAL_DECREE_DESC,Больше добычи со всех врагов.,More loot from every enemy.
+ENEMY_MOLE_MINER,Крот-шахтёр,Mole miner
+TOWER_STEAM_JET,Пароструй,Steam jet
+TOWER_STEAM_JET_DESC,Конус пара вблизи рва: ошпаривает и замедляет. Урон: пар.,Steam cone near the moat: scalds and slows. Steam damage.
+TOWER_BOILER,Котлобой,Boiler thrower
+TOWER_BOILER_DESC,Бросает перегретый котёл: большой взрыв и лужа кипятка. Урон: взрыв.,Lobs an overheated boiler: big blast and a boiling puddle. Blast damage.
+UPG_STEAM_JET_DMG,Перегретый пар,Superheated steam
+UPG_STEAM_JET_DMG_DESC,Больше урона пароструя.,More steam jet damage.
+UPG_BOILER_DMG,Толстые стенки,Thick walls
+UPG_BOILER_DMG_DESC,Больше урона котлобоя.,More boiler damage.
+ABILITY_KETTLE,Королевский чайник,The King's kettle
+MS_SHOOTER_DOUBLE,Двойной выстрел,Double shot
+MS_SHOOTER_DOUBLE_DESC,Стрелки стреляют по двум целям сразу. Латунная отделка.,Riflemen fire at two targets at once. Brass trim.
+MS_SHOOTER_EXPLOSIVE,Разрывные пули,Explosive bullets
+MS_SHOOTER_EXPLOSIVE_DESC,Пули взрываются и задевают соседей. Позолота.,Bullets explode and hit neighbours. Gilded.
+MS_SHOOTER_SPARK,Искровые капсюли,Spark primers
+MS_SHOOTER_SPARK_DESC,Критический выстрел перескакивает искрой на соседа.,A critical hit jumps to a neighbour as a spark.
+MS_RIVETER_TWIN,Сдвоенная клёпка,Twin rivets
+MS_RIVETER_TWIN_DESC,Две заклёпки веером за выстрел. Латунная отделка.,Two rivets in a fan per shot. Brass trim.
+MS_RIVETER_CHANNEL,Сквозной канал,Through-channel
+MS_RIVETER_CHANNEL_DESC,Заклёпки пробивают ещё двоих. Позолота.,Rivets pierce two more enemies. Gilded.
+MS_RIVETER_KNOCKBACK,Пневмоудар,Pneumatic punch
+MS_RIVETER_KNOCKBACK_DESC,Заклёпка отбрасывает врага назад.,A rivet knocks the enemy back.
+MS_MORTAR_CLUSTER,Кассетный снаряд,Cluster shell
+MS_MORTAR_CLUSTER_DESC,Снаряд разлетается на осколки с малыми взрывами. Латунная отделка.,The shell splits into fragments with small blasts. Brass trim.
+MS_MORTAR_INCENDIARY,Зажигательная начинка,Incendiary filling
+MS_MORTAR_INCENDIARY_DESC,Взрыв ошпаривает врагов. Позолота.,Blasts scald enemies. Gilded.
+MS_MORTAR_STUN,Оглушающий заряд,Stunning charge
+MS_MORTAR_STUN_DESC,Взрыв замедляет врагов.,Blasts slow enemies.
+MS_STEAM_JET_TWIN,Двойное сопло,Twin nozzle
+MS_STEAM_JET_TWIN_DESC,Пароструй бьёт двумя конусами. Латунная отделка.,The steam jet fires two cones. Brass trim.
+MS_BOILER_SHRAPNEL,Котёл с начинкой,Loaded boiler
+MS_BOILER_SHRAPNEL_DESC,Котёл разлетается осколками. Латунная отделка.,The boiler bursts into fragments. Brass trim.
+GOAL_NODE,Следующая цель: %s,Next goal: %s
+GOAL_BOSS_FIGHT,Бой: %s,Fight: %s
+GOAL_BOSS_RETRY,"%s отступил. Вызвать снова, когда будешь готов",%s retreated. Call again when ready
+GOAL_NONE,Все цели достигнуты,All goals reached
+UI_CHOICE,(выбор),(choice)

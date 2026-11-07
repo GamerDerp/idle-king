@@ -4,7 +4,7 @@ extends Node
 ## mods) and drains Game.core.drain_events() each frame. See docs/CORE.md.
 ##
 ## Debug args (after `--`):
-##   --bot[=idle]   SimBot plays (active cursor, or idle = no cursor)
+##   --bot[=real|idle] SimBot plays (active cursor / leaves to the panel on purchases / no cursor)
 ##   --ff=<sec>     fast-forward this many game seconds at start (no events)
 ##   --seed=<n>     RNG seed for a new game
 
@@ -32,7 +32,8 @@ func start(seed_value: int = -1) -> GameCore:
 		seed_value = DevTools.get_arg("seed").to_int()
 	core = GameCore.create(seed_value, GameData.new(cfg))
 	if DevTools.has_arg("bot"):
-		bot = SimBot.new(core, DevTools.get_arg("bot") != "idle")
+		var bm: String = DevTools.get_arg("bot")
+		bot = SimBot.new(core, "active" if bm == "true" else bm)
 	var ff: float = DevTools.get_arg("ff", "0").to_float()
 	if ff > 0.0:
 		fast_forward(ff)

@@ -1,9 +1,9 @@
 class_name Battle
 extends RefCounted
-## The battlefield: enemies, towers on the wall, projectiles, steam lens,
-## moat, pack spawner and boss fights. Transient (not saved). Driven by
-## GameCore.tick() in steps of at most ~0.1 s; results don't depend on frame
-## rate beyond floating point. All randomness comes from the shared core RNG.
+## The battlefield: enemies, towers on the wall, projectiles, steam lenses,
+## moat, mechanisms (abilities), burning puddles, pack spawner and boss fights.
+## Transient (not saved). Driven by GameCore.tick() in steps of at most ~0.1 s.
+## All randomness comes from the shared core RNG; all numbers from config.
 ##
 ## Coordinates are logical units equal to screen pixels at 1280x720:
 ## fortress wall x≈100–210, moat edge x = moat_x (290), spawn x≈900, lane y 130–610.
@@ -18,15 +18,26 @@ class Enemy extends RefCounted:
 	var pos: Vector2 = Vector2.ZERO
 	var lane_y: float = 0.0
 	var phase: float = 0.0
-	var speed: float = 20.0
+	var speed: float = 20.0         ## base walking speed (before slows)
 	var radius: float = 10.0
 	var resist: Dictionary = {}
 	var loot: Dictionary = {}
-	var pending: float = 0.0        ## damage of bullets already flying at it
+	var pending: float = 0.0        ## damage of bullets/shells already flying at it
 	var alive: bool = true
 	var age: float = 0.0
-	var scald_t: float = 0.0        ## seconds of "scalded" left (view: steam on enemy)
+	var scald_t: float = 0.0        ## seconds of "scalded" left (view: steam on the enemy)
 	var scald_dps: float = 0.0
+	var slow_t: float = 0.0         ## seconds of slow left (view: frost/steam drag)
+	var slow_f: float = 0.0         ## speed reduction fraction
+	var underground: bool = false   ## burrowed: untouchable, untargetable (view: dirt mound)
+	var burrow: Dictionary = {}     ## {under, over} seconds, empty = never burrows
+	var burrow_t: float = 0.0
+	var dot_acc: Dictionary = {}    ## source -> damage accumulated for the next enemy_dot event
+	var dot_timer: float = 0.0
+	var dot_total: float = 0.0      ## all damage-over-time this enemy took
+
+	func cur_speed() -> float:
+		return speed * (1.0 - slow_f if slow_t > 0.0 else 1.0)
 
 
 ## A projectile in flight. kind: bullet (homing), rivet (straight, pierces), shell (lobbed, splash).
@@ -47,8 +58,9 @@ class Projectile extends RefCounted:
 	var hit: Dictionary = {}
 	var splash: float = 0.0
 	var t: float = 0.0              ## shell: time in flight
-	var flight: float = 1.0         ## shell: total flight time (view: arc = t/flight)
+	var flight: float = 1.0         ## shell: total flight time (view: arc height by t/flight)
 	var expected: float = 0.0
+	var fragment: bool = false      ## shell: cluster fragment (smaller arc)
 	var alive: bool = true
 
 
@@ -56,10 +68,35 @@ class Projectile extends RefCounted:
 class Tower extends RefCounted:
 	var type: String = ""
 	var index: int = 0
+	var slot: int = 0
 	var pos: Vector2 = Vector2.ZERO
 	var cd: float = 0.0
 	var shots: int = 0
 	var aim: Vector2 = Vector2.ZERO
+
+
+## Burning / boiling ground left by a shell.
+class Zone extends RefCounted:
+	var uid: int = 0
+	var pos: Vector2 = Vector2.ZERO
+	var radius: float = 40.0
+	var dps: float = 10.0
+	var dmg_type: String = "steam"
+	var t: float = 0.0
+	var duration: float = 3.0
+
+
+## A steam lens. Index 0 follows the cursor; extra lenses (trophies) are always automatic.
+class Lens extends RefCounted:
+	var index: int = 0
+	var pos: Vector2 = Vector2.ZERO
+	var mode: String = "auto"       ## manual / auto / seek
+	var phase: float = 0.0
+	var acc: float = 0.0
+	var timer: float = 0.0
+	var target: Vector2 = Vector2.ZERO
+	var has_target: bool = false
+	var sweep: float = 0.0
 
 
 var data: GameData
@@ -72,16 +109,19 @@ var emit: bool = true
 var enemies: Array[Enemy] = []
 var projectiles: Array[Projectile] = []
 var towers: Array[Tower] = []
+var zones: Array[Zone] = []
+var lenses: Array[Lens] = []        ## lenses[0] = the player's lens
 
-## Lens (read by the view): position, mode "manual"/"auto"/"seek", radius from mods.lens.
-var lens_pos: Vector2 = Vector2.ZERO
-var lens_mode: String = "auto"
+## Main lens (read by the view): position, mode "manual"/"auto"/"seek".
+var lens_pos: Vector2:
+	get: return lenses[0].pos
+var lens_mode: String:
+	get: return lenses[0].mode
 var lens_idle: float = 0.0
 var _cursor_last: Vector2 = Vector2(-1.0e9, -1.0e9)
-var _lens_phase: float = 0.0
-var _lens_acc: float = 0.0
-var _seek_timer: float = 0.0
-var _seek_target: Vector2 = Vector2.ZERO
+
+## Mechanisms: ability id -> seconds since last use.
+var ability_timers: Dictionary = {}
 
 ## Spawner.
 var pack_timer: float = 0.0
@@ -95,6 +135,11 @@ var boss_outcome: String = ""       ## "defeated" / "retreated" until GameCore c
 var _boss_t: float = 0.0
 var _boss_queue: Array = []
 
+## Where kills happen (sim/report: is the fight near the moat?).
+var kill_x_sum: float = 0.0
+var kill_count: int = 0
+var kill_near_moat: int = 0          ## kills within combat.near_moat_x of the moat
+
 var _next_uid: int = 1
 var _any_dead: bool = false
 
@@ -107,8 +152,10 @@ var y_max: float
 var _jitter: float
 var _pack_interval: float
 var _max_enemies: int
-var _curtain_w: float
 var _drift: float
+var _bob_freq: float
+var _dot_interval: float
+var _c: Dictionary                  # towers.combat
 
 
 func _init(game_data: GameData, game_state: GameState, game_mods: Mods, shared_rng: RandomNumberGenerator) -> void:
@@ -116,29 +163,52 @@ func _init(game_data: GameData, game_state: GameState, game_mods: Mods, shared_r
 	state = game_state
 	mods = game_mods
 	rng = shared_rng
-	moat_x = data.field("moat_x", 290.0)
-	spawn_x = data.field("spawn_x", 900.0)
-	end_x = data.field("end_x", 980.0)
-	y_min = data.field("y_min", 130.0)
-	y_max = data.field("y_max", 610.0)
-	_jitter = data.field("spawn_jitter_x", 40.0)
-	_pack_interval = maxf(0.2, float(data.waves.get("pack_interval", 3.0)))
-	_max_enemies = int(data.waves.get("max_enemies", 300))
-	_curtain_w = float(data.waves.get("curtain_width", 50.0))
-	_drift = float(data.waves.get("lane_drift", 0.0))
-	pack_timer = float(data.waves.get("first_pack_at", 0.5))
-	var ap: Dictionary = data.lens.get("auto_path", {})
-	lens_pos = Vector2(float(ap.get("cx", 600.0)) + float(ap.get("rx", 200.0)), float(ap.get("cy", 370.0)))
+	moat_x = data.field("moat_x")
+	spawn_x = data.field("spawn_x")
+	end_x = data.field("end_x")
+	y_min = data.field("y_min")
+	y_max = data.field("y_max")
+	_jitter = data.field("spawn_jitter_x")
+	_pack_interval = maxf(0.2, float(data.waves["pack_interval"]))
+	_max_enemies = int(data.waves["max_enemies"])
+	_drift = float(data.waves["lane_drift"])
+	_bob_freq = float(data.waves["bob_freq"])
+	_dot_interval = float(data.waves["dot_event_interval"])
+	_c = data.combat
+	pack_timer = float(data.waves["first_pack_at"])
+	_sync_lenses()
 	sync_towers()
 
 
 func set_mods(m: Mods) -> void:
 	mods = m
+	_sync_lenses()
 	sync_towers()
 
 
-## Rebuilds tower instances to match state.towers (keeps cooldowns of existing ones).
+func _sync_lenses() -> void:
+	var want: int = 1 + int(mods.lens["extra"])
+	var ap: Dictionary = data.lens["auto_path"]
+	while lenses.size() < want:
+		var l := Lens.new()
+		l.index = lenses.size()
+		l.phase = l.index * PI
+		l.pos = Vector2(float(ap["cx"]) + cos(l.phase) * float(ap["rx"]), float(ap["cy"]))
+		lenses.append(l)
+	while lenses.size() > want:
+		lenses.pop_back()
+
+
+# --- wall -------------------------------------------------------------------
+
+## Makes sure every owned tower has a wall slot (state.tower_slots), then
+## rebuilds tower instances (keeps cooldowns of existing ones).
 func sync_towers() -> void:
+	for t: String in data.towers:
+		var slots: Array = state.tower_slots.get(t, [])
+		while slots.size() < state.tower_count(t):
+			slots.append(_free_slot(int(data.towers[t]["row"])))
+			state.tower_slots[t] = slots
 	var old: Dictionary = {}
 	for tw in towers:
 		old["%s#%d" % [tw.type, tw.index]] = tw
@@ -151,32 +221,47 @@ func sync_towers() -> void:
 				tw = Tower.new()
 				tw.type = t
 				tw.index = i
-				tw.pos = tower_slot(t, i)
 				tw.cd = fmod(i * 0.137, 0.3)  # stagger without touching the RNG
+			tw.slot = int(state.tower_slots[t][i])
+			tw.pos = slot_pos(tw.slot)
 			towers.append(tw)
 
 
-## Wall position of the i-th tower of a type: slots fill from the middle of the wall outwards.
-func tower_slot(t: String, i: int) -> Vector2:
-	var slots: int = maxi(1, int(data.wall.get("slots", 10)))
-	var wy0: float = float(data.wall.get("y_min", 150.0))
-	var wy1: float = float(data.wall.get("y_max", 600.0))
-	var col: int = i / slots
-	var k: int = i % slots
-	var mid: int = slots / 2
-	var slot: int = mid - (k + 1) / 2 if k % 2 == 1 else mid + k / 2
-	slot = clampi(slot, 0, slots - 1)
-	var x: float = float(data.towers[t].get("column_x", 200.0)) - col * float(data.wall.get("row_offset_x", 14.0))
-	return Vector2(x, wy0 + (slot + 0.5) * (wy1 - wy0) / slots)
+## First free wall slot, preferring `row`; -1 - n when the wall is full (stacked behind).
+func _free_slot(row: int) -> int:
+	var used: Dictionary = {}
+	for t: String in state.tower_slots:
+		for s: Variant in state.tower_slots[t]:
+			used[int(s)] = true
+	for pass_i in 2:
+		for i in data.wall_slots.size():
+			if not used.has(i) and (pass_i == 1 or data.wall_slot_row[i] == row):
+				return i
+	return -1 - used.size()
+
+
+func slot_pos(slot: int) -> Vector2:
+	if slot >= 0 and slot < data.wall_slots.size():
+		return data.wall_slots[slot]
+	var n: int = data.wall_slots.size()
+	var base: Vector2 = data.wall_slots[(-slot - 1) % n] if n > 0 else Vector2(150, 370)
+	return base + Vector2(-10.0, 6.0)
+
+
+## Position of the i-th tower of a type (after it has a slot).
+func tower_pos(t: String, i: int) -> Vector2:
+	var slots: Array = state.tower_slots.get(t, [])
+	return slot_pos(int(slots[i])) if i < slots.size() else Vector2.ZERO
 
 
 func tick(dt: float) -> void:
 	_spawn(dt)
 	_move(dt)
 	_dots(dt)
+	_abilities(dt)
 	_fire_towers(dt)
 	_move_projectiles(dt)
-	_lens(dt)
+	_lenses(dt)
 	if _any_dead:
 		_cleanup()
 
@@ -189,7 +274,7 @@ func _spawn(dt: float) -> void:
 		while not _boss_queue.is_empty() and float(_boss_queue[0]["at"]) <= _boss_t:
 			var q: Dictionary = _boss_queue.pop_front()
 			_spawn_group(str(q["type"]), int(q["count"]))
-		if bool(data.waves.get("boss_pauses_packs", true)):
+		if bool(data.waves["boss_pauses_packs"]):
 			return
 	pack_timer -= dt
 	var guard: int = 0
@@ -222,6 +307,7 @@ func _spawn_enemy(t: String, center_y: float, at: Vector2 = Vector2.INF) -> Enem
 	if enemies.size() >= _max_enemies:
 		return null
 	var es: Dictionary = mods.enemy_stats[t]
+	var jit: Array = data.waves["speed_jitter"]
 	var e := Enemy.new()
 	e.uid = _next_uid
 	_next_uid += 1
@@ -229,13 +315,17 @@ func _spawn_enemy(t: String, center_y: float, at: Vector2 = Vector2.INF) -> Enem
 	e.role = str(es["role"])
 	e.max_hp = float(es["hp"])
 	e.hp = e.max_hp
-	e.speed = float(es["speed"]) * rng.randf_range(0.92, 1.08)
+	e.speed = float(es["speed"]) * rng.randf_range(float(jit[0]), float(jit[1]))
 	e.radius = float(es["radius"])
 	e.resist = es["resist"]
 	e.loot = es["loot"]
+	e.burrow = es["burrow"]
 	e.phase = rng.randf() * TAU
+	if not e.burrow.is_empty():
+		e.burrow_t = float(e.burrow["over"]) * rng.randf_range(0.5, 1.0)
 	if at == Vector2.INF:
-		var y: float = clampf(center_y + rng.randfn(0.0, (y_max - y_min) * 0.2), y_min, y_max)
+		var spread: float = (y_max - y_min) * float(data.waves["pack_y_spread"])
+		var y: float = clampf(center_y + rng.randfn(0.0, spread), y_min, y_max)
 		e.pos = Vector2(spawn_x + rng.randf() * _jitter, y)
 	else:
 		e.pos = at
@@ -273,8 +363,7 @@ func start_boss(id: String) -> bool:
 func _end_boss(outcome: String) -> void:
 	boss_outcome = outcome
 	if emit:
-		var pos: Vector2 = boss_enemy.pos
-		events.append({"type": "boss_" + outcome, "boss": boss_id, "pos": pos})
+		events.append({"type": "boss_" + outcome, "boss": boss_id, "pos": boss_enemy.pos})
 	boss_enemy = null
 	_boss_queue = []
 
@@ -282,13 +371,26 @@ func _end_boss(outcome: String) -> void:
 # --- movement, moat, damage over time ----------------------------------------
 
 func _move(dt: float) -> void:
+	var slow_x: float = moat_x + mods.moat_width
 	for e in enemies:
 		if not e.alive:
 			continue
 		e.age += dt
-		e.pos.x -= e.speed * dt
+		if e.slow_t > 0.0:
+			e.slow_t -= dt
+		var v: float = e.cur_speed()
+		if mods.moat_slow > 0.0 and e.pos.x < slow_x:
+			v *= 1.0 - mods.moat_slow
+		e.pos.x -= v * dt
 		if _drift > 0.0:
-			e.pos.y = clampf(e.lane_y + sin(e.age * 1.7 + e.phase) * _drift, y_min, y_max)
+			e.pos.y = clampf(e.lane_y + sin(e.age * _bob_freq + e.phase) * _drift, y_min, y_max)
+		if not e.burrow.is_empty():
+			e.burrow_t -= dt
+			if e.burrow_t <= 0.0:
+				e.underground = not e.underground
+				e.burrow_t = float(e.burrow["under" if e.underground else "over"])
+				if emit:
+					events.append({"type": "enemy_burrow", "uid": e.uid, "pos": e.pos, "under": e.underground})
 		if e.pos.x <= moat_x:
 			if e.role == "boss":
 				e.alive = false
@@ -301,24 +403,111 @@ func _move(dt: float) -> void:
 func _fall(e: Enemy) -> void:
 	e.alive = false
 	_any_dead = true
-	state.stats["falls"] = int(state.stats["falls"]) + 1
-	state.add_stat_in("falls_by_type", e.type, 1.0)
+	state.count_event("falls", e.type)
 	if emit:
 		events.append({"type": "enemy_fell_in_moat", "uid": e.uid, "enemy": e.type, "pos": e.pos})
 
 
 func _dots(dt: float) -> void:
 	var moat_dps: float = mods.moat_dps
-	var curtain_x: float = moat_x + _curtain_w
+	var curtain_x: float = moat_x + mods.moat_width
+	for z in zones:
+		z.t += dt
 	for e in enemies:
 		if not e.alive:
 			continue
 		if e.scald_t > 0.0:
 			var d: float = e.scald_dps * minf(dt, e.scald_t)
 			e.scald_t -= dt
-			damage(e, d, "steam", false, "scald", true)
+			_dot(e, d, "steam", "scald")
 		if moat_dps > 0.0 and e.alive and e.pos.x < curtain_x:
-			damage(e, moat_dps * dt, "steam", false, "moat", true)
+			_dot(e, moat_dps * dt, "steam", "moat")
+		for z in zones:
+			if e.alive and z.t <= z.duration and e.pos.distance_squared_to(z.pos) <= z.radius * z.radius:
+				_dot(e, z.dps * dt, z.dmg_type, "zone")
+		if e.alive and emit:
+			e.dot_timer += dt
+			if e.dot_timer >= _dot_interval:
+				_flush_dot(e)
+	if not zones.is_empty():
+		zones = zones.filter(func(z: Zone) -> bool: return z.t <= z.duration)
+
+
+func _dot(e: Enemy, amount: float, dmg_type: String, source: String) -> void:
+	var dealt: float = damage(e, amount, dmg_type, false, source, true)
+	if dealt > 0.0:
+		e.dot_total += dealt
+		e.dot_acc[source] = float(e.dot_acc.get(source, 0.0)) + dealt
+
+
+## One aggregated enemy_dot event per source since the last flush.
+func _flush_dot(e: Enemy) -> void:
+	e.dot_timer = 0.0
+	if e.dot_acc.is_empty():
+		return
+	for src: String in e.dot_acc:
+		events.append({"type": "enemy_dot", "uid": e.uid, "pos": e.pos, "source": src,
+			"amount": float(e.dot_acc[src]), "total": e.dot_total})
+	e.dot_acc.clear()
+
+
+# --- mechanisms ---------------------------------------------------------------
+
+func _abilities(dt: float) -> void:
+	for a: String in mods.abilities:
+		var ab: Dictionary = mods.abilities[a]
+		var t: float = float(ability_timers.get(a, 0.0)) + dt
+		if t < float(ab["interval"]):
+			ability_timers[a] = t
+			continue
+		# targets: the enemies closest to the moat within reach (count = splashes); wait for one
+		var reach: float = moat_x + float(ab["reach_x"])
+		var r: float = float(ab["radius"])
+		var centers: Array[Vector2] = []
+		for c in int(ab["count"]):
+			var best: Enemy = null
+			for e in enemies:
+				if not e.alive or e.underground or e.pos.x > reach:
+					continue
+				var taken: bool = false
+				for cpos in centers:
+					if e.pos.distance_to(cpos) < r * 2.0:
+						taken = true
+						break
+				if not taken and (best == null or e.pos.x < best.pos.x):
+					best = e
+			if best == null:
+				break
+			centers.append(best.pos)
+		if centers.is_empty():
+			ability_timers[a] = t
+			continue
+		ability_timers[a] = 0.0
+		for center in centers:
+			_splash_ability(a, ab, center, r)
+
+
+func _splash_ability(a: String, ab: Dictionary, center: Vector2, r: float) -> void:
+	var hits: int = 0
+	var total: float = 0.0
+	var hf: float = data.combat_value("splash_hit_factor")
+	var boss_k: float = float(ab["boss_pct_mult"])
+	for e in enemies:
+		if not e.alive or e.underground:
+			continue
+		var rr: float = r + e.radius * hf
+		if e.pos.distance_squared_to(center) > rr * rr:
+			continue
+		var pct_k: float = boss_k if e.role == "boss" else 1.0
+		var d: float = float(ab["dmg"]) + float(ab["dmg_pct_hp"]) * e.max_hp * pct_k
+		total += damage(e, d, str(ab["dmg_type"]), false, "ability:" + a)
+		hits += 1
+		if e.alive:
+			var sts: Dictionary = ab["statuses"]
+			for sid: String in sts:
+				_apply_status(e, sid, float(sts[sid]["value"]), float(sts[sid]["duration"]), d)
+	if emit:
+		events.append({"type": "ability_fired", "id": a, "pos": center, "radius": r, "hits": hits, "damage": total})
 
 
 # --- towers & projectiles ---------------------------------------------------
@@ -330,21 +519,49 @@ func _fire_towers(dt: float) -> void:
 		var guard: int = 0
 		while tw.cd <= 0.0 and guard < 4:
 			guard += 1
-			var target: Enemy = _pick_target(tw, st)
-			if target == null:
+			if not _volley(tw, st):
 				tw.cd = 0.0
 				break
-			_fire(tw, st, target)
 			tw.cd += float(st["reload"])
 
 
-func _pick_target(tw: Tower, st: Dictionary) -> Enemy:
+## One trigger pull: `multishot` projectiles. Returns false if there was no target.
+func _volley(tw: Tower, st: Dictionary) -> bool:
+	var n: int = int(st["multishot"])
+	var kind: String = str(st["projectile"])
+	if kind == "rivet":
+		var target: Enemy = _pick_target(tw, st)
+		if target == null:
+			return false
+		var spread: float = data.combat_value("multishot_spread")
+		for k in n:
+			_fire(tw, st, target, (k - (n - 1) * 0.5) * spread)
+		return true
+	var fired: int = 0
+	var chosen: Dictionary = {}
+	for k in n:
+		# each extra shot prefers a different target; falls back to the same one
+		var target: Enemy = _pick_target(tw, st, chosen)
+		if target == null:
+			target = _pick_target(tw, st)
+		if target == null:
+			break
+		chosen[target.uid] = true
+		_fire(tw, st, target, 0.0)
+		fired += 1
+	return fired > 0
+
+
+func _targetable(e: Enemy) -> bool:
+	return e.alive and not e.underground
+
+
+func _pick_target(tw: Tower, st: Dictionary, exclude: Dictionary = {}) -> Enemy:
 	var rmin: float = float(st["range_min"])
 	var rmax: float = float(st["range_max"])
-	var shell: bool = st["projectile"] == "shell"
 	var best: Enemy = null
 	var best_x: float = INF
-	if not shell:
+	if st["projectile"] != "shell":
 		# closest to the moat first, but skip enemies this tower cannot finish
 		# before they fall in (otherwise a weak defence wastes every shot)
 		var dmg: float = maxf(0.001, float(st["dmg"]))
@@ -353,7 +570,7 @@ func _pick_target(tw: Tower, st: Dictionary) -> Enemy:
 		var doomed: Enemy = null
 		var doomed_x: float = INF
 		for e in enemies:
-			if not e.alive:
+			if not _targetable(e) or exclude.has(e.uid):
 				continue
 			var dx: float = e.pos.x - tw.pos.x
 			var left: float = e.hp - e.pending
@@ -362,7 +579,7 @@ func _pick_target(tw: Tower, st: Dictionary) -> Enemy:
 			var eff: float = dmg * (1.0 - float(e.resist.get(st["dmg_type"], 0.0)))
 			var shots: float = ceilf(left / maxf(0.001, eff))
 			var t_need: float = (shots - 1.0) * reload + dx * inv_speed
-			var t_left: float = (e.pos.x - moat_x) / maxf(1.0, e.speed)
+			var t_left: float = (e.pos.x - moat_x) / maxf(1.0, e.cur_speed())
 			if t_need <= t_left:
 				best_x = e.pos.x
 				best = e
@@ -375,7 +592,7 @@ func _pick_target(tw: Tower, st: Dictionary) -> Enemy:
 	var best_n: int = -1
 	var cands: Array[Enemy] = []
 	for e in enemies:
-		if e.alive and e.hp - e.pending > 0.0:
+		if _targetable(e) and e.hp - e.pending > 0.0 and not exclude.has(e.uid):
 			var dx: float = e.pos.x - tw.pos.x
 			if dx >= rmin and dx <= rmax:
 				cands.append(e)
@@ -391,7 +608,7 @@ func _pick_target(tw: Tower, st: Dictionary) -> Enemy:
 	return best
 
 
-func _fire(tw: Tower, st: Dictionary, target: Enemy) -> void:
+func _fire(tw: Tower, st: Dictionary, target: Enemy, angle_offset: float) -> void:
 	var p := Projectile.new()
 	p.uid = _next_uid
 	_next_uid += 1
@@ -404,20 +621,28 @@ func _fire(tw: Tower, st: Dictionary, target: Enemy) -> void:
 	p.crit = rng.randf() < float(st["crit_chance"])
 	p.dmg = float(st["dmg"]) * (float(st["crit_mult"]) if p.crit else 1.0)
 	p.target = target
+	p.splash = float(st["splash"])
 	var lead_t: float = tw.pos.distance_to(target.pos) / maxf(1.0, p.speed)
+	var v: float = target.cur_speed()
 	match p.kind:
 		"rivet":
 			p.pierce_left = int(st["pierce"])
-			var aim: Vector2 = target.pos + Vector2(-target.speed * lead_t, 0.0)
-			p.dir = (aim - tw.pos).normalized()
-			p.dest = aim
+			var aim: Vector2 = target.pos + Vector2(-v * lead_t, 0.0)
+			p.dir = (aim - tw.pos).normalized().rotated(angle_offset)
+			p.dest = tw.pos + p.dir * tw.pos.distance_to(aim)
 			p.target = null
 		"shell":
-			p.flight = clampf(lead_t, 0.6, 2.0)
-			p.dest = target.pos + Vector2(-target.speed * p.flight, 0.0)
-			p.splash = float(st["splash"])
+			p.flight = clampf(lead_t, data.combat_value("shell_flight_min"), data.combat_value("shell_flight_max"))
+			p.dest = target.pos + Vector2(-v * p.flight, 0.0)
 			p.expected = p.dmg * (1.0 - float(target.resist.get(p.dmg_type, 0.0)))
 			target.pending += p.expected
+		"cone":
+			p.dir = (target.pos - tw.pos).normalized()
+			p.dest = target.pos
+			_fire_cone(tw, st, p)
+			tw.shots += 1
+			tw.aim = p.dest
+			return
 		_:
 			p.dest = target.pos
 			p.expected = p.dmg * (1.0 - float(target.resist.get(p.dmg_type, 0.0)))
@@ -430,9 +655,32 @@ func _fire(tw: Tower, st: Dictionary, target: Enemy) -> void:
 			"tower_index": tw.index, "from": tw.pos, "to": p.dest, "crit": p.crit})
 
 
+## Steam jet: instant cone that hits everyone inside.
+func _fire_cone(tw: Tower, st: Dictionary, p: Projectile) -> void:
+	var length: float = float(st["range_max"])
+	var half: float = float(st["cone_angle"])
+	var hf: float = data.combat_value("cone_hit_factor")
+	var hits: int = 0
+	for e in enemies:
+		if not _targetable(e):
+			continue
+		var v: Vector2 = e.pos - tw.pos
+		var dist: float = v.length()
+		if dist > length + e.radius * hf or v.x < float(st["range_min"]):
+			continue
+		if absf(p.dir.angle_to(v)) <= half + atan2(e.radius * hf, maxf(1.0, dist)):
+			_tower_hit(e, p)
+			hits += 1
+	if emit:
+		events.append({"type": "cone_fired", "tower": tw.type, "tower_index": tw.index, "from": tw.pos,
+			"dir": p.dir, "length": length, "angle": half, "hits": hits, "crit": p.crit})
+
+
 func _move_projectiles(dt: float) -> void:
 	var any_dead: bool = false
-	for p in projectiles:
+	var n: int = projectiles.size()
+	for i in n:  # fragments appended during the loop move from the next tick
+		var p: Projectile = projectiles[i]
 		match p.kind:
 			"bullet":
 				_move_bullet(p, dt)
@@ -460,9 +708,27 @@ func _move_bullet(p: Projectile, dt: float) -> void:
 		p.alive = false
 		if tgt != null and tgt.alive:
 			tgt.pending = maxf(0.0, tgt.pending - p.expected)
+			if tgt.underground:
+				return  # dove into its burrow: miss
 			_tower_hit(tgt, p)
+			if p.splash > 0.0:
+				_burst(p, tgt)
 	else:
 		p.pos = p.pos.move_toward(p.dest, step)
+
+
+## Exploding bullets: a small blast around the hit enemy.
+func _burst(p: Projectile, center_enemy: Enemy) -> void:
+	var k: float = data.combat_value("bullet_splash_dmg")
+	var hf: float = data.combat_value("splash_hit_factor")
+	for e in enemies:
+		if e == center_enemy or not _targetable(e):
+			continue
+		var rr: float = p.splash + e.radius * hf
+		if e.pos.distance_squared_to(p.pos) <= rr * rr:
+			damage(e, p.dmg * k, p.dmg_type, false, "tower:" + p.tower)
+	if emit:
+		events.append({"type": "bullet_burst", "pos": p.pos, "radius": p.splash})
 
 
 func _move_rivet(p: Projectile, dt: float) -> void:
@@ -472,14 +738,15 @@ func _move_rivet(p: Projectile, dt: float) -> void:
 	var seg: Vector2 = b - a
 	var len2: float = maxf(seg.length_squared(), 1e-6)
 	var hits: Array = []
+	var pad: float = data.combat_value("rivet_hit_pad")
 	var minx: float = minf(a.x, b.x) - 30.0
 	var maxx: float = maxf(a.x, b.x) + 30.0
 	for e in enemies:
-		if not e.alive or e.pos.x < minx or e.pos.x > maxx or p.hit.has(e.uid):
+		if not _targetable(e) or e.pos.x < minx or e.pos.x > maxx or p.hit.has(e.uid):
 			continue
 		var tt: float = clampf((e.pos - a).dot(seg) / len2, 0.0, 1.0)
 		var closest: Vector2 = a + seg * tt
-		var rr: float = e.radius + 3.0
+		var rr: float = e.radius + pad
 		if closest.distance_squared_to(e.pos) <= rr * rr:
 			hits.append([tt, e])
 	if hits.size() > 1:
@@ -505,35 +772,114 @@ func _move_shell(p: Projectile, dt: float) -> void:
 	if p.target != null:
 		p.target.pending = maxf(0.0, p.target.pending - p.expected)
 	if emit:
-		events.append({"type": "shell_exploded", "uid": p.uid, "pos": p.dest, "radius": p.splash, "crit": p.crit})
+		events.append({"type": "shell_exploded", "uid": p.uid, "tower": p.tower, "pos": p.dest,
+			"radius": p.splash, "crit": p.crit, "fragment": p.fragment})
+	var hf: float = data.combat_value("splash_hit_factor")
 	for e in enemies:
-		if not e.alive:
+		if not _targetable(e):
 			continue
-		var rr: float = p.splash + e.radius * 0.5
+		var rr: float = p.splash + e.radius * hf
 		if absf(e.pos.x - p.dest.x) <= rr and e.pos.distance_squared_to(p.dest) <= rr * rr:
 			_tower_hit(e, p)
+	if p.fragment:
+		return
+	var st: Dictionary = mods.tower_stats[p.tower]
+	var pd: Dictionary = st["puddle"]
+	if not pd.is_empty():
+		var z := Zone.new()
+		z.uid = _next_uid
+		_next_uid += 1
+		z.pos = p.dest
+		z.radius = float(pd["radius"])
+		# the puddle grows with the tower's damage upgrades
+		z.dps = float(pd["dps"]) * float(st["dmg"]) / maxf(0.001, float(data.towers[p.tower]["dmg"]))
+		z.dmg_type = str(pd["dmg_type"])
+		z.duration = float(pd["duration"])
+		zones.append(z)
+		if emit:
+			events.append({"type": "zone_created", "uid": z.uid, "pos": z.pos, "radius": z.radius,
+				"duration": z.duration, "dmg_type": z.dmg_type})
+	for k in int(st["cluster"]):
+		var f := Projectile.new()
+		f.uid = _next_uid
+		_next_uid += 1
+		f.kind = "shell"
+		f.fragment = true
+		f.tower = p.tower
+		f.start = p.dest
+		f.pos = p.dest
+		var ang: float = rng.randf() * TAU
+		f.dest = p.dest + Vector2(cos(ang), sin(ang)) * p.splash * data.combat_value("cluster_spread") * sqrt(rng.randf())
+		f.flight = data.combat_value("cluster_flight")
+		f.dmg = p.dmg * data.combat_value("cluster_dmg")
+		f.dmg_type = p.dmg_type
+		f.splash = p.splash * data.combat_value("cluster_radius")
+		projectiles.append(f)
 
 
 func _tower_hit(e: Enemy, p: Projectile) -> void:
 	var dealt: float = damage(e, p.dmg, p.dmg_type, p.crit, "tower:" + p.tower)
+	var st: Dictionary = mods.tower_stats[p.tower]
+	if p.crit and int(st["crit_chain"]) > 0:
+		_crit_chain(e, p, int(st["crit_chain"]))
 	if not e.alive:
 		return
-	var sts: Dictionary = mods.tower_stats[p.tower]["statuses"]
-	if sts.has("scald"):
-		var s: Dictionary = sts["scald"]
-		var dur: float = maxf(0.1, float(s["duration"]))
-		var dps: float = dealt * float(s["value"]) / dur
-		if e.scald_t <= 0.0 or dps > e.scald_dps:
-			e.scald_dps = dps
-		e.scald_t = dur
+	var sts: Dictionary = st["statuses"]
+	for s: String in sts:
+		_apply_status(e, s, float(sts[s]["value"]), float(sts[s]["duration"]), dealt)
+	var kb: float = float(st["knockback"])
+	if kb > 0.0 and not p.fragment:
+		if e.role == "boss":
+			kb *= data.combat_value("knockback_boss")
+		e.pos.x = minf(e.pos.x + kb, spawn_x + _jitter)
+
+
+## Statuses: scald = value * hit damage dealt as steam over duration; slow = speed -value.
+func _apply_status(e: Enemy, s: String, value: float, duration: float, dealt: float) -> void:
+	var fresh: bool = false
+	match s:
+		"scald":
+			var dps: float = dealt * value / maxf(0.1, duration)
+			fresh = e.scald_t <= 0.0
+			if fresh or dps > e.scald_dps:
+				e.scald_dps = dps
+			e.scald_t = duration
+		"slow":
+			fresh = e.slow_t <= 0.0
+			e.slow_f = maxf(value, e.slow_f if not fresh else 0.0)
+			e.slow_t = duration
+	if fresh and emit:
+		events.append({"type": "enemy_status", "uid": e.uid, "status": s, "pos": e.pos, "duration": duration})
+
+
+## Critical hits jump as a spark to the nearest other enemies.
+func _crit_chain(from_e: Enemy, p: Projectile, jumps: int) -> void:
+	var cur: Enemy = from_e
+	var hit: Dictionary = {from_e.uid: true}
+	var rng_r: float = data.combat_value("crit_chain_range")
+	for j in jumps:
+		var best: Enemy = null
+		var best_d: float = rng_r * rng_r
+		for e in enemies:
+			if not _targetable(e) or hit.has(e.uid):
+				continue
+			var d2: float = e.pos.distance_squared_to(cur.pos)
+			if d2 <= best_d:
+				best_d = d2
+				best = e
+		if best == null:
+			return
+		hit[best.uid] = true
 		if emit:
-			events.append({"type": "enemy_status", "uid": e.uid, "status": "scald", "pos": e.pos, "duration": dur})
+			events.append({"type": "crit_chain", "from": cur.pos, "to": best.pos})
+		damage(best, p.dmg * data.combat_value("crit_chain_dmg"), "spark", false, "tower:" + p.tower)
+		cur = best
 
 
-## Deals damage after resistances. Returns the damage applied (before overkill clamp).
-## quiet = no enemy_hit event (damage over time ticks).
+## Deals damage after resistances. Returns the damage actually applied (no overkill).
+## quiet = no enemy_hit event (damage over time ticks; see enemy_dot instead).
 func damage(e: Enemy, amount: float, dmg_type: String, crit: bool, source: String, quiet: bool = false) -> float:
-	if not e.alive or amount <= 0.0:
+	if not e.alive or e.underground or amount <= 0.0:
 		return 0.0
 	var eff: float = amount * (1.0 - float(e.resist.get(dmg_type, 0.0)))
 	if eff <= 0.0:
@@ -547,7 +893,7 @@ func damage(e: Enemy, amount: float, dmg_type: String, crit: bool, source: Strin
 			"crit": crit, "pos": e.pos, "source": source})
 	if e.hp <= 0.0:
 		_kill(e)
-	return eff
+	return dealt
 
 
 func _kill(e: Enemy) -> void:
@@ -556,9 +902,13 @@ func _kill(e: Enemy) -> void:
 	_any_dead = true
 	for r: String in e.loot:
 		state.add_res(r, float(e.loot[r]))
-	state.stats["kills"] = int(state.stats["kills"]) + 1
-	state.add_stat_in("kills_by_type", e.type, 1.0)
+	state.count_event("kills", e.type)
+	kill_x_sum += e.pos.x
+	kill_count += 1
+	if e.pos.x < moat_x + data.combat_value("near_moat_x"):
+		kill_near_moat += 1
 	if emit:
+		_flush_dot(e)
 		events.append({"type": "enemy_killed", "uid": e.uid, "enemy": e.type, "pos": e.pos, "loot": e.loot})
 	if e.role == "boss" and e == boss_enemy:
 		_end_boss("defeated")
@@ -573,15 +923,14 @@ func _cleanup() -> void:
 	enemies = keep
 
 
-# --- steam lens -------------------------------------------------------------
+# --- steam lenses -------------------------------------------------------------
 
 func in_field(p: Vector2) -> bool:
 	return p.x >= moat_x - 40.0 and p.x <= spawn_x + 40.0 and p.y >= y_min - 60.0 and p.y <= y_max + 60.0
 
 
-func _lens(dt: float) -> void:
-	var L: Dictionary = mods.lens
-	var idle_to_auto: float = data.lens_value("idle_to_auto", 2.0)
+func _lenses(dt: float) -> void:
+	var idle_to_auto: float = data.lens_value("idle_to_auto")
 	var manual: bool = false
 	if state.cursor_active and in_field(state.cursor_pos):
 		if state.cursor_pos.distance_squared_to(_cursor_last) > 0.25:
@@ -592,60 +941,128 @@ func _lens(dt: float) -> void:
 		manual = lens_idle < idle_to_auto
 	else:
 		lens_idle = idle_to_auto
-	if manual:
-		lens_pos = state.cursor_pos
-		lens_mode = "manual"
-	elif bool(L["seek"]) and not enemies.is_empty():
-		_seek_timer -= dt
-		if _seek_timer <= 0.0:
-			_seek_timer = data.lens_value("seek_retarget", 0.5)
-			_seek_target = densest_point(float(L["radius"]))
-		lens_pos = lens_pos.move_toward(_seek_target, data.lens_value("seek_speed", 150.0) * dt)
-		lens_mode = "seek"
+	for l in lenses:
+		var is_manual: bool = manual and l.index == 0
+		if is_manual:
+			l.pos = state.cursor_pos
+			l.mode = "manual"
+		else:
+			_auto_move(l, dt)
+		_lens_damage(l, dt, is_manual)
+
+
+func _auto_move(l: Lens, dt: float) -> void:
+	var seek: bool = bool(mods.lens["seek"])
+	l.timer -= dt
+	if l.timer <= 0.0:
+		l.timer = data.lens_value("seek_retarget" if seek else "auto_retarget")
+		if seek:
+			l.has_target = alive_count() > 0
+			if l.has_target:
+				l.target = densest_point(float(mods.lens["radius"]), l.index)
+		else:
+			_auto_band(l)
+	if l.has_target and seek:
+		l.mode = "seek"
+		l.pos = l.pos.move_toward(l.target, data.lens_value("seek_speed") * dt)
+		return
+	l.mode = "auto"
+	var goal: Vector2
+	if l.has_target:
+		# sweep up and down over the busiest stretch of the road
+		l.sweep += dt
+		var amp: float = data.lens_value("auto_sweep_amp")
+		var y: float = l.target.y + sin(l.sweep * TAU / data.lens_value("auto_sweep_period") + l.index * PI) * amp
+		goal = Vector2(l.target.x, clampf(y, y_min, y_max))
 	else:
-		var ap: Dictionary = data.lens.get("auto_path", {})
-		_lens_phase = fmod(_lens_phase + dt * TAU / maxf(1.0, float(ap.get("period", 14.0))), TAU)
-		var target := Vector2(float(ap.get("cx", 600.0)) + cos(_lens_phase) * float(ap.get("rx", 200.0)),
-			float(ap.get("cy", 370.0)) + sin(_lens_phase) * float(ap.get("ry", 150.0)))
-		lens_pos = lens_pos.move_toward(target, data.lens_value("auto_speed", 160.0) * dt)
-		lens_mode = "auto"
-	_lens_acc += dt
+		var ap: Dictionary = data.lens["auto_path"]
+		l.phase = fmod(l.phase + dt * TAU / maxf(1.0, float(ap["period"])), TAU)
+		goal = Vector2(float(ap["cx"]) + cos(l.phase) * float(ap["rx"]), float(ap["cy"]) + sin(l.phase) * float(ap["ry"]))
+	l.pos = l.pos.move_toward(goal, data.lens_value("auto_speed") * dt)
+
+
+## Basic auto mode: the x-band (auto_band px) with most enemies; target = their mean position.
+func _auto_band(l: Lens) -> void:
+	var band: float = maxf(10.0, data.lens_value("auto_band"))
+	var counts: Dictionary = {}
+	for e in enemies:
+		if _targetable(e):
+			var b: int = int(floor((e.pos.x - moat_x) / band))
+			counts[b] = int(counts.get(b, 0)) + 1
+	l.has_target = not counts.is_empty()
+	if not l.has_target:
+		return
+	var keys: Array = counts.keys()
+	keys.sort()
+	var pick: int = int(keys[0])
+	var rank: int = l.index  # extra lenses take the 2nd, 3rd... busiest band
+	var ordered: Array = keys.duplicate()
+	ordered.sort_custom(func(a: int, b: int) -> bool:
+		return int(counts[a]) > int(counts[b]) or (int(counts[a]) == int(counts[b]) and a < b))
+	pick = int(ordered[mini(rank, ordered.size() - 1)])
+	var sx: float = 0.0
+	var sy: float = 0.0
+	var n: int = 0
+	for e in enemies:
+		if _targetable(e) and int(floor((e.pos.x - moat_x) / band)) == pick:
+			sx += e.pos.x
+			sy += e.pos.y
+			n += 1
+	l.target = Vector2(sx / n, sy / n)
+
+
+func _lens_damage(l: Lens, dt: float, manual: bool) -> void:
+	var L: Dictionary = mods.lens
+	l.acc += dt
 	var interval: float = float(L["interval"])
 	var n: int = 0
-	while _lens_acc >= interval and n < 100:
-		_lens_acc -= interval
+	while l.acc >= interval and n < 100:
+		l.acc -= interval
 		n += 1
 	if n == 0:
 		return
-	var dmg: float = float(L["dmg"]) * n * (1.0 if manual else float(L["auto_mult"]))
+	var k: float = n * (1.0 if manual else float(L["auto_mult"]))
+	var dmg: float = float(L["dmg"]) * k
+	var pct: float = float(L["dmg_pct_hp"]) * k
+	var boss_k: float = data.lens_value("boss_pct_mult")
 	var radius: float = float(L["radius"])
-	var hf: float = data.lens_value("hit_radius_factor", 0.5)
+	var hf: float = data.lens_value("hit_radius_factor")
+	var sts: Dictionary = L["statuses"]
+	var total: float = 0.0
+	var hits: int = 0
 	for e in enemies:
-		if not e.alive or absf(e.pos.x - lens_pos.x) > radius + e.radius:
+		if not _targetable(e) or absf(e.pos.x - l.pos.x) > radius + e.radius:
 			continue
 		var rr: float = radius + e.radius * hf
-		if e.pos.distance_squared_to(lens_pos) <= rr * rr:
-			damage(e, dmg, str(L["dmg_type"]), false, "lens")
+		if e.pos.distance_squared_to(l.pos) <= rr * rr:
+			var d: float = dmg + pct * e.max_hp * (boss_k if e.role == "boss" else 1.0)
+			var dealt: float = damage(e, d, str(L["dmg_type"]), false, "lens")
+			total += dealt
+			hits += 1
+			if e.alive:
+				for s: String in sts:
+					_apply_status(e, s, float(sts[s]["value"]), float(sts[s]["duration"]), dealt)
 	if emit:
-		events.append({"type": "lens_tick", "pos": lens_pos, "radius": radius, "mode": lens_mode})
+		events.append({"type": "lens_tick", "index": l.index, "pos": l.pos, "radius": radius, "mode": l.mode,
+			"damage": total, "hits": hits})
 
 
 ## Position of the enemy with the most neighbours within `radius` (ties -> closest
-## to the moat). Used by the lens "Наводчик" upgrade and the bot's cursor.
-## Sorted sweep, so roughly O(n·k) instead of O(n²).
-func densest_point(radius: float) -> Vector2:
+## to the moat). `skip` > 0 picks a group at least 2·radius away from the best one
+## (for extra lenses). Sorted sweep, so roughly O(n·k) instead of O(n²).
+func densest_point(radius: float, skip: int = 0) -> Vector2:
 	var alive: Array[Enemy] = []
 	for e in enemies:
-		if e.alive:
+		if _targetable(e):
 			alive.append(e)
 	if alive.is_empty():
 		return lens_pos
 	alive.sort_custom(func(a: Enemy, b: Enemy) -> bool: return a.pos.x < b.pos.x)
 	var r2: float = radius * radius
-	var best: int = 0
-	var best_n: int = -1
-	var lo: int = 0
 	var count: int = alive.size()
+	var scores: Array[int] = []
+	scores.resize(count)
+	var lo: int = 0
 	for i in count:
 		var c: Vector2 = alive[i].pos
 		while alive[lo].pos.x < c.x - radius:
@@ -656,9 +1073,18 @@ func densest_point(radius: float) -> Vector2:
 			if alive[j].pos.distance_squared_to(c) <= r2:
 				n += 1
 			j += 1
-		if n > best_n:
-			best_n = n
+		scores[i] = n
+	var best: int = 0
+	for i in count:
+		if scores[i] > scores[best]:
 			best = i
+	if skip > 0:
+		var second: int = -1
+		for i in count:
+			if alive[i].pos.distance_squared_to(alive[best].pos) > 4.0 * r2 and (second < 0 or scores[i] > scores[second]):
+				second = i
+		if second >= 0:
+			best = second
 	return alive[best].pos
 
 

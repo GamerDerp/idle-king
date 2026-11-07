@@ -1,5 +1,5 @@
 {
-  "_comment": "Conquest map. Node: id, region, parents (any one bought unlocks it; empty = root), pos (map coords 0..1000 x 0..700), kind (spine/bait/tower/lens/moat/synergy/global/boss/region), cost {res: base}, growth p (price = base*(1+p)^level), max level, effects (applied per level; see docs/CORE.md). name/desc are i18n keys NODE_<ID>/NODE_<ID>_DESC.",
+  "_comment": "Conquest map. Node: id, region, parents (any one bought unlocks it; empty = root), pos (map coords 0..1000 x 0..700), kind (spine/bait/tower/lens/moat/mechanism/synergy/global/boss/reward/region), cost {res: base}, growth p (price = base*(1+p)^level), max level, effects (applied per level; see docs/CORE.md). Optional: excludes [ids] (mutually exclusive choice), requires {boss: id} (visible only after that boss is defeated). name/desc are i18n keys NODE_<ID>/NODE_<ID>_DESC.",
   "regions": [
     {
       "id": 0,
@@ -22,7 +22,7 @@
       "name": "REGION_2",
       "center": [
         860,
-        520
+        540
       ]
     }
   ],
@@ -40,12 +40,35 @@
         "blueprints": 3
       },
       "growth": 0.9,
-      "max": 3,
+      "max": 2,
       "effects": [
         {
           "type": "enemy_spawn_add",
           "target": "tramp",
           "value": 1
+        }
+      ]
+    },
+    {
+      "id": "r0_kettle",
+      "region": 0,
+      "parents": [
+        "r0_horn"
+      ],
+      "pos": [
+        540,
+        330
+      ],
+      "kind": "mechanism",
+      "cost": {
+        "blueprints": 8
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "unlock_ability",
+          "target": "kettle"
         }
       ]
     },
@@ -61,39 +84,18 @@
       ],
       "kind": "lens",
       "cost": {
-        "blueprints": 5
+        "blueprints": 6
       },
-      "growth": 0.6,
-      "max": 5,
+      "growth": 0.8,
+      "max": 2,
       "effects": [
         {
           "type": "lens_dmg",
-          "value": 0.25
-        }
-      ]
-    },
-    {
-      "id": "r0_rumors",
-      "region": 0,
-      "parents": [
-        "r0_horn"
-      ],
-      "pos": [
-        540,
-        430
-      ],
-      "kind": "bait",
-      "cost": {
-        "blueprints": 7
-      },
-      "growth": 0.6,
-      "max": 5,
-      "effects": [
+          "value": 0.6
+        },
         {
-          "type": "enemy_loot_mult",
-          "target": "tramp",
-          "value": 0.3,
-          "hp": 0.15
+          "type": "lens_radius",
+          "value": 8
         }
       ]
     },
@@ -104,50 +106,25 @@
         "r0_horn"
       ],
       "pos": [
-        470,
+        460,
         330
       ],
       "kind": "tower",
       "cost": {
-        "blueprints": 9
+        "blueprints": 10
       },
-      "growth": 1.1,
-      "max": 3,
+      "growth": 1.2,
+      "max": 1,
       "effects": [
         {
           "type": "tower_limit_add",
           "target": "shooter",
-          "value": 2
+          "value": 3
         }
       ]
     },
     {
-      "id": "r0_bounty",
-      "region": 0,
-      "parents": [
-        "r0_rumors"
-      ],
-      "pos": [
-        580,
-        470
-      ],
-      "kind": "bait",
-      "cost": {
-        "blueprints": 10
-      },
-      "growth": 0.6,
-      "max": 5,
-      "effects": [
-        {
-          "type": "enemy_bp_mult",
-          "target": "tramp",
-          "value": 0.3,
-          "hp": 0.15
-        }
-      ]
-    },
-    {
-      "id": "r0_lens_grind",
+      "id": "r0_lens_burn",
       "region": 0,
       "parents": [
         "r0_lens_focus"
@@ -158,38 +135,72 @@
       ],
       "kind": "lens",
       "cost": {
-        "blueprints": 12
+        "blueprints": 14
       },
-      "growth": 0.6,
-      "max": 5,
+      "growth": 0,
+      "max": 1,
       "effects": [
         {
-          "type": "lens_radius",
-          "value": 6
+          "type": "lens_status",
+          "value": 0.6,
+          "status": "scald",
+          "duration": 2.0
         }
       ]
     },
     {
-      "id": "r0_sights",
+      "id": "r0_rumors",
       "region": 0,
       "parents": [
-        "r0_loopholes"
+        "r0_horn"
       ],
       "pos": [
-        420,
-        300
+        550,
+        440
       ],
-      "kind": "tower",
+      "kind": "bait",
       "cost": {
-        "blueprints": 15
+        "blueprints": 8
       },
-      "growth": 0.7,
-      "max": 3,
+      "growth": 0.8,
+      "max": 2,
       "effects": [
         {
-          "type": "tower_crit_chance_add",
-          "target": "shooter",
-          "value": 0.05
+          "type": "enemy_bait",
+          "target": "tramp",
+          "value": 0.5,
+          "hp": 0.55
+        }
+      ]
+    },
+    {
+      "id": "r0_kettle_whistle",
+      "region": 0,
+      "parents": [
+        "r0_kettle"
+      ],
+      "pos": [
+        560,
+        280
+      ],
+      "kind": "mechanism",
+      "cost": {
+        "blueprints": 20
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "ability_status",
+          "target": "kettle",
+          "status": "slow",
+          "value": 0.5,
+          "duration": 2.0
+        },
+        {
+          "type": "ability_dmg_mult",
+          "target": "kettle",
+          "value": 0.5
         }
       ]
     },
@@ -198,11 +209,12 @@
       "region": 0,
       "parents": [
         "r0_loopholes",
-        "r0_rumors"
+        "r0_rumors",
+        "r0_kettle"
       ],
       "pos": [
-        570,
-        340
+        590,
+        350
       ],
       "kind": "region",
       "cost": {
@@ -228,7 +240,7 @@
         "r0_road"
       ],
       "pos": [
-        630,
+        640,
         310
       ],
       "kind": "spine",
@@ -258,8 +270,8 @@
       "cost": {
         "blueprints": 45
       },
-      "growth": 0.8,
-      "max": 3,
+      "growth": 0.9,
+      "max": 2,
       "effects": [
         {
           "type": "enemy_spawn_add",
@@ -280,41 +292,16 @@
       ],
       "kind": "bait",
       "cost": {
-        "blueprints": 55
+        "blueprints": 50
       },
-      "growth": 0.6,
-      "max": 5,
+      "growth": 0.8,
+      "max": 2,
       "effects": [
         {
-          "type": "enemy_loot_mult",
+          "type": "enemy_bait",
           "target": "rust_dog",
-          "value": 0.3,
-          "hp": 0.15
-        }
-      ]
-    },
-    {
-      "id": "r1_dog_bounty",
-      "region": 1,
-      "parents": [
-        "r1_dog_rumors"
-      ],
-      "pos": [
-        590,
-        200
-      ],
-      "kind": "bait",
-      "cost": {
-        "blueprints": 65
-      },
-      "growth": 0.6,
-      "max": 5,
-      "effects": [
-        {
-          "type": "enemy_bp_mult",
-          "target": "rust_dog",
-          "value": 0.3,
-          "hp": 0.15
+          "value": 0.5,
+          "hp": 0.55
         }
       ]
     },
@@ -326,7 +313,7 @@
       ],
       "pos": [
         660,
-        360
+        370
       ],
       "kind": "tower",
       "cost": {
@@ -349,43 +336,19 @@
       ],
       "pos": [
         640,
-        410
+        420
       ],
       "kind": "tower",
       "cost": {
         "blueprints": 110
       },
       "growth": 1.0,
-      "max": 3,
+      "max": 2,
       "effects": [
         {
           "type": "tower_limit_add",
           "target": "riveter",
           "value": 2
-        }
-      ]
-    },
-    {
-      "id": "r1_riveter_pierce",
-      "region": 1,
-      "parents": [
-        "r1_riveter"
-      ],
-      "pos": [
-        690,
-        410
-      ],
-      "kind": "tower",
-      "cost": {
-        "blueprints": 140
-      },
-      "growth": 1.2,
-      "max": 2,
-      "effects": [
-        {
-          "type": "tower_pierce_add",
-          "target": "riveter",
-          "value": 1
         }
       ]
     },
@@ -396,12 +359,12 @@
         "r1_dogs"
       ],
       "pos": [
-        700,
+        710,
         290
       ],
       "kind": "spine",
       "cost": {
-        "blueprints": 150
+        "blueprints": 120
       },
       "growth": 0,
       "max": 1,
@@ -426,8 +389,8 @@
       "cost": {
         "blueprints": 180
       },
-      "growth": 0.8,
-      "max": 3,
+      "growth": 0.9,
+      "max": 2,
       "effects": [
         {
           "type": "enemy_spawn_add",
@@ -450,39 +413,14 @@
       "cost": {
         "blueprints": 200
       },
-      "growth": 0.6,
-      "max": 5,
+      "growth": 0.8,
+      "max": 2,
       "effects": [
         {
-          "type": "enemy_loot_mult",
+          "type": "enemy_bait",
           "target": "junker",
-          "value": 0.3,
-          "hp": 0.15
-        }
-      ]
-    },
-    {
-      "id": "r1_junk_bounty",
-      "region": 1,
-      "parents": [
-        "r1_junk_rumors"
-      ],
-      "pos": [
-        790,
-        200
-      ],
-      "kind": "bait",
-      "cost": {
-        "blueprints": 230
-      },
-      "growth": 0.6,
-      "max": 5,
-      "effects": [
-        {
-          "type": "enemy_bp_mult",
-          "target": "junker",
-          "value": 0.3,
-          "hp": 0.15
+          "value": 0.5,
+          "hp": 0.55
         }
       ]
     },
@@ -490,22 +428,22 @@
       "id": "r1_curtain",
       "region": 1,
       "parents": [
-        "r1_junkers"
+        "r1_dogs"
       ],
       "pos": [
-        690,
+        700,
         340
       ],
       "kind": "moat",
       "cost": {
-        "blueprints": 200
+        "blueprints": 80
       },
-      "growth": 0.9,
-      "max": 5,
+      "growth": 1.4,
+      "max": 3,
       "effects": [
         {
           "type": "moat_damage",
-          "value": 8
+          "value": 10
         }
       ]
     },
@@ -516,19 +454,19 @@
         "r1_junkers"
       ],
       "pos": [
-        740,
-        340
+        745,
+        345
       ],
       "kind": "lens",
       "cost": {
         "blueprints": 220
       },
-      "growth": 0.7,
-      "max": 5,
+      "growth": 0.8,
+      "max": 2,
       "effects": [
         {
           "type": "lens_rate",
-          "value": 0.2
+          "value": 0.3
         }
       ]
     },
@@ -541,7 +479,7 @@
       ],
       "pos": [
         760,
-        390
+        395
       ],
       "kind": "lens",
       "cost": {
@@ -553,26 +491,7 @@
         {
           "type": "lens_seek",
           "value": 1
-        }
-      ]
-    },
-    {
-      "id": "r1_auto",
-      "region": 1,
-      "parents": [
-        "r1_seek"
-      ],
-      "pos": [
-        800,
-        420
-      ],
-      "kind": "lens",
-      "cost": {
-        "blueprints": 450
-      },
-      "growth": 1.0,
-      "max": 2,
-      "effects": [
+        },
         {
           "type": "lens_auto_mult",
           "value": 0.25
@@ -591,7 +510,7 @@
       ],
       "kind": "spine",
       "cost": {
-        "blueprints": 400
+        "blueprints": 480
       },
       "growth": 0,
       "max": 1,
@@ -599,6 +518,79 @@
         {
           "type": "unlock_enemy",
           "target": "tin_knight"
+        }
+      ]
+    },
+    {
+      "id": "r1_knight_horn",
+      "region": 1,
+      "parents": [
+        "r1_knights"
+      ],
+      "pos": [
+        810,
+        250
+      ],
+      "kind": "bait",
+      "cost": {
+        "blueprints": 800
+      },
+      "growth": 0.9,
+      "max": 2,
+      "effects": [
+        {
+          "type": "enemy_spawn_add",
+          "target": "tin_knight",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "r1_knight_rumors",
+      "region": 1,
+      "parents": [
+        "r1_knights"
+      ],
+      "pos": [
+        850,
+        265
+      ],
+      "kind": "bait",
+      "cost": {
+        "blueprints": 900
+      },
+      "growth": 0.8,
+      "max": 2,
+      "effects": [
+        {
+          "type": "enemy_bait",
+          "target": "tin_knight",
+          "value": 0.5,
+          "hp": 0.55
+        }
+      ]
+    },
+    {
+      "id": "r1_second_kettle",
+      "region": 1,
+      "parents": [
+        "r1_knights"
+      ],
+      "pos": [
+        760,
+        440
+      ],
+      "kind": "mechanism",
+      "cost": {
+        "blueprints": 450
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "ability_count_add",
+          "target": "kettle",
+          "value": 1
         }
       ]
     },
@@ -614,7 +606,7 @@
       ],
       "kind": "tower",
       "cost": {
-        "blueprints": 600
+        "blueprints": 900
       },
       "growth": 0,
       "max": 1,
@@ -622,56 +614,6 @@
         {
           "type": "unlock_tower",
           "target": "mortar"
-        }
-      ]
-    },
-    {
-      "id": "r1_hot_rivets",
-      "region": 1,
-      "parents": [
-        "r1_knights"
-      ],
-      "pos": [
-        770,
-        360
-      ],
-      "kind": "synergy",
-      "cost": {
-        "blueprints": 300
-      },
-      "growth": 1.0,
-      "max": 3,
-      "effects": [
-        {
-          "type": "tower_on_hit_status",
-          "target": "riveter",
-          "status": "scald",
-          "value": 0.5,
-          "duration": 3.0
-        }
-      ]
-    },
-    {
-      "id": "r1_mortar_splash",
-      "region": 1,
-      "parents": [
-        "r1_mortar"
-      ],
-      "pos": [
-        860,
-        380
-      ],
-      "kind": "tower",
-      "cost": {
-        "blueprints": 900
-      },
-      "growth": 0.9,
-      "max": 3,
-      "effects": [
-        {
-          "type": "tower_splash_add",
-          "target": "mortar",
-          "value": 12
         }
       ]
     },
@@ -700,64 +642,75 @@
       ]
     },
     {
-      "id": "r1_knight_horn",
+      "id": "r1_hot_rivets",
       "region": 1,
       "parents": [
-        "r1_knights"
+        "r1_mortar"
       ],
       "pos": [
-        810,
-        250
+        780,
+        410
       ],
-      "kind": "bait",
+      "kind": "synergy",
       "cost": {
-        "blueprints": 800
+        "blueprints": 350
       },
-      "growth": 0.8,
-      "max": 3,
+      "growth": 0,
+      "max": 1,
       "effects": [
         {
-          "type": "enemy_spawn_add",
-          "target": "tin_knight",
-          "value": 1
+          "type": "tower_on_hit_status",
+          "target": "riveter",
+          "value": 0.6,
+          "status": "scald",
+          "duration": 3.0
         }
+      ],
+      "excludes": [
+        "r1_heavy_bombs"
       ]
     },
     {
-      "id": "r1_knight_bounty",
+      "id": "r1_heavy_bombs",
       "region": 1,
       "parents": [
-        "r1_knights"
+        "r1_mortar"
       ],
       "pos": [
-        850,
-        270
+        870,
+        400
       ],
-      "kind": "bait",
+      "kind": "synergy",
       "cost": {
-        "blueprints": 900
+        "blueprints": 350
       },
-      "growth": 0.6,
-      "max": 5,
+      "growth": 0,
+      "max": 1,
       "effects": [
         {
-          "type": "enemy_bp_mult",
-          "target": "tin_knight",
-          "value": 0.3,
-          "hp": 0.15
+          "type": "tower_splash_add",
+          "target": "mortar",
+          "value": 20
+        },
+        {
+          "type": "tower_knockback_add",
+          "target": "mortar",
+          "value": 25
         }
+      ],
+      "excludes": [
+        "r1_hot_rivets"
       ]
     },
     {
       "id": "r1_decree",
       "region": 1,
       "parents": [
-        "r1_mortar",
-        "r1_hot_rivets"
+        "r1_mortar"
       ],
       "pos": [
         880,
-        320
+        330
       ],
       "kind": "global",
       "cost": {
@@ -784,7 +737,7 @@
       ],
       "kind": "boss",
       "cost": {
-        "blueprints": 1400
+        "blueprints": 1700
       },
       "growth": 0,
       "max": 1,
@@ -796,25 +749,290 @@
       ]
     },
     {
+      "id": "r1_trophy_boiler",
+      "region": 1,
+      "parents": [
+        "r1_boss"
+      ],
+      "pos": [
+        940,
+        240
+      ],
+      "kind": "reward",
+      "cost": {
+        "blueprints": 0
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "lens_extra_add",
+          "value": 1
+        }
+      ],
+      "excludes": [
+        "r1_trophy_chains"
+      ],
+      "requires": {
+        "boss": "wasteland_chief"
+      }
+    },
+    {
+      "id": "r1_trophy_chains",
+      "region": 1,
+      "parents": [
+        "r1_boss"
+      ],
+      "pos": [
+        960,
+        300
+      ],
+      "kind": "reward",
+      "cost": {
+        "blueprints": 0
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "moat_slow_add",
+          "value": 0.5
+        },
+        {
+          "type": "moat_damage",
+          "value": 20
+        }
+      ],
+      "excludes": [
+        "r1_trophy_boiler"
+      ],
+      "requires": {
+        "boss": "wasteland_chief"
+      }
+    },
+    {
       "id": "r2_road",
       "region": 2,
       "parents": [
         "r1_boss"
       ],
       "pos": [
-        880,
-        500
+        860,
+        480
       ],
-      "kind": "region",
+      "kind": "spine",
       "cost": {
-        "blueprints": 2500
+        "blueprints": 1200
       },
       "growth": 0,
       "max": 1,
       "effects": [
         {
+          "type": "unlock_enemy",
+          "target": "mole_miner"
+        }
+      ]
+    },
+    {
+      "id": "r2_steam_jet",
+      "region": 2,
+      "parents": [
+        "r2_road"
+      ],
+      "pos": [
+        810,
+        540
+      ],
+      "kind": "tower",
+      "cost": {
+        "blueprints": 1500
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "unlock_tower",
+          "target": "steam_jet"
+        }
+      ],
+      "excludes": [
+        "r2_boiler"
+      ]
+    },
+    {
+      "id": "r2_boiler",
+      "region": 2,
+      "parents": [
+        "r2_road"
+      ],
+      "pos": [
+        910,
+        540
+      ],
+      "kind": "tower",
+      "cost": {
+        "blueprints": 1500
+      },
+      "growth": 0,
+      "max": 1,
+      "effects": [
+        {
+          "type": "unlock_tower",
+          "target": "boiler"
+        }
+      ],
+      "excludes": [
+        "r2_steam_jet"
+      ]
+    },
+    {
+      "id": "r2_mole_horn",
+      "region": 2,
+      "parents": [
+        "r2_road"
+      ],
+      "pos": [
+        830,
+        440
+      ],
+      "kind": "bait",
+      "cost": {
+        "blueprints": 1600
+      },
+      "growth": 0.9,
+      "max": 2,
+      "effects": [
+        {
+          "type": "enemy_spawn_add",
+          "target": "mole_miner",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "r2_mole_rumors",
+      "region": 2,
+      "parents": [
+        "r2_road"
+      ],
+      "pos": [
+        900,
+        440
+      ],
+      "kind": "bait",
+      "cost": {
+        "blueprints": 1800
+      },
+      "growth": 0.8,
+      "max": 2,
+      "effects": [
+        {
+          "type": "enemy_bait",
+          "target": "mole_miner",
+          "value": 0.5,
+          "hp": 0.55
+        }
+      ]
+    },
+    {
+      "id": "r2_furnace",
+      "region": 2,
+      "parents": [
+        "r2_road"
+      ],
+      "pos": [
+        860,
+        600
+      ],
+      "kind": "moat",
+      "cost": {
+        "blueprints": 2000,
+        "coal": 15
+      },
+      "growth": 0.9,
+      "max": 3,
+      "effects": [
+        {
+          "type": "moat_damage",
+          "value": 30
+        },
+        {
+          "type": "moat_width_add",
+          "value": 25
+        }
+      ]
+    },
+    {
+      "id": "r2_jet_nozzle",
+      "region": 2,
+      "parents": [
+        "r2_steam_jet"
+      ],
+      "pos": [
+        780,
+        600
+      ],
+      "kind": "tower",
+      "cost": {
+        "blueprints": 2500,
+        "coal": 10
+      },
+      "growth": 0.9,
+      "max": 2,
+      "effects": [
+        {
+          "type": "tower_range_add",
+          "target": "steam_jet",
+          "value": 60
+        }
+      ]
+    },
+    {
+      "id": "r2_boiler_lid",
+      "region": 2,
+      "parents": [
+        "r2_boiler"
+      ],
+      "pos": [
+        940,
+        600
+      ],
+      "kind": "tower",
+      "cost": {
+        "blueprints": 2500,
+        "coal": 10
+      },
+      "growth": 0.9,
+      "max": 2,
+      "effects": [
+        {
+          "type": "tower_splash_add",
+          "target": "boiler",
+          "value": 20
+        }
+      ]
+    },
+    {
+      "id": "r2_coal_decree",
+      "region": 2,
+      "parents": [
+        "r2_furnace"
+      ],
+      "pos": [
+        860,
+        650
+      ],
+      "kind": "global",
+      "cost": {
+        "blueprints": 3000,
+        "coal": 20
+      },
+      "growth": 0.9,
+      "max": 3,
+      "effects": [
+        {
           "type": "global_loot_mult",
-          "value": 0.25
+          "value": 0.3
         }
       ]
     }

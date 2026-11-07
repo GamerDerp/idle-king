@@ -1,5 +1,5 @@
 {
-  "_comment": "Enemy types. pack = spawn count per pack (fractions accumulate). resist: damage type -> fraction blocked (negative = weakness). loot per kill before multipliers.",
+  "_comment": "Enemy types. pack = spawn count per pack (fractions accumulate). resist: damage type -> fraction blocked (negative = weakness). loot per kill before multipliers. burrow: alternates underground (untouchable) / surface seconds.",
   "damage_types": {
     "impact": {
       "name": "DMG_IMPACT",
@@ -23,77 +23,97 @@
       "name": "ENEMY_TRAMP",
       "region": 0,
       "role": "normal",
-      "start": true,
-      "hp": 14,
+      "hp": 12,
       "speed": 30,
       "radius": 9,
-      "pack": 3,
       "loot": {
         "gears": 1,
         "blueprints": 0.4
       },
       "resist": {},
-      "color": "parchment_1"
+      "color": "parchment_1",
+      "pack": 3,
+      "start": true
     },
     "rust_dog": {
       "name": "ENEMY_RUST_DOG",
       "region": 1,
       "role": "normal",
-      "hp": 32,
+      "hp": 45,
       "speed": 56,
       "radius": 8,
-      "pack": 2,
       "loot": {
-        "gears": 3,
+        "gears": 2,
         "blueprints": 1.5
       },
       "resist": {},
-      "color": "copper_2"
+      "color": "copper_2",
+      "pack": 2
     },
     "junker": {
       "name": "ENEMY_JUNKER",
       "region": 1,
       "role": "normal",
-      "hp": 280,
+      "hp": 450,
       "speed": 16,
       "radius": 14,
-      "pack": 0.5,
       "loot": {
-        "gears": 25,
+        "gears": 12,
         "blueprints": 16
       },
       "resist": {
         "blast": 0.2
       },
-      "color": "brass_1"
+      "color": "brass_1",
+      "pack": 0.5
     },
     "tin_knight": {
       "name": "ENEMY_TIN_KNIGHT",
       "region": 1,
       "role": "normal",
-      "hp": 420,
+      "hp": 950,
       "speed": 24,
       "radius": 11,
-      "pack": 1,
       "loot": {
-        "gears": 50,
+        "gears": 25,
         "blueprints": 35
       },
       "resist": {
         "impact": 0.6,
         "steam": -0.5
       },
-      "color": "iron_3"
+      "color": "iron_3",
+      "pack": 1
+    },
+    "mole_miner": {
+      "name": "ENEMY_MOLE_MINER",
+      "region": 2,
+      "role": "normal",
+      "hp": 1500,
+      "speed": 26,
+      "radius": 11,
+      "loot": {
+        "gears": 45,
+        "blueprints": 60,
+        "coal": 1
+      },
+      "resist": {},
+      "color": "soot_3",
+      "pack": 1,
+      "burrow": {
+        "under": 1.5,
+        "over": 2.5
+      }
     },
     "scav_guard": {
       "name": "ENEMY_SCAV_GUARD",
       "region": 1,
       "role": "escort",
-      "hp": 500,
+      "hp": 700,
       "speed": 22,
       "radius": 11,
       "loot": {
-        "gears": 20,
+        "gears": 10,
         "blueprints": 8
       },
       "resist": {
@@ -105,7 +125,7 @@
       "name": "ENEMY_WASTELAND_CHIEF",
       "region": 1,
       "role": "boss",
-      "hp": 9500,
+      "hp": 20000,
       "speed": 11,
       "radius": 22,
       "loot": {
